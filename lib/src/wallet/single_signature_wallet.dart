@@ -71,7 +71,8 @@ class SingleSignatureWallet extends SingleSignatureWalletBase
   @override
   List<Transfer> getTransferList({int cursor = 0, int count = 5}) {
     List<Transfer> transferList = [];
-    for (Transaction entity in walletStatus!.transactionList) {
+    for (Transaction entity
+        in walletStatus!.getTransactionList(cursor, count)) {
       transferList.add(Transfer.fromTransactions(addressBook, entity));
     }
     return transferList;

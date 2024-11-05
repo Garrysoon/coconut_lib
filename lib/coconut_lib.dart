@@ -79,3 +79,4 @@ part 'src/wallet/key_store.dart';
 part 'src/wallet/multisignature_vault.dart';
 part 'src/wallet/multisignature_wallet.dart';
 part 'src/wallet/wallet_utility.dart';
+part 'src/wallet/bitcoin_secure_multisig_setup.dart';
