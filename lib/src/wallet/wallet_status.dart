@@ -45,16 +45,8 @@ class WalletStatus {
   }
 
   List<Transaction> getTransactionList(int take, int cursor) {
-    List<Transaction> unconfirmed =
-        transactionList.where((tx) => tx.timestamp == 0).toList();
-    List<Transaction> confirmed =
-        transactionList.where((tx) => tx.timestamp != 0).toList();
-
-    confirmed.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-
-    List<Transaction> sortedList = [...unconfirmed, ...confirmed];
-
-    return sortedList.skip(cursor).take(take).toList();
+    transactionList.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    return transactionList.skip(cursor).take(take).toList();
   }
 
   WalletStatus(
