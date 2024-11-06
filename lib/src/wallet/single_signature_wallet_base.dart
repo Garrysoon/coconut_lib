@@ -53,7 +53,7 @@ abstract class SingleSignatureWalletBase extends WalletBase {
   }
 
   /// Display BSMS for multisig setup.
-  String displayBSMS(AddressType targetAddressType, String description) {
+  String getBsmsForSigner(AddressType targetAddressType, String description) {
     if (!targetAddressType.isMultisig) {
       throw Exception('Use Multisig address type.');
     }

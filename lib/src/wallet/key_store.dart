@@ -74,6 +74,8 @@ class KeyStore {
     return KeyStore.fromSeed(seed, addressType, accountIndex: accountIndex);
   }
 
+  // factory KeyStore.fromSignerBsms(String signerBsms)
+
   /// Get the private key of the key store using index.
   String getPrivateKey(int index, {bool isChange = false}) {
     if (!hasSeed) throw Exception('No private key in this key store');
