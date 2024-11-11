@@ -57,21 +57,6 @@ class Transaction {
         return total;
       }();
 
-  /// Get the length of the witness.
-  int get witnessLength => () {
-        int total = 0;
-        int witnessCount = 0;
-        for (int i = 0; i < _inputs.length; i++) {
-          Converter.bytesToHex(Varints.encode(inputs[i].witness.length));
-          witnessCount += inputs[i].witness.length;
-        }
-        total += Varints.encode(witnessCount).length;
-        for (TransactionInput input in _inputs) {
-          total += input.witnessLength;
-        }
-        return total;
-      }();
-
   /// @nodoc
   Transaction(this._version, this._inputs, this._outputs, this._lockTime,
       this._isSegwit);
@@ -188,7 +173,7 @@ class Transaction {
           offset += itemLen;
         }
       }
-      txIn.witness = items;
+      txIn.witnessList = items.map((e) => Converter.bytesToHex(e)).toList();
     }
     Uint8List locktime = txBytes.sublist(offset);
     offset += 4;
@@ -301,13 +286,13 @@ class Transaction {
     }
     for (int i = 0; i < inputs.length; i++) {
       serialized +=
-          Converter.bytesToHex(Varints.encode(inputs[i].witness.length));
-      for (int j = 0; j < inputs[i].witness.length; j++) {
-        if (inputs[i].witness[j] == 0) {
+          Converter.bytesToHex(Varints.encode(inputs[i].witnessList.length));
+      for (int j = 0; j < inputs[i].witnessList.length; j++) {
+        if (inputs[i].witnessList[j].isEmpty) {
           serialized += '00';
         } else {
-          serialized += Converter.decToHex((inputs[i].witness[j]).length);
-          serialized += Converter.bytesToHex(inputs[i].witness[j]);
+          serialized += Converter.decToHex((inputs[i].witnessList[j]).length);
+          serialized += inputs[i].witnessList[j];
         }
       }
     }
@@ -430,10 +415,47 @@ class Transaction {
   /// check if the signature is valid in the transaction.
   bool validateSignature(int inputIndex, String utxo, AddressType addressType) {
     String sigHash = getSigHash(inputIndex, utxo, addressType.isSegwit);
+    Uint8List msg = Converter.hexToBytes(sigHash);
+
+    print("@:" + inputs[inputIndex].witnessList.last.toString());
+
     if (addressType.isMultisig) {
-      //TODO: Implement multisig
-      return true;
+      WitnessScript witnessScript =
+          WitnessScript.parse(inputs[inputIndex].witnessList.last);
+
+      List<Uint8List> signatures = inputs[inputIndex]
+          .witnessList
+          .sublist(0, inputs[inputIndex].witnessList.length - 1)
+          .cast<Uint8List>();
+
+      List<Uint8List> pubKeys = witnessScript.commands
+          .sublist(1, witnessScript.commands.length - 2)
+          .cast<Uint8List>();
+
+      int requiredSigs = witnessScript.getRequiredSignature();
+
+      int validSigs = 0;
+
+      for (Uint8List sig in signatures) {
+        for (Uint8List pub in pubKeys) {
+          int rLen = sig[3];
+          Uint8List r = sig.sublist(4, 4 + rLen);
+          if (r[0] == 0) r = r.sublist(1);
+          int sLen = sig[4 + rLen + 1];
+          Uint8List s = sig.sublist(4 + rLen + 2, 4 + rLen + 2 + sLen);
+          Uint8List rs = Uint8List.fromList([...r, ...s]);
+
+          if (ecc.verify(msg, pub, rs)) {
+            validSigs += 1;
+            continue;
+          }
+        }
+      }
+      print("validSigs : " + validSigs.toString());
+
+      return validSigs >= requiredSigs;
     } else {
+      //validate single signature
       String signature;
       String publicKey;
 
@@ -446,7 +468,6 @@ class Transaction {
       }
 
       Uint8List sig = Converter.hexToBytes(signature);
-      Uint8List msg = Converter.hexToBytes(sigHash);
       Uint8List pub = Converter.hexToBytes(publicKey);
 
       int rLen = sig[3];
@@ -465,8 +486,8 @@ class Transaction {
     double totalByte = (Converter.hexToBytes(serialize()).length) * 1.0;
     double witnessByte = 0;
     for (TransactionInput input in inputs) {
-      for (int i = 0; i < input.witness.length; i++) {
-        if (input.witness[i] != 0) {
+      for (int i = 0; i < input.witnessList.length; i++) {
+        if (input.witnessList[i] != 0) {
           witnessByte += (input.witnessList[i].length / 2).floor();
           witnessByte += 1;
         }

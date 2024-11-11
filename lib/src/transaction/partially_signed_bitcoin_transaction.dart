@@ -69,8 +69,10 @@ class PSBT {
 
       List<DerivationPath> inputDerivationPathList = [];
       List<Signature> partialSigList = [];
+      WitnessScript? witnessScript;
 
       psbtMap["inputs"][i].keys.forEach((key) {
+        // 06 : BIP32_DERIVATION
         if (key.startsWith('06')) {
           String publicKey = key.substring(2);
           String masterFingerprint = psbtMap["inputs"][i][key].substring(0, 8);
@@ -79,15 +81,21 @@ class PSBT {
           inputDerivationPathList.add(
               DerivationPath(publicKey, masterFingerprint, derivationPath));
         }
-
+        // 02 : PARTIAL_SIG
         if (key.startsWith('02')) {
           String publicKey = key.substring(2);
           String signature = psbtMap["inputs"][i][key];
           partialSigList.add(Signature(signature, publicKey));
         }
+        // 05 : WITNESS_SCRIPT
+        if (key.startsWith('05')) {
+          String script = psbtMap["inputs"][i][key];
+          witnessScript = WitnessScript.parse(script);
+        }
       });
       inputs.add(PsbtInput(
-          prevTx, witnessUtxo, inputDerivationPathList, partialSigList));
+          prevTx, witnessUtxo, inputDerivationPathList, partialSigList,
+          witnessScript: witnessScript));
     }
 
     for (int i = 0; i < psbtMap["outputs"].length; i++) {
@@ -383,7 +391,7 @@ class PSBT {
       if (wallet.addressType == AddressType.p2wsh) {
         String witnessScriptKey = getKeyType(inputKeyType, 'WITNESS_SCRIPT');
         String witnessScript =
-            multisignatureWallet.getRedeemScript(derivationPath);
+            multisignatureWallet.getWitnessScript(derivationPath);
         inputData[witnessScriptKey] = witnessScript;
       }
       psbtData["inputs"].add(inputData);
@@ -656,8 +664,9 @@ class PSBT {
         if (inputs[i].partialSigList.length < inputs[i].requiredSignature) {
           throw Exception('Not enough signatures');
         }
-        signedTransaction.inputs[i]
-            .setSignature(addressType, inputs[i].partialSigList);
+        signedTransaction.inputs[i].setSignature(
+            addressType, inputs[i].partialSigList,
+            witnessScript: inputs[i].witnessScript);
         if (signedTransaction.validateSignature(
             i, inputs[i].witnessUtxo!.serialize(), addressType)) {
           continue;
@@ -699,17 +708,23 @@ class PsbtInput {
   final TransactionOutput? _witnessUtxo;
   final List<DerivationPath> _derivationPathList;
   final List<Signature> _partialSigList;
-  final int requiredSignature;
-  final int totalSignature;
+  final WitnessScript? witnessScript;
 
   Transaction? get previousTransaction => _previousTransaction;
   TransactionOutput? get witnessUtxo => _witnessUtxo;
   List<DerivationPath> get derivationPathList => _derivationPathList;
   List<Signature> get partialSigList => _partialSigList;
+  int get requiredSignature {
+    if (witnessScript != null) {
+      return 1;
+    } else {
+      return witnessScript!.getRequiredSignature();
+    }
+  }
 
   PsbtInput(this._previousTransaction, this._witnessUtxo,
       this._derivationPathList, this._partialSigList,
-      {this.requiredSignature = 1, this.totalSignature = 1});
+      {this.witnessScript});
 
   _addSignature(String signature, String publicKey) {
     _partialSigList.add(Signature(signature, publicKey));

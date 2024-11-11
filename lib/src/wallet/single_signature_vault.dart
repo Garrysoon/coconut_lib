@@ -70,6 +70,23 @@ class SingleSignatureVault extends SingleSignatureWalletBase
     return keyStore.addSignatureToPsbt(psbt, addressType.isSegwit);
   }
 
+  /// Display BSMS for multisig setup.
+  String getBsmsForSigner(AddressType targetAddressType, String description) {
+    if (!targetAddressType.isMultisig) {
+      throw Exception('Use Multisig address type.');
+    }
+    KeyStore multisigKeyStore =
+        KeyStore.fromSeed(keyStore.seed, targetAddressType);
+
+    BSMS bsms = BSMS.fromSigner(
+        multisigKeyStore.masterFingerprint,
+        (WalletUtility.getDerivationPath(targetAddressType, 0))
+            .replaceAll("m/", ""),
+        multisigKeyStore.extendedPublicKey.serialize(),
+        description);
+    return bsms.serializeSigner();
+  }
+
   /// Get Json string of the single signature vault.
   String toJson() {
     return jsonEncode({

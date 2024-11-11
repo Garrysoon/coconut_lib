@@ -14,9 +14,8 @@ void main() async {
 
   /// generate air-gapped vault
   SingleSignatureVault mnemonicVault = SingleSignatureVault.fromMnemonic(
-      'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
-      AddressType.p2wpkh,
-      passphrase: 'ABC');
+      'output opera coin bottom power cable abuse bitter maximum cost gift burger',
+      AddressType.p2wpkh);
 
   // >> In Wallet
   /// import expub to watch-only wallet with descriptor(BIP-0380)
@@ -39,7 +38,10 @@ void main() async {
 
   /// create a PSBT(BIP-0174) to my another address
   PSBT unsignedPSBT = PSBT.forSending(
-      "bcrt1qyyl6eld8zq0zgh5jf8u5n3lv4jz9tjzeny2lq9", 1000, 3, watchOnlyWallet);
+      "bcrt1qkn8haxetu7gmku4q5lums0yv8f84ze4z6sgjgxq6kw0z5qrfrfkqpgl75y",
+      1000,
+      3,
+      watchOnlyWallet);
 
   /// >> In Vault
   /// vault can sign the PSBT
@@ -52,6 +54,9 @@ void main() async {
       PSBT.parse(signedPsbt); // parse the PSBT received from vault
   Transaction signedTx = signedPSBT
       .getSignedTransaction(watchOnlyWallet.addressType); // transaction object
+
+  print(signedTx.serialize());
+
   Result result =
       await nodeConnector.broadcast(signedTx.serialize()); // broadcast
   print(' - Transaction is broadcasted: ${result.value}');

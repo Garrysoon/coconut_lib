@@ -29,4 +29,13 @@ class ScriptOperationCode {
     }
     return Converter.hexToBytes(hex);
   }
+
+  static String getOpCode(String hex) {
+    for (var entry in ScriptOperationCode().opCodeHexMap.entries) {
+      if (entry.value == hex) {
+        return entry.key;
+      }
+    }
+    throw ArgumentError('Not supporting op code');
+  }
 }

@@ -37,16 +37,51 @@ class MultisignatureVault extends MultisignatureWalletBase
         derivationPath, keyStores);
   }
 
+  factory MultisignatureVault.fromBsmsCoordinator(String bsmsText) {
+    BSMS bsms = BSMS.parseCoordinator(bsmsText);
+    List<KeyStore> keyStores = [];
+    Descriptor descriptor = bsms.coordinator!.descriptor;
+    for (int i = 0; i < descriptor.totalSignature; i++) {
+      ExtendedPublicKey extendedPublicKey =
+          ExtendedPublicKey.parse(descriptor.getPublicKey(i));
+      HDWallet hdWallet = HDWallet.fromPublicKey(
+          extendedPublicKey.publicKey, extendedPublicKey.chainCode);
+      KeyStore keyStore =
+          KeyStore(descriptor.getFingerprint(i), hdWallet, extendedPublicKey);
+      keyStores.add(keyStore);
+    }
+
+    return MultisignatureVault.fromKeyStoreList(
+        keyStores,
+        descriptor.requiredSignatures,
+        AddressType.getAddressTypeFromScriptType("p2${descriptor.scriptType}"));
+  }
+
   @override
   bool canSignToPsbt(String psbt) {
-    //TODO : implement
+    for (KeyStore keyStore in keyStoreList) {
+      if (keyStore.canSignToPsbt(psbt)) {
+        return true;
+      }
+    }
     return false;
   }
 
   @override
   String addSignatureToPsbt(String psbt) {
-    //TODO : implement
-    return " ";
+    if (!canSignToPsbt(psbt)) {
+      throw Exception('No keyStore can sign to the PSBT.');
+    }
+
+    String signedPsbt = psbt;
+
+    for (KeyStore keyStore in keyStoreList) {
+      if (keyStore.canSignToPsbt(signedPsbt)) {
+        signedPsbt =
+            keyStore.addSignatureToPsbt(signedPsbt, addressType.isSegwit);
+      }
+    }
+    return signedPsbt;
   }
 
   //TODO : test
@@ -58,6 +93,18 @@ class MultisignatureVault extends MultisignatureWalletBase
       "addressType": addressType.scriptType,
       "derivationPath": derivationPath
     });
+  }
+
+  void bindSeedToKeyStore(Seed seed, int index) {
+    KeyStore keyStoreFromSeed =
+        KeyStore.fromSeed(seed, addressType, accountIndex: index);
+
+    for (KeyStore keyStore in keyStoreList) {
+      if (keyStore.masterFingerprint == keyStoreFromSeed.masterFingerprint) {
+        keyStoreList[keyStoreList.indexOf(keyStore)] = keyStoreFromSeed;
+        return;
+      }
+    }
   }
 
   //TODO : test

@@ -55,7 +55,7 @@ part 'src/transaction/transaction_input.dart';
 part 'src/transaction/transaction_output.dart';
 part 'src/transaction/block_header.dart';
 part 'src/transaction/signature.dart';
-part 'src/transaction/redeem_script.dart';
+part 'src/transaction/witness_script.dart';
 part 'src/transaction/script_operation_code.dart';
 part 'src/wallet/transfer.dart';
 part 'src/wallet/unspent_transaction_output.dart';

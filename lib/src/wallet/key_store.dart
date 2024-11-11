@@ -74,7 +74,15 @@ class KeyStore {
     return KeyStore.fromSeed(seed, addressType, accountIndex: accountIndex);
   }
 
-  // factory KeyStore.fromSignerBsms(String signerBsms)
+  factory KeyStore.fromBsmsSigner(String signerBsms) {
+    BSMS bsms = BSMS.parseSigner(signerBsms);
+    // KeyStore(fingerprint, wallet, extendedPublicKey)
+    HDWallet wallet = HDWallet.fromPublicKey(
+        bsms.signer!.extendedPublicKey.publicKey,
+        bsms.signer!.extendedPublicKey.chainCode);
+    return KeyStore(
+        bsms.signer!.masterFingerPrint, wallet, bsms.signer!.extendedPublicKey);
+  }
 
   /// Get the private key of the key store using index.
   String getPrivateKey(int index, {bool isChange = false}) {
@@ -124,7 +132,7 @@ class KeyStore {
   ///Check if the PSBT can be signed from this vault.
   bool canSignToPsbt(String psbt) {
     if (!hasSeed) {
-      throw Exception('This vault does not have seed');
+      return false;
     }
     PSBT psbtObj = PSBT.parse(psbt);
     for (int i = 0; i < psbtObj.unsignedTransaction!.inputs.length; i++) {

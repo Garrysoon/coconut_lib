@@ -51,19 +51,4 @@ abstract class SingleSignatureWalletBase extends WalletBase {
     String pubkey = _keyStore.getPublicKey(addressIndex, isChange: isChange);
     return _addressType.getAddress(pubkey);
   }
-
-  /// Display BSMS for multisig setup.
-  String getBsmsForSigner(AddressType targetAddressType, String description) {
-    if (!targetAddressType.isMultisig) {
-      throw Exception('Use Multisig address type.');
-    }
-
-    BSMS bsms = BSMS.fromSigner(
-        keyStore.masterFingerprint,
-        (WalletUtility.getDerivationPath(targetAddressType, 0))
-            .replaceAll("m/", ""),
-        keyStore.extendedPublicKey.serialize(),
-        description);
-    return bsms.serializeSigner();
-  }
 }

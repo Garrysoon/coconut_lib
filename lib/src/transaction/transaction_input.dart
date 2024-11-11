@@ -10,7 +10,7 @@ class TransactionInput {
   late Uint8List _sequence;
 
   /// @nodoc
-  late List<dynamic> witness = [];
+  late List<String> witnessList = [];
 
   /// Get the previous transaction hash.
   String get transactionHash =>
@@ -23,8 +23,8 @@ class TransactionInput {
   int get sequence => Converter.littleEndianToInt(_sequence);
 
   /// Get the witness list of the transaction. (if it is segwit)
-  List<String> get witnessList =>
-      witness.map((e) => Converter.bytesToHex(e)).toList();
+  // List<String> get witnessList =>
+  //     witness.map((e) => Converter.bytesToHex(e)).toList();
 
   /// The length of the transaction input.
   int get length => () {
@@ -36,22 +36,22 @@ class TransactionInput {
         return length;
       }();
 
-  /// The length of the witness.
-  int get witnessLength => () {
-        int length = 0;
-        for (var w in witness) {
-          if (w is List<int>) {
-            length += Varints.encode(w.length).length;
-            length += w.length;
-          }
-        }
-        return length;
-      }();
+  // /// The length of the witness.
+  // int get witnessLength => () {
+  //       int length = 0;
+  //       for (var w in witness) {
+  //         if (w is List<int>) {
+  //           length += Varints.encode(w.length).length;
+  //           length += w.length;
+  //         }
+  //       }
+  //       return length;
+  //     }();
 
   /// @nodoc
   TransactionInput(
       this._transactionHash, this._index, this.scriptSig, this._sequence,
-      {this.witness = const []});
+      {this.witnessList = const []});
 
   /// Parse the transaction input from the given input string.
   factory TransactionInput.parse(String input) {
@@ -102,7 +102,7 @@ class TransactionInput {
 
   /// Insert signature into the transaction input.
   void setSignature(AddressType addressType, List<Signature> signatureList,
-      {int totalSignature = 1, int requiredSignature = 1}) {
+      {WitnessScript? witnessScript}) {
     if (signatureList.isEmpty) {
       throw Exception("No signature found.");
     }
@@ -118,34 +118,18 @@ class TransactionInput {
           Converter.hexToBytes(signatureList[0].publicKey));
     } else if (addressType == AddressType.p2wpkh) {
       scriptSig = ScriptSignature.p2wpkh();
-      witness = [
-        Converter.hexToBytes(signatureList[0].signature),
-        Converter.hexToBytes(signatureList[0].publicKey)
-      ];
+      witnessList = [signatureList[0].signature, signatureList[0].publicKey];
     } else if (addressType == AddressType.p2wsh) {
-      //TODO: implement
-      if (totalSignature < requiredSignature) {
-        throw Exception('Invalid signature count');
+      if (witnessScript == null) {
+        throw ArgumentError('witnessScript is required for p2wsh');
       }
+
       scriptSig = ScriptSignature.p2wsh();
-      List<dynamic> witnessList = [];
-      witnessList.add(00);
-      for (int i = 0; i < requiredSignature; i++) {
-        if (i < signatureList.length) {
-          witnessList.add(signatureList[i].signature);
-        } else {
-          throw Exception('Not enough signature.');
-        }
+      witnessList.add("00");
+      for (int i = 0; i < signatureList.length; i++) {
+        witnessList.add(signatureList[i].signature);
       }
-      witness = witnessList;
-      String redeemScript = (RedeemScript.multiSignature(
-              requiredSignature,
-              totalSignature,
-              signatureList
-                  .map((e) => Converter.hexToBytes(e.publicKey))
-                  .toList()))
-          .serialize();
-      witness.add(redeemScript);
+      witnessList.add(witnessScript.serialize());
     } else {
       throw ArgumentError('Not supported address type');
     }
@@ -154,7 +138,7 @@ class TransactionInput {
   /// Check if the transaction input has signature.
   bool hasSignature(bool isSewit) {
     if (isSewit) {
-      return witness.length >= 2;
+      return witnessList.length >= 2;
     } else {
       return (scriptSig.commands.length == 1 && scriptSig.commands[0] == 0x00);
     }
