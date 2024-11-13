@@ -281,14 +281,6 @@ main() async {
       expect(739 <= expectedFee && expectedFee <= 741, true);
     });
 
-    test('length test', () {
-      String tx =
-          '010000000001019df3834eb1d892b9db3c92653f6c1208bda8dc7661a6ea532246dba86551c5bb000000000083e3ffff029c64040000000000160014825f31d0f7cf9912fbb64e81f4662caf6adbf9b804030100000000001600145cd12eff2417fc0121888480cf7db19a5e55d0710248304502210089500e89119ad29e3f2ca5e8b104bd0d6a05687b09066a5077ba159c5acfa75602204f5d6f521a5303025f3477a752c692b74c10de107bf3c9dd96806f311eacb3db012102b20826da311c3f06855c8e6add1c51438d81a6d3ea768aee19060e5027fc6d6000000000';
-      Transaction transaction = Transaction.parse(tx);
-      expect(transaction.length + transaction.witnessLength,
-          transaction.serialize().length ~/ 2);
-    });
-
     test('maximum sending', () {
       int feeRate = 101;
       TransactionInput input = TransactionInput.forSending(

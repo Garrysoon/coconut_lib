@@ -74,8 +74,8 @@ class KeyStore {
     return KeyStore.fromSeed(seed, addressType, accountIndex: accountIndex);
   }
 
-  factory KeyStore.fromBsmsSigner(String signerBsms) {
-    BSMS bsms = BSMS.parseSigner(signerBsms);
+  factory KeyStore.fromSignerBsms(String signer) {
+    BSMS bsms = BSMS.parseSigner(signer);
     // KeyStore(fingerprint, wallet, extendedPublicKey)
     HDWallet wallet = HDWallet.fromPublicKey(
         bsms.signer!.extendedPublicKey.publicKey,

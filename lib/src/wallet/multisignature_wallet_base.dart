@@ -45,7 +45,7 @@ abstract class MultisignatureWalletBase extends WalletBase {
     return _addressType.getMultisignatureAddress(pubkeys, _requiredSignature);
   }
 
-  String getBsmsForCoordinator() {
+  String getBsmsCoordinator() {
     BSMS bsms = BSMS(
         coordinator: Coordinator(getAddress(0), Descriptor.parse(descriptor)));
     return bsms.serializeCoordinator();

@@ -659,7 +659,7 @@ class PSBT {
   Transaction getSignedTransaction(AddressType addressType) {
     Transaction signedTransaction =
         Transaction.parseUnsignedTransaction(unsignedTransaction!.serialize());
-    if (addressType.isMultisig) {
+    if (addressType == AddressType.p2wsh) {
       for (int i = 0; i < inputs.length; i++) {
         if (inputs[i].partialSigList.length < inputs[i].requiredSignature) {
           throw Exception('Not enough signatures');
@@ -674,7 +674,7 @@ class PSBT {
           throw Exception('Invalid Signatures');
         }
       }
-    } else {
+    } else if (addressType == AddressType.p2wpkh) {
       //every input should have 2 partial sigs
       for (int i = 0; i < inputs.length; i++) {
         if (inputs[i].partialSigList.length != 1) {
@@ -689,6 +689,8 @@ class PSBT {
           throw Exception('Invalid Signatures');
         }
       }
+    } else {
+      throw Exception('Unsupported Address Type');
     }
 
     signedTransaction._isSegwit = addressType.isSegwit;

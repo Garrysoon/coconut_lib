@@ -25,8 +25,8 @@ void main() async {
   KeyStore insideKey2 =
       KeyStore.fromSeed(insideVault2.keyStore.seed, AddressType.p2wsh);
   String signerBsms =
-      outsideVault.getBsmsForSigner(AddressType.p2wsh, "MyHardWallet");
-  KeyStore outsideKey = KeyStore.fromBsmsSigner(signerBsms);
+      outsideVault.getSignerBsms(AddressType.p2wsh, "MyHardWallet");
+  KeyStore outsideKey = KeyStore.fromSignerBsms(signerBsms);
 
   MultisignatureVault multisignatureVault =
       MultisignatureVault.fromKeyStoreList(
@@ -34,8 +34,8 @@ void main() async {
 
   // Start : In Outside Vault
   MultisignatureVault outsideMultisignatureVault =
-      MultisignatureVault.fromBsmsCoordinator(
-          multisignatureVault.getBsmsForCoordinator());
+      MultisignatureVault.fromCoordinatorBsms(
+          multisignatureVault.getBsmsCoordinator());
 
   // Find Seed in Outside Vault and bind it to KeyStore
   outsideMultisignatureVault.bindSeedToKeyStore(
@@ -91,11 +91,17 @@ void main() async {
   Transaction signedTx =
       signedPSBT.getSignedTransaction(watchOnlyWallet.addressType);
 
-  for (String witness in signedTx.inputs[0].witnessList) {
-    print("Witness : " + witness);
-  }
-
   print("TX : " + signedTx.serialize());
+
+  // Result result =
+  //     await nodeConnector.broadcast(signedTx.serialize()); // broadcast
+  // print(' - Transaction is broadcasted: ${result.value}');
+
+  /// need to sync again
+  await watchOnlyWallet.fetchOnChainData(nodeConnector);
+
+  /// check the balance again
+  print("balance : ${watchOnlyWallet.getBalance()}");
 
   exit(0);
 }

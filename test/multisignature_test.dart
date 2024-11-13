@@ -34,8 +34,8 @@ main() async {
       KeyStore insideKey2 =
           KeyStore.fromSeed(insideVault2.keyStore.seed, AddressType.p2wsh);
       String signerBsms =
-          outsideVault.getBsmsForSigner(AddressType.p2wsh, "outside signer");
-      KeyStore outsideKey = KeyStore.fromBsmsSigner(signerBsms);
+          outsideVault.getSignerBsms(AddressType.p2wsh, "outside signer");
+      KeyStore outsideKey = KeyStore.fromSignerBsms(signerBsms);
 
       multisignatureVault = MultisignatureVault.fromKeyStoreList(
           [insideKey1, insideKey2, outsideKey], 2, AddressType.p2wsh);
@@ -45,7 +45,7 @@ main() async {
       BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
 
       String signer =
-          outsideVault.getBsmsForSigner(AddressType.p2wsh, "outside signer");
+          outsideVault.getSignerBsms(AddressType.p2wsh, "outside signer");
       String expectResult =
           "BSMS 1.0\n00\n[62A936C3/48'/0'/0'/2']Zpub75QytCyD9mNTr1wyi59JAhU2uiPedspk18djeteoeC6tJ7MdpuKbBRUA33CW49y5FDkpPqLDjujDVaNAGB9XVw44q8X2Hzif5DSTQyhgTES\noutside signer";
 
@@ -56,7 +56,7 @@ main() async {
       BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
       String expectedCoordinator =
           "BSMS 1.0\nwsh(sortedmulti(2,[AEF5B293/48'/0'/0'/2']Zpub75AQJSQLp25LUmJX2fUUMJjP4fcQhwaqH32iSNckTrZrjy3omBpb1ghSNtSZpCzvzhLha7r3JA7uG4wQyDkn87qHgpPZfTHBdvghvVhL2t1/<0;1>/*,[BAD41B33/48'/0'/0'/2']Zpub74NK7csp5wpD3dmr6bwweenNKDSERwQfisZCL8JpZ2TQ64E4oHm8pesNzTytfhfpfp6XzwumdxSKgLSjogTG6r6zVd1mSgGz67zK3Me9qrQ/<0;1>/*,[62A936C3/48'/0'/0'/2']Zpub75QytCyD9mNTr1wyi59JAhU2uiPedspk18djeteoeC6tJ7MdpuKbBRUA33CW49y5FDkpPqLDjujDVaNAGB9XVw44q8X2Hzif5DSTQyhgTES/<0;1>/*))#3zwl8rzh\n/0/*,/1/*\nbc1qq4t09zkp4f422qrcqmg0xx79h5n9ujtql5rcvwc0kykwfv3rwxgqkss9ct";
-      expect(multisignatureVault.getBsmsForCoordinator(), expectedCoordinator);
+      expect(multisignatureVault.getBsmsCoordinator(), expectedCoordinator);
     });
 
     test('p2wsh address test', () {
@@ -102,8 +102,8 @@ main() async {
       KeyStore insideKey2 =
           KeyStore.fromSeed(insideVault2.keyStore.seed, AddressType.p2wsh);
       String signerBsms =
-          outsideVault.getBsmsForSigner(AddressType.p2wsh, "outside signer");
-      KeyStore outsideKey = KeyStore.fromBsmsSigner(signerBsms);
+          outsideVault.getSignerBsms(AddressType.p2wsh, "outside signer");
+      KeyStore outsideKey = KeyStore.fromSignerBsms(signerBsms);
 
       multisignatureVault = MultisignatureVault.fromKeyStoreList(
           [insideKey1, insideKey2, outsideKey], 2, AddressType.p2wsh);

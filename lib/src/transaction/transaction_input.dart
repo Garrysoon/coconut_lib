@@ -22,10 +22,6 @@ class TransactionInput {
   /// Get the sequence of the transaction.
   int get sequence => Converter.littleEndianToInt(_sequence);
 
-  /// Get the witness list of the transaction. (if it is segwit)
-  // List<String> get witnessList =>
-  //     witness.map((e) => Converter.bytesToHex(e)).toList();
-
   /// The length of the transaction input.
   int get length => () {
         int length = 0;
@@ -35,18 +31,6 @@ class TransactionInput {
         length += _sequence.length;
         return length;
       }();
-
-  // /// The length of the witness.
-  // int get witnessLength => () {
-  //       int length = 0;
-  //       for (var w in witness) {
-  //         if (w is List<int>) {
-  //           length += Varints.encode(w.length).length;
-  //           length += w.length;
-  //         }
-  //       }
-  //       return length;
-  //     }();
 
   /// @nodoc
   TransactionInput(
@@ -125,8 +109,10 @@ class TransactionInput {
       }
 
       scriptSig = ScriptSignature.p2wsh();
-      witnessList.add("00");
+      witnessList = ["00"];
       for (int i = 0; i < signatureList.length; i++) {
+        // int sigLength = signatureList[i].signature.length ~/ 2;
+        // witnessList.add(Converter.decToHex(sigLength));
         witnessList.add(signatureList[i].signature);
       }
       witnessList.add(witnessScript.serialize());

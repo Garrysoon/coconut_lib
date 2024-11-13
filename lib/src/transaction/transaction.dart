@@ -284,14 +284,18 @@ class Transaction {
     for (int i = 0; i < outputs.length; i++) {
       serialized += outputs[i].serialize();
     }
+
+    //serialize witness
     for (int i = 0; i < inputs.length; i++) {
       serialized +=
           Converter.bytesToHex(Varints.encode(inputs[i].witnessList.length));
       for (int j = 0; j < inputs[i].witnessList.length; j++) {
-        if (inputs[i].witnessList[j].isEmpty) {
+        if (inputs[i].witnessList[j].isEmpty ||
+            inputs[i].witnessList[j] == '00') {
           serialized += '00';
         } else {
-          serialized += Converter.decToHex((inputs[i].witnessList[j]).length);
+          int size = inputs[i].witnessList[j].length ~/ 2;
+          serialized += Converter.decToHex(size);
           serialized += inputs[i].witnessList[j];
         }
       }
@@ -417,22 +421,23 @@ class Transaction {
     String sigHash = getSigHash(inputIndex, utxo, addressType.isSegwit);
     Uint8List msg = Converter.hexToBytes(sigHash);
 
-    print("@:" + inputs[inputIndex].witnessList.last.toString());
-
-    if (addressType.isMultisig) {
+    if (addressType == AddressType.p2wsh) {
       WitnessScript witnessScript =
           WitnessScript.parse(inputs[inputIndex].witnessList.last);
 
-      List<Uint8List> signatures = inputs[inputIndex]
-          .witnessList
-          .sublist(0, inputs[inputIndex].witnessList.length - 1)
-          .cast<Uint8List>();
+      List<Uint8List> signatures = [];
 
-      List<Uint8List> pubKeys = witnessScript.commands
-          .sublist(1, witnessScript.commands.length - 2)
-          .cast<Uint8List>();
+      for (int i = 1; i < inputs[inputIndex].witnessList.length - 1; i++) {
+        signatures.add(Converter.hexToBytes(inputs[inputIndex].witnessList[i]));
+      }
+
+      List<Uint8List> pubKeys = witnessScript.getPublicKeys();
 
       int requiredSigs = witnessScript.getRequiredSignature();
+
+      if (signatures.length < requiredSigs) {
+        return false;
+      }
 
       int validSigs = 0;
 
@@ -451,21 +456,15 @@ class Transaction {
           }
         }
       }
-      print("validSigs : " + validSigs.toString());
 
       return validSigs >= requiredSigs;
-    } else {
+    } else if (addressType == AddressType.p2wpkh) {
       //validate single signature
       String signature;
       String publicKey;
 
-      if (addressType.isSegwit) {
-        signature = inputs[inputIndex].witnessList[0];
-        publicKey = inputs[inputIndex].witnessList[1];
-      } else {
-        signature = inputs[inputIndex].scriptSig.commands[0];
-        publicKey = inputs[inputIndex].scriptSig.commands[1];
-      }
+      signature = inputs[inputIndex].witnessList[0];
+      publicKey = inputs[inputIndex].witnessList[1];
 
       Uint8List sig = Converter.hexToBytes(signature);
       Uint8List pub = Converter.hexToBytes(publicKey);
@@ -478,6 +477,8 @@ class Transaction {
       Uint8List rs = Uint8List.fromList([...r, ...s]);
 
       return ecc.verify(msg, pub, rs);
+    } else {
+      throw Exception('Unsupported Address Type');
     }
   }
 
@@ -487,7 +488,7 @@ class Transaction {
     double witnessByte = 0;
     for (TransactionInput input in inputs) {
       for (int i = 0; i < input.witnessList.length; i++) {
-        if (input.witnessList[i] != 0) {
+        if (input.witnessList[i] != "00") {
           witnessByte += (input.witnessList[i].length / 2).floor();
           witnessByte += 1;
         }
