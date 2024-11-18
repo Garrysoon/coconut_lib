@@ -13,8 +13,8 @@ class SingleSignatureWallet extends SingleSignatureWalletBase
       AddressType addressType,
       String derivationPath,
       ExtendedPublicKey extendedPublicKey)
-      : super(KeyStore(fingerprint, wallet, extendedPublicKey), addressType,
-            derivationPath, false);
+      : super(KeyStore(addressType, fingerprint, wallet, extendedPublicKey),
+            addressType, derivationPath, false);
 
   /// Create a single signature wallet from descriptor.
   factory SingleSignatureWallet.fromDescriptor(String descriptor) {

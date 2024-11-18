@@ -37,7 +37,10 @@ class MultisignatureWallet extends MultisignatureWalletBase
       if (derivationPath != descriptorObject.getDerivationPath(i)) {
         throw Exception('Derivation Path is not same for all public keys');
       }
-      keyStores.add(KeyStore(fingerprint, wallet, extendedPublicKey));
+
+      KeyStore keyStore =
+          KeyStore(addressType, fingerprint, wallet, extendedPublicKey);
+      keyStores.add(keyStore);
     }
 
     return MultisignatureWallet(descriptorObject.requiredSignatures,

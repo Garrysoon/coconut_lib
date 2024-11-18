@@ -115,7 +115,7 @@ class TransactionInput {
         // witnessList.add(Converter.decToHex(sigLength));
         witnessList.add(signatureList[i].signature);
       }
-      witnessList.add(witnessScript.serialize());
+      witnessList.add(witnessScript.rawSerialize());
     } else {
       throw ArgumentError('Not supported address type');
     }

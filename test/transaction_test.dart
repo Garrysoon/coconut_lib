@@ -370,8 +370,7 @@ main() async {
           ScriptPublicKey.parse(
               '1600141d0f172a0ecb48aee1be1f2687d2963ae33f71a1'));
 
-      String sigHash2 =
-          tx.getSigHash(1, utxo2.serialize(), AddressType.p2wpkh.isSegwit);
+      String sigHash2 = tx.getSigHash(1, utxo2.serialize(), AddressType.p2wpkh);
 
       expect(sigHash2, target);
 
@@ -416,8 +415,7 @@ main() async {
       TransactionOutput utxo1 = TransactionOutput.forSending(
           11524, 'tb1qeve9c2dvrk0ec44twlrlvk0k5vz200gz8pu2wn');
 
-      String sigHash =
-          tx.getSigHash(0, utxo1.serialize(), AddressType.p2wpkh.isSegwit);
+      String sigHash = tx.getSigHash(0, utxo1.serialize(), AddressType.p2wpkh);
       String sign = vault.keyStore.sign(sigHash, 0);
       tx.inputs[0].setSignature(
           vault.addressType, [Signature(sign, vault.keyStore.getPublicKey(0))]);

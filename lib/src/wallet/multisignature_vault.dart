@@ -37,7 +37,9 @@ class MultisignatureVault extends MultisignatureWalletBase
         derivationPath, keyStores);
   }
 
-  factory MultisignatureVault.fromCoordinatorBsms(String coordinator) {
+  factory MultisignatureVault.fromCoordinatorBsms(String coordinator,
+      {AddressType? addressType}) {
+    addressType ??= AddressType.p2wsh;
     BSMS bsms = BSMS.parseCoordinator(coordinator);
     List<KeyStore> keyStores = [];
     Descriptor descriptor = bsms.coordinator!.descriptor;
@@ -46,8 +48,8 @@ class MultisignatureVault extends MultisignatureWalletBase
           ExtendedPublicKey.parse(descriptor.getPublicKey(i));
       HDWallet hdWallet = HDWallet.fromPublicKey(
           extendedPublicKey.publicKey, extendedPublicKey.chainCode);
-      KeyStore keyStore =
-          KeyStore(descriptor.getFingerprint(i), hdWallet, extendedPublicKey);
+      KeyStore keyStore = KeyStore(addressType, descriptor.getFingerprint(i),
+          hdWallet, extendedPublicKey);
       keyStores.add(keyStore);
     }
 
@@ -77,8 +79,7 @@ class MultisignatureVault extends MultisignatureWalletBase
 
     for (KeyStore keyStore in keyStoreList) {
       if (keyStore.canSignToPsbt(signedPsbt)) {
-        signedPsbt =
-            keyStore.addSignatureToPsbt(signedPsbt, addressType.isSegwit);
+        signedPsbt = keyStore.addSignatureToPsbt(signedPsbt);
       }
     }
     return signedPsbt;
@@ -113,7 +114,7 @@ class MultisignatureVault extends MultisignatureWalletBase
     Map<String, dynamic> json = jsonDecode(jsonStr);
     List<KeyStore> keyStores = [];
     for (var keyStoreJson in json['keyStores']) {
-      keyStores.add(KeyStore.fromJson(jsonEncode(keyStoreJson)));
+      keyStores.add(KeyStore.fromJson(keyStoreJson));
     }
     return MultisignatureVault.fromKeyStoreList(
         keyStores,

@@ -14,9 +14,8 @@ void main() async {
 
   /// generate air-gapped vault
   SingleSignatureVault mnemonicVault = SingleSignatureVault.fromMnemonic(
-      'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
-      AddressType.p2wpkh,
-      passphrase: 'ABC');
+      'output opera coin bottom power cable abuse bitter maximum cost gift burger',
+      AddressType.p2wpkh);
 
   // >> In Wallet
   /// import expub to watch-only wallet with descriptor(BIP-0380)
@@ -35,11 +34,16 @@ void main() async {
   await watchOnlyWallet.fetchOnChainData(nodeConnector);
 
   /// and then, check the balance
-  print("balance : ${watchOnlyWallet.getBalance()}");
+  print("balance before tx : ${watchOnlyWallet.getBalance()}");
 
   /// create a PSBT(BIP-0174) to my another address
   PSBT unsignedPSBT = PSBT.forSending(
-      "bcrt1qyyl6eld8zq0zgh5jf8u5n3lv4jz9tjzeny2lq9", 1000, 3, watchOnlyWallet);
+      "bcrt1qkn8haxetu7gmku4q5lums0yv8f84ze4z6sgjgxq6kw0z5qrfrfkqpgl75y",
+      30000,
+      1,
+      watchOnlyWallet);
+
+  print(unsignedPSBT.estimateFee(1, AddressType.p2pkh));
 
   /// >> In Vault
   /// vault can sign the PSBT
@@ -50,8 +54,16 @@ void main() async {
   // watchOnlyWallet can broadcast the signed transaction
   PSBT signedPSBT =
       PSBT.parse(signedPsbt); // parse the PSBT received from vault
+
+  print(signedPSBT.estimateFee(1, AddressType.p2pkh));
+
   Transaction signedTx = signedPSBT
       .getSignedTransaction(watchOnlyWallet.addressType); // transaction object
+
+  print(signedTx.estimateFee(1));
+
+  print(signedTx.calculateFee(1));
+
   Result result =
       await nodeConnector.broadcast(signedTx.serialize()); // broadcast
   print(' - Transaction is broadcasted: ${result.value}');
@@ -60,7 +72,7 @@ void main() async {
   await watchOnlyWallet.fetchOnChainData(nodeConnector);
 
   /// check the balance again
-  print("balance : ${watchOnlyWallet.getBalance()}");
+  print("balance after tx : ${watchOnlyWallet.getBalance()}");
 
   exit(0);
 }

@@ -5,8 +5,7 @@ class WitnessScript extends Script {
 
   /// Parse the script from the given script hex.
   factory WitnessScript.parse(String script) {
-    String size = Converter.bytesToHex(Varints.encode(script.length ~/ 2));
-    return WitnessScript(Script.parse(Converter.hexToBytes(size + script)));
+    return WitnessScript(Script.parse(Converter.hexToBytes(script)));
   }
 
   static WitnessScript p2wsh(

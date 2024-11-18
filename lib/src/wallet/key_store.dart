@@ -6,6 +6,9 @@ class KeyStore {
   HDWallet _hdWallet;
   ExtendedPublicKey _extendedPublicKey;
   Seed? _seed;
+  AddressType _addressType;
+
+  AddressType get addressType => _addressType;
 
   /// The fingerprint of the key store.
   String get masterFingerprint => _masterFingerprint;
@@ -23,7 +26,8 @@ class KeyStore {
   bool get hasSeed => _seed != null;
 
   /// @nodoc
-  KeyStore(this._masterFingerprint, this._hdWallet, this._extendedPublicKey,
+  KeyStore(this._addressType, this._masterFingerprint, this._hdWallet,
+      this._extendedPublicKey,
       [this._seed]);
 
   /// Create a key store from a seed.
@@ -42,7 +46,7 @@ class KeyStore {
         : addressType.versionForMainnet;
     ExtendedPublicKey extendedPublicKey = ExtendedPublicKey.fromHdWallet(
         wallet, version, wallet.parentFingerprint);
-    return KeyStore(fingerprint, wallet, extendedPublicKey, seed);
+    return KeyStore(addressType, fingerprint, wallet, extendedPublicKey, seed);
   }
 
   /// Create a key store from a mnemonic.
@@ -74,14 +78,15 @@ class KeyStore {
     return KeyStore.fromSeed(seed, addressType, accountIndex: accountIndex);
   }
 
-  factory KeyStore.fromSignerBsms(String signer) {
+  factory KeyStore.fromSignerBsms(String signer, {AddressType? addressType}) {
+    addressType ??= AddressType.p2wsh;
     BSMS bsms = BSMS.parseSigner(signer);
     // KeyStore(fingerprint, wallet, extendedPublicKey)
     HDWallet wallet = HDWallet.fromPublicKey(
         bsms.signer!.extendedPublicKey.publicKey,
         bsms.signer!.extendedPublicKey.chainCode);
-    return KeyStore(
-        bsms.signer!.masterFingerPrint, wallet, bsms.signer!.extendedPublicKey);
+    return KeyStore(addressType, bsms.signer!.masterFingerPrint, wallet,
+        bsms.signer!.extendedPublicKey);
   }
 
   /// Get the private key of the key store using index.
@@ -159,7 +164,7 @@ class KeyStore {
   }
 
   ///add signature to PSBT if it's possible.
-  String addSignatureToPsbt(String psbt, bool isSegwit) {
+  String addSignatureToPsbt(String psbt) {
     if (!hasSeed) {
       throw Exception('This vault does not have seed');
     }
@@ -181,8 +186,15 @@ class KeyStore {
       } else {
         utxo = thisInput.witnessUtxo!.serialize();
       }
-      String sigHash =
-          psbtObject.unsignedTransaction!.getSigHash(i, utxo, isSegwit);
+      String sigHash;
+      if (addressType == AddressType.p2wsh) {
+        String? witnessScript = thisInput.witnessScript!.rawSerialize();
+        sigHash = psbtObject.unsignedTransaction!
+            .getSigHash(i, utxo, addressType, witnessScript: witnessScript);
+      } else {
+        sigHash =
+            psbtObject.unsignedTransaction!.getSigHash(i, utxo, addressType);
+      }
 
       for (int j = 0; j < thisInput.derivationPathList.length; j++) {
         if (thisInput.derivationPathList[j].masterFingerprint !=
@@ -267,6 +279,7 @@ class KeyStore {
   ///@nodoc
   String toJson() {
     return jsonEncode({
+      'addressType': _addressType.scriptType,
       'fingerprint': _masterFingerprint,
       'hdWallet': _hdWallet.toJson(),
       'extendedPublicKey': _extendedPublicKey.serialize(),
@@ -277,12 +290,15 @@ class KeyStore {
   ///@nodoc
   factory KeyStore.fromJson(String json) {
     Map<String, dynamic> map = jsonDecode(json);
+    AddressType addressType =
+        AddressType.getAddressTypeFromScriptType(map['addressType']);
     String fingerprint = map['fingerprint'];
     HDWallet hdWallet = HDWallet.fromJson(map['hdWallet']);
     ExtendedPublicKey extendedPublicKey =
         ExtendedPublicKey.parse(map['extendedPublicKey']);
     Seed? seed = map['seed'] != null ? Seed.fromJson(map['seed']) : null;
-    return KeyStore(fingerprint, hdWallet, extendedPublicKey, seed);
+    return KeyStore(
+        addressType, fingerprint, hdWallet, extendedPublicKey, seed);
   }
 
   ///@nodoc

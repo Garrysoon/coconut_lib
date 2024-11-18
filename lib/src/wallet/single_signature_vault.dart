@@ -67,7 +67,7 @@ class SingleSignatureVault extends SingleSignatureWalletBase
 
   @override
   String addSignatureToPsbt(String psbt) {
-    return keyStore.addSignatureToPsbt(psbt, addressType.isSegwit);
+    return keyStore.addSignatureToPsbt(psbt);
   }
 
   /// Display BSMS for multisig setup.

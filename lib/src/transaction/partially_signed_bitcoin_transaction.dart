@@ -90,7 +90,9 @@ class PSBT {
         // 05 : WITNESS_SCRIPT
         if (key.startsWith('05')) {
           String script = psbtMap["inputs"][i][key];
-          witnessScript = WitnessScript.parse(script);
+          String size =
+              Converter.bytesToHex(Varints.encode(script.length ~/ 2));
+          witnessScript = WitnessScript.parse(size + script);
         }
       });
       inputs.add(PsbtInput(
@@ -371,12 +373,10 @@ class PSBT {
         inputData[bip32DerivationKeyType + publicKey] = fingerPrint +
             Converter.bytesToHex(_serializeDerivationPath(derivationPath));
       } else if (wallet is MultisignatureWallet) {
-        for (int i = 0; i < multisignatureWallet.totalSigner; i++) {
-          String publicKey = multisignatureWallet.keyStoreList[i]
-              .getPublicKeyWithDerivationPath(derivationPath);
-          String fingerPrint =
-              multisignatureWallet.keyStoreList[i].masterFingerprint;
-
+        for (KeyStore keyStore in multisignatureWallet.keyStoreList) {
+          String publicKey =
+              keyStore.getPublicKeyWithDerivationPath(derivationPath);
+          String fingerPrint = keyStore.masterFingerprint;
           inputData[bip32DerivationKeyType + publicKey] = fingerPrint +
               Converter.bytesToHex(_serializeDerivationPath(derivationPath));
         }
@@ -659,6 +659,7 @@ class PSBT {
   Transaction getSignedTransaction(AddressType addressType) {
     Transaction signedTransaction =
         Transaction.parseUnsignedTransaction(unsignedTransaction!.serialize());
+    signedTransaction._isSegwit = addressType.isSegwit;
     if (addressType == AddressType.p2wsh) {
       for (int i = 0; i < inputs.length; i++) {
         if (inputs[i].partialSigList.length < inputs[i].requiredSignature) {
@@ -667,8 +668,10 @@ class PSBT {
         signedTransaction.inputs[i].setSignature(
             addressType, inputs[i].partialSigList,
             witnessScript: inputs[i].witnessScript);
+
         if (signedTransaction.validateSignature(
-            i, inputs[i].witnessUtxo!.serialize(), addressType)) {
+            i, inputs[i].witnessUtxo!.serialize(), addressType,
+            witnessScript: inputs[i].witnessScript!.rawSerialize())) {
           continue;
         } else {
           throw Exception('Invalid Signatures');
@@ -692,8 +695,6 @@ class PSBT {
     } else {
       throw Exception('Unsupported Address Type');
     }
-
-    signedTransaction._isSegwit = addressType.isSegwit;
     return signedTransaction;
   }
 

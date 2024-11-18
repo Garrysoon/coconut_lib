@@ -173,13 +173,21 @@ class Transaction {
           offset += itemLen;
         }
       }
-      txIn.witnessList = items.map((e) => Converter.bytesToHex(e)).toList();
+      txIn.witnessList = [];
+      // txIn.witnessList = items.map((e) => Converter.bytesToHex(e)).toList();
+      for (dynamic item in items) {
+        if (item == 0) {
+          txIn.witnessList.add('00');
+        } else {
+          txIn.witnessList.add(Converter.bytesToHex(item));
+        }
+      }
     }
     Uint8List locktime = txBytes.sublist(offset);
     offset += 4;
     // return Transaction(version, inputs, outputs, locktime,
     //     testnet: testnet, segwit: true);
-    //print('witness : ' + inputs[0].witness.toString());
+    // print('witness : ' + inputs[0].witness.toString());
     return Transaction(version, inputs, outputs, locktime, true);
   }
 
@@ -289,6 +297,8 @@ class Transaction {
     for (int i = 0; i < inputs.length; i++) {
       serialized +=
           Converter.bytesToHex(Varints.encode(inputs[i].witnessList.length));
+
+      //if the script is p2wpkh or else
       for (int j = 0; j < inputs[i].witnessList.length; j++) {
         if (inputs[i].witnessList[j].isEmpty ||
             inputs[i].witnessList[j] == '00') {
@@ -324,13 +334,21 @@ class Transaction {
   }
 
   /// Get the signature hash of the transaction.
-  String getSigHash(int index, String utxo, bool isSegwit, {int hashType = 1}) {
+  String getSigHash(int index, String utxo, AddressType addressType,
+      {int hashType = 1, String? witnessScript}) {
     if (hashType != 1) {
       throw Exception("Only SIGHASH_ALL supported.");
     }
 
-    if (isSegwit) {
-      return _getSegwitSigHash(index, utxo, hashType);
+    if (addressType.isSegwit) {
+      if (addressType == AddressType.p2wsh) {
+        if (witnessScript == null) {
+          throw ArgumentError('witnessScript is required for p2wsh');
+        }
+        return _getSegwitSigHash(index, utxo, hashType, addressType,
+            witnessScript: witnessScript);
+      }
+      return _getSegwitSigHash(index, utxo, hashType, addressType);
     } else {
       return _getLegacySigHash(index, utxo, hashType);
     }
@@ -354,7 +372,9 @@ class Transaction {
   }
 
   //BIP143
-  String _getSegwitSigHash(int index, String utxo, int hashType) {
+  String _getSegwitSigHash(
+      int index, String utxo, int hashType, AddressType addressType,
+      {String? witnessScript}) {
     String sigHash = '';
     sigHash += version;
     sigHash += _getHashPrevOuts();
@@ -362,9 +382,16 @@ class Transaction {
     sigHash += _getHashSequence();
     sigHash += _getOutPoint(index);
     TransactionOutput prevUtxo = TransactionOutput.parse(utxo);
-    if (prevUtxo.scriptPubKey.isP2WPKH()) {
+    if (addressType == AddressType.p2wpkh) {
       sigHash +=
           "1976a914${Converter.bytesToHex(prevUtxo.scriptPubKey.commands[1])}88ac";
+    } else if (addressType == AddressType.p2wsh) {
+      if (witnessScript == null) {
+        throw ArgumentError('witnessScript is required for p2wsh');
+      }
+      int length = witnessScript.length ~/ 2;
+      sigHash += Converter.bytesToHex(Varints.encode(length));
+      sigHash += witnessScript;
     } else {
       sigHash += prevUtxo.scriptPubKey.serialize();
     }
@@ -417,13 +444,26 @@ class Transaction {
   }
 
   /// check if the signature is valid in the transaction.
-  bool validateSignature(int inputIndex, String utxo, AddressType addressType) {
-    String sigHash = getSigHash(inputIndex, utxo, addressType.isSegwit);
+  bool validateSignature(int inputIndex, String utxo, AddressType addressType,
+      {String? witnessScript}) {
+    String sigHash;
+    if (addressType == AddressType.p2wpkh) {
+      sigHash = getSigHash(inputIndex, utxo, addressType);
+    } else if (addressType == AddressType.p2wsh) {
+      if (witnessScript == null) {
+        throw ArgumentError('witnessScript is required for p2wsh');
+      }
+      sigHash = getSigHash(inputIndex, utxo, addressType,
+          witnessScript: witnessScript);
+    } else {
+      throw Exception('Unsupported Address Type');
+    }
     Uint8List msg = Converter.hexToBytes(sigHash);
 
     if (addressType == AddressType.p2wsh) {
-      WitnessScript witnessScript =
-          WitnessScript.parse(inputs[inputIndex].witnessList.last);
+      String script = inputs[inputIndex].witnessList.last;
+      String size = Converter.bytesToHex(Varints.encode(script.length ~/ 2));
+      WitnessScript witnessScript = WitnessScript.parse(size + script);
 
       List<Uint8List> signatures = [];
 
@@ -456,7 +496,6 @@ class Transaction {
           }
         }
       }
-
       return validSigs >= requiredSigs;
     } else if (addressType == AddressType.p2wpkh) {
       //validate single signature

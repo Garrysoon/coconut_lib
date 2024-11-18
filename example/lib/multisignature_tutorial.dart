@@ -4,17 +4,18 @@ import 'package:coconut_lib/coconut_lib.dart';
 void main() async {
   BitcoinNetwork.setNetwork(BitcoinNetwork.regtest);
 
+  //Generate 2-of-3 Multisig Vault with 2 Outside signer
   SingleSignatureVault insideVault1 = SingleSignatureVault.fromMnemonic(
       'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
       AddressType.p2wpkh,
       passphrase: 'ABC');
 
-  SingleSignatureVault insideVault2 = SingleSignatureVault.fromMnemonic(
+  SingleSignatureVault outsideVault1 = SingleSignatureVault.fromMnemonic(
       'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
       AddressType.p2wpkh,
       passphrase: 'DEF');
 
-  SingleSignatureVault outsideVault = SingleSignatureVault.fromMnemonic(
+  SingleSignatureVault outsideVault2 = SingleSignatureVault.fromMnemonic(
       'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
       AddressType.p2wpkh,
       passphrase: 'GHI');
@@ -22,41 +23,39 @@ void main() async {
   //Generate P2WSH Keystore
   KeyStore insideKey1 =
       KeyStore.fromSeed(insideVault1.keyStore.seed, AddressType.p2wsh);
-  KeyStore insideKey2 =
-      KeyStore.fromSeed(insideVault2.keyStore.seed, AddressType.p2wsh);
-  String signerBsms =
-      outsideVault.getSignerBsms(AddressType.p2wsh, "MyHardWallet");
-  KeyStore outsideKey = KeyStore.fromSignerBsms(signerBsms);
+  KeyStore outsideKey1 = KeyStore.fromSignerBsms(
+      outsideVault1.getSignerBsms(AddressType.p2wsh, "OutsideSigner1"));
+  KeyStore outsideKey2 = KeyStore.fromSignerBsms(
+      outsideVault2.getSignerBsms(AddressType.p2wsh, "OutsideSigner2"));
 
   MultisignatureVault multisignatureVault =
       MultisignatureVault.fromKeyStoreList(
-          [insideKey1, insideKey2, outsideKey], 2, AddressType.p2wsh);
+          [insideKey1, outsideKey1, outsideKey2], 2, AddressType.p2wsh);
 
-  // Start : In Outside Vault
+  // Share Coordinator BSMS with Outside Signers
   MultisignatureVault outsideMultisignatureVault =
       MultisignatureVault.fromCoordinatorBsms(
-          multisignatureVault.getBsmsCoordinator());
+          multisignatureVault.getCoordinatorBsms());
 
   // Find Seed in Outside Vault and bind it to KeyStore
   outsideMultisignatureVault.bindSeedToKeyStore(
-      outsideVault.keyStore.seed, outsideVault.accountIndex);
+      outsideVault1.keyStore.seed, outsideVault1.accountIndex);
 
-  // Start : In Outside Vault
-
-  dynamic watchOnlyWallet;
+  // Make WatchOnlyWallet for multisig
+  MultisignatureWallet watchOnlyWallet;
 
   Descriptor descriptor = Descriptor.parse(multisignatureVault.descriptor);
   if (descriptor.scriptType == 'wsh') {
     watchOnlyWallet =
         MultisignatureWallet.fromDescriptor(multisignatureVault.descriptor);
-  } else if (descriptor.scriptType == 'wpkh') {
-    watchOnlyWallet =
-        SingleSignatureWallet.fromDescriptor(multisignatureVault.descriptor);
+    // } else if (descriptor.scriptType == 'wpkh') {
+    //   watchOnlyWallet =
+    //       SingleSignatureWallet.fromDescriptor(multisignatureVault.descriptor);
   } else {
     throw Exception('Unsupported Address Type');
   }
 
-  print("address : ${watchOnlyWallet.getReceiveAddress()}");
+  print("${watchOnlyWallet.getReceiveAddress()}");
 
   /// connect to the node and fetch transaction data
   NodeConnector nodeConnector = await NodeConnector.connectSync(
@@ -67,41 +66,35 @@ void main() async {
   await watchOnlyWallet.fetchOnChainData(nodeConnector);
 
   /// and then, check the balance
-  print("balance : ${watchOnlyWallet.getBalance()}");
+  print("balance before sending : ${watchOnlyWallet.getBalance()}");
 
   PSBT unsignedPSBT = PSBT.forSending(
-      "bcrt1qkn8haxetu7gmku4q5lums0yv8f84ze4z6sgjgxq6kw0z5qrfrfkqpgl75y",
-      1000,
-      3,
-      watchOnlyWallet);
+      "bcrt1qjc4p02r0782v5326j3njeeucesly7pnrwnaqft", 4000, 3, watchOnlyWallet);
 
-//   print("Usigned : " + unsignedPSBT.serialize());
-
+  // Add signature 1
   String insideVaultSigned =
       multisignatureVault.addSignatureToPsbt(unsignedPSBT.serialize());
 
-//   print("Inside Vault Signed : " + insideVaultSigned);
-
+  // Add signature 2
   String outsideVaultSigned =
       outsideMultisignatureVault.addSignatureToPsbt(insideVaultSigned);
 
-  print("Outside Vault Signed : " + outsideVaultSigned);
+  // print("Outside Vault Signed PSBT: $outsideVaultSigned");
 
+  // If signature is completed, you can broadcast in the watch-only wallet
   PSBT signedPSBT = PSBT.parse(outsideVaultSigned);
   Transaction signedTx =
       signedPSBT.getSignedTransaction(watchOnlyWallet.addressType);
 
-  print("TX : " + signedTx.serialize());
-
-  // Result result =
-  //     await nodeConnector.broadcast(signedTx.serialize()); // broadcast
-  // print(' - Transaction is broadcasted: ${result.value}');
+  Result result =
+      await nodeConnector.broadcast(signedTx.serialize()); // broadcast
+  print(' - Transaction is broadcasted: ${result.value}');
 
   /// need to sync again
   await watchOnlyWallet.fetchOnChainData(nodeConnector);
 
   /// check the balance again
-  print("balance : ${watchOnlyWallet.getBalance()}");
+  print("balance after sending: ${watchOnlyWallet.getBalance()}");
 
   exit(0);
 }
