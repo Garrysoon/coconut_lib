@@ -17,6 +17,9 @@ class PSBT {
   /// @nodoc
   List<DerivationPath> derivationPathList = [];
 
+  /// @nodoc
+  WalletBase? wallet;
+
   /// Get the fee of the transaction.
   int get fee => () {
         int totalInput = 0;
@@ -182,25 +185,46 @@ class PSBT {
       totalInputAmount += utxo.amount;
       inputs.add(TransactionInput.forSending(utxo.transactionHash, utxo.index));
     }
-    int fee = _calculateEstimationFee(
-        selectedUtxos.length, 2, feeRate, wallet.addressType);
-    int change = totalInputAmount - amount - fee;
+
     String changeAddress = wallet.getChangeAddress().address;
 
     TransactionOutput sendingOutput =
         TransactionOutput.forSending(amount, address);
     TransactionOutput changeOutput =
-        TransactionOutput.forSending(change, changeAddress);
+        TransactionOutput.forSending(0, changeAddress);
 
     outputs.add(sendingOutput);
     outputs.add(changeOutput);
-    Transaction tx = Transaction.forSending(inputs, outputs, true);
+
+    Transaction tx =
+        Transaction.forSending(inputs, outputs, wallet.addressType);
+
+    // print("Input : ${tx.inputs.length}, Output : ${tx.outputs.length}");
+
+    double vByte = 0.0;
+    if (wallet.addressType == AddressType.p2wpkh) {
+      vByte = tx.estimateVirtualByte(wallet.addressType);
+    } else if (wallet.addressType == AddressType.p2wsh) {
+      MultisignatureWallet multisignatureWallet =
+          wallet as MultisignatureWallet;
+      vByte = tx.estimateVirtualByte(wallet.addressType,
+          requiredSignature: multisignatureWallet.requiredSignature,
+          totalSigner: multisignatureWallet.totalSigner);
+    } else {
+      throw Exception('Unsupported Address Type');
+    }
+
+    int fee = (vByte * feeRate).ceil();
+
+    // print("Fee : $fee");
+
+    changeOutput.setAmount(totalInputAmount - amount - fee);
 
     //minimum fee check
-    if (tx.getVirtualByte() > fee) {
-      change = totalInputAmount - amount - tx.getVirtualByte().ceil();
-      changeOutput.setAmount(change);
-    }
+    // if (tx.getVirtualByte() > fee) {
+    //   int change = totalInputAmount - amount - tx.getVirtualByte().ceil();
+    //   changeOutput.setAmount(change);
+    // }
 
     return PSBT.fromTransaction(tx, wallet);
   }
@@ -217,6 +241,7 @@ class PSBT {
     List<UTXO> utxoList = walletFeature.getUtxoList();
 
     List<TransactionInput> inputs = [];
+    List<TransactionOutput> outputs = [];
     int inputAmount = 0;
     for (UTXO utxo in utxoList) {
       if (utxo.blockHeight == 0) {
@@ -226,37 +251,41 @@ class PSBT {
       inputAmount += utxo.amount;
     }
 
-    Transaction tx = Transaction.forMaximumSending(
-        inputs, address, inputAmount, wallet.addressType.isSegwit, feeRate);
+    if (inputAmount == 0) {
+      throw Exception('No balance to send');
+    }
+
+    TransactionOutput sendingOutput = TransactionOutput.forSending(0, address);
+    outputs.add(sendingOutput);
+
+    Transaction tx =
+        Transaction.forSending(inputs, outputs, wallet.addressType);
+
+    double vByte = 0.0;
+    if (wallet.addressType == AddressType.p2wpkh) {
+      vByte = tx.estimateVirtualByte(wallet.addressType);
+    } else if (wallet.addressType == AddressType.p2wsh) {
+      MultisignatureWallet multisignatureWallet =
+          wallet as MultisignatureWallet;
+      vByte = tx.estimateVirtualByte(wallet.addressType,
+          requiredSignature: multisignatureWallet.requiredSignature,
+          totalSigner: multisignatureWallet.totalSigner);
+    } else {
+      throw Exception('Unsupported Address Type');
+    }
+
+    int fee = (vByte * feeRate).ceil();
+
+    if (inputAmount < fee) {
+      throw Exception('Not enough amount for sending. (Fee : $fee)');
+    }
+
+    sendingOutput.setAmount(inputAmount - fee);
+
+    // Transaction tx = Transaction.forMaximumSending(
+    //     inputs, address, inputAmount, wallet.addressType, feeRate);
     // print(tx.serialize());
     return PSBT.fromTransaction(tx, wallet);
-  }
-
-  static int _calculateEstimationFee(int numberOfInput, int numberOfOutput,
-      int feeRate, AddressType addressType) {
-    int baseByte = 10;
-    int perOutputByte = 0;
-    int perInputByte = 0;
-
-    if (addressType == AddressType.p2pkh) {
-      perOutputByte = 34;
-      perInputByte = 148;
-    } else if (addressType == AddressType.p2wpkh) {
-      perOutputByte = 31;
-      perInputByte = 68;
-      baseByte += 2;
-    } else if (addressType == AddressType.p2sh) {
-      perOutputByte = 32;
-      perInputByte = 91;
-    } else if (addressType == AddressType.p2wsh) {
-      perOutputByte = 43;
-      perInputByte = 68;
-      baseByte += 2;
-    }
-    int totalByte = baseByte +
-        perOutputByte * numberOfOutput +
-        perInputByte * numberOfInput;
-    return totalByte * feeRate;
   }
 
   static List<UTXO> _selectOptimalUtxo(
@@ -699,9 +728,25 @@ class PSBT {
   }
 
   /// Get estimated fee for the transaction.
-  int estimateFee(int feeRate, AddressType addressType) {
-    return _calculateEstimationFee(unsignedTransaction!.inputs.length,
-        unsignedTransaction!.outputs.length, feeRate, addressType);
+  int estimateFee(int feeRate, AddressType addressType,
+      {int? requiredSignature, int? totalSigner}) {
+    Transaction tx =
+        Transaction.parseUnsignedTransaction(unsignedTransaction!.serialize());
+    tx._isSegwit = addressType.isSegwit;
+    double vByte = 0.0;
+    if (addressType == AddressType.p2wpkh) {
+      vByte = tx.estimateVirtualByte(addressType);
+    } else if (addressType == AddressType.p2wsh) {
+      if (requiredSignature == null || totalSigner == null) {
+        throw Exception("No requiredSignature, totalSiger data");
+      }
+      vByte = tx.estimateVirtualByte(addressType,
+          requiredSignature: requiredSignature, totalSigner: totalSigner);
+    } else {
+      throw Exception("Not supported address type.");
+    }
+
+    return (vByte * feeRate).ceil();
   }
 }
 
@@ -753,6 +798,9 @@ class PsbtOutput {
   bool get isChange {
     if (derivationPath == null) {
       return false;
+    } else if (derivationPath!.path.split('/')[1].startsWith('48') &&
+        derivationPath!.path.split('/')[5] == '1') {
+      return true;
     } else if (derivationPath!.path.split('/')[4] == '1') {
       return true;
     } else {

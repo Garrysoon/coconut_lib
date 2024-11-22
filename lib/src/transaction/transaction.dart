@@ -63,10 +63,14 @@ class Transaction {
 
   /// Create a transaction for sending Bitcoin.
   factory Transaction.forSending(List<TransactionInput> inputs,
-      List<TransactionOutput> outputs, bool isSegwit,
+      List<TransactionOutput> outputs, AddressType addressType,
       {int version = 2, int lockTime = 0}) {
-    return Transaction(Converter.intToLittleEndianBytes(version, 4), inputs,
-        outputs, Converter.intToLittleEndianBytes(lockTime, 4), isSegwit);
+    return Transaction(
+        Converter.intToLittleEndianBytes(version, 4),
+        inputs,
+        outputs,
+        Converter.intToLittleEndianBytes(lockTime, 4),
+        addressType.isSegwit);
   }
 
   /// Create a transaction for sending all Bitcoin in the wallet.
@@ -74,15 +78,15 @@ class Transaction {
       List<TransactionInput> inputs,
       String receiverAddress,
       int inputAmount,
-      bool isSegwit,
+      AddressType addressType,
       int feeRatePerByte,
       {int version = 2,
       int lockTime = 0}) {
     TransactionOutput output =
         TransactionOutput.forSending(inputAmount, receiverAddress);
-    Transaction tx = Transaction.forSending(inputs, [output], isSegwit,
+    Transaction tx = Transaction.forSending(inputs, [output], addressType,
         version: version, lockTime: lockTime);
-    int fee = tx.estimateFee(feeRatePerByte);
+    int fee = tx.estimateFee(feeRatePerByte, addressType);
 
     if (fee < tx.getVirtualByte()) {
       fee = tx.getVirtualByte().ceil();
@@ -310,6 +314,7 @@ class Transaction {
         }
       }
     }
+
     serialized += lockTime;
     return serialized;
   }
@@ -530,6 +535,8 @@ class Transaction {
         if (input.witnessList[i] != "00") {
           witnessByte += (input.witnessList[i].length / 2).floor();
           witnessByte += 1;
+        } else {
+          witnessByte += 1;
         }
       }
       witnessByte += 1;
@@ -548,34 +555,91 @@ class Transaction {
     return vByte;
   }
 
-  /// Calculate the fee of the transaction.
-  int calculateFee(int feeRatePerByte) {
-    // print((getVirtualByte() * feeRatePerByte).ceil());
-    return (getVirtualByte() * feeRatePerByte).ceil();
+  double estimateVirtualByte(AddressType addressType,
+      {int? requiredSignature, int? totalSigner}) {
+    if (!addressType.isSegwit) {
+      return getVirtualByte();
+    }
+
+    double vByte = getVirtualByte();
+
+    const int sigSize = 73; // 72 + 1(length)
+    const int pubKeySize = 34; // 33 + 1(length)
+
+    // int baseSize = Converter.hexToBytes(serializeSegwit()).length;
+    int additionalWitnessSize = 0;
+
+    // baseSize -= 2; //marker + flag
+    // witnessSize += 2; //marker + flag
+    // witnessSize += 1; //num of witness
+
+    if (addressType == AddressType.p2wpkh) {
+      int emptyWitness = 0;
+      for (TransactionInput input in inputs) {
+        if (input.witnessList.isEmpty) {
+          additionalWitnessSize += (sigSize + pubKeySize);
+          emptyWitness += 1;
+        }
+      }
+      if (emptyWitness == inputs.length) {
+        additionalWitnessSize += 1; // number of witness
+      }
+    } else if (addressType == AddressType.p2wsh) {
+      if (requiredSignature == null || totalSigner == null) {
+        throw ArgumentError(
+            'requiredSignature and totalSignature is required for p2wsh');
+      }
+      int emptyWitness = 0;
+      for (TransactionInput input in inputs) {
+        if (input.witnessList.isEmpty) {
+          emptyWitness += 1;
+          additionalWitnessSize += 1; // 00
+          additionalWitnessSize += requiredSignature * (sigSize);
+          int scriptSize = 0;
+          scriptSize += 3; // m,n,OP_CHECKMULTISIG
+          scriptSize += totalSigner * (pubKeySize);
+          additionalWitnessSize += scriptSize;
+        }
+      }
+      if (emptyWitness == inputs.length) {
+        additionalWitnessSize += 1; // number of witness
+      }
+    }
+
+    vByte = vByte + (additionalWitnessSize / 4);
+
+    return vByte;
+  }
+
+  int calculateFeeWithWitnessSize(int feeRatePerByte, int witnessSize) {
+    return ((getVirtualByte() - witnessSize) * feeRatePerByte).ceil();
   }
 
   /// Estimate the fee of the transaction.
-  int estimateFee(int feeRatePerByte) {
-    bool hasSignatureLength = !hasNoSignature();
-    int unsignedInput = 0;
-    double vByte = getVirtualByte();
-    int sigByte = 106;
-    for (TransactionInput input in inputs) {
-      if (!input.hasSignature(_isSegwit)) {
-        unsignedInput++;
-      }
-    }
-    if (_isSegwit) {
-      double additionalByte = 4.0;
-      additionalByte += unsignedInput * sigByte;
-      if (!hasSignatureLength) {
-        additionalByte += 2;
-      }
-      vByte += (additionalByte / 4);
-    } else {
-      vByte += unsignedInput * sigByte;
-    }
+  int estimateFee(int feeRatePerByte, AddressType addressType,
+      {int? requiredSignature, int? totalSinger}) {
+    // bool hasSignatureLength = !hasNoSignature();
+    // int unsignedInput = 0;
+    // double vByte = getVirtualByte();
+    // int sigByte = 106;
+    // for (TransactionInput input in inputs) {
+    //   if (!input.hasSignature(_isSegwit)) {
+    //     unsignedInput++;
+    //   }
+    // }
+    // if (_isSegwit) {
+    //   double additionalByte = 4.0;
+    //   additionalByte += unsignedInput * sigByte;
+    //   if (!hasSignatureLength) {
+    //     additionalByte += 2;
+    //   }
+    //   vByte += (additionalByte / 4);
+    // } else {
+    //   vByte += unsignedInput * sigByte;
+    // }
     // print("vByte : $vByte");
+    double vByte = estimateVirtualByte(addressType,
+        requiredSignature: requiredSignature, totalSigner: totalSinger);
     return (vByte * feeRatePerByte).ceil();
   }
 

@@ -37,32 +37,29 @@ void main() async {
   print("balance before tx : ${watchOnlyWallet.getBalance()}");
 
   /// create a PSBT(BIP-0174) to my another address
-  PSBT unsignedPSBT = PSBT.forSending(
+  PSBT unsignedPSBT = PSBT.forMaximumSending(
       "bcrt1qkn8haxetu7gmku4q5lums0yv8f84ze4z6sgjgxq6kw0z5qrfrfkqpgl75y",
-      30000,
       1,
       watchOnlyWallet);
 
-  print(unsignedPSBT.estimateFee(1, AddressType.p2pkh));
+  print(unsignedPSBT.serialize());
+
+  print("Estimating Fee : ${unsignedPSBT.estimateFee(1, AddressType.p2wpkh)}");
 
   /// >> In Vault
   /// vault can sign the PSBT
   String signedPsbt =
       mnemonicVault.addSignatureToPsbt(unsignedPSBT.serialize());
 
+  print(signedPsbt);
+
   /// >> In Wallet
   // watchOnlyWallet can broadcast the signed transaction
   PSBT signedPSBT =
       PSBT.parse(signedPsbt); // parse the PSBT received from vault
 
-  print(signedPSBT.estimateFee(1, AddressType.p2pkh));
-
   Transaction signedTx = signedPSBT
       .getSignedTransaction(watchOnlyWallet.addressType); // transaction object
-
-  print(signedTx.estimateFee(1));
-
-  print(signedTx.calculateFee(1));
 
   Result result =
       await nodeConnector.broadcast(signedTx.serialize()); // broadcast

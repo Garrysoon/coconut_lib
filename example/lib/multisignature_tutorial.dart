@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:coconut_lib/coconut_lib.dart';
 
 void main() async {
+  bool send = true;
   BitcoinNetwork.setNetwork(BitcoinNetwork.regtest);
 
   //Generate 2-of-3 Multisig Vault with 2 Outside signer
@@ -55,6 +56,8 @@ void main() async {
     throw Exception('Unsupported Address Type');
   }
 
+  print("descriptor: ${watchOnlyWallet.descriptor}");
+
   print("${watchOnlyWallet.getReceiveAddress()}");
 
   /// connect to the node and fetch transaction data
@@ -68,27 +71,39 @@ void main() async {
   /// and then, check the balance
   print("balance before sending : ${watchOnlyWallet.getBalance()}");
 
-  PSBT unsignedPSBT = PSBT.forSending(
-      "bcrt1qjc4p02r0782v5326j3njeeucesly7pnrwnaqft", 4000, 3, watchOnlyWallet);
+  // PSBT unsignedPSBT = PSBT.forSending(
+  //     "bcrt1qjc4p02r0782v5326j3njeeucesly7pnrwnaqft", 4000, 3, watchOnlyWallet);
+  PSBT unsignedPSBT = PSBT.forMaximumSending(
+      "bcrt1qkn8haxetu7gmku4q5lums0yv8f84ze4z6sgjgxq6kw0z5qrfrfkqpgl75y",
+      3,
+      watchOnlyWallet);
+
+  print("Unsigned PSBT: ${unsignedPSBT.serialize()}");
 
   // Add signature 1
   String insideVaultSigned =
       multisignatureVault.addSignatureToPsbt(unsignedPSBT.serialize());
 
+  print("Inside Vault Signed PSBT: $insideVaultSigned");
+
   // Add signature 2
   String outsideVaultSigned =
       outsideMultisignatureVault.addSignatureToPsbt(insideVaultSigned);
 
-  // print("Outside Vault Signed PSBT: $outsideVaultSigned");
+  print("Outside Vault Signed PSBT: $outsideVaultSigned");
 
   // If signature is completed, you can broadcast in the watch-only wallet
   PSBT signedPSBT = PSBT.parse(outsideVaultSigned);
   Transaction signedTx =
       signedPSBT.getSignedTransaction(watchOnlyWallet.addressType);
 
-  Result result =
-      await nodeConnector.broadcast(signedTx.serialize()); // broadcast
-  print(' - Transaction is broadcasted: ${result.value}');
+  print("Transaction: ${signedTx.serialize()}");
+
+  if (send) {
+    Result result =
+        await nodeConnector.broadcast(signedTx.serialize()); // broadcast
+    print(' - Transaction is broadcasted: ${result.value}');
+  }
 
   /// need to sync again
   await watchOnlyWallet.fetchOnChainData(nodeConnector);

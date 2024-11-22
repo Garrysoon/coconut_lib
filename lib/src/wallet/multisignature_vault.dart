@@ -85,7 +85,6 @@ class MultisignatureVault extends MultisignatureWalletBase
     return signedPsbt;
   }
 
-  //TODO : test
   /// Get Json string of the multisignature vault.
   String toJson() {
     return jsonEncode({
@@ -108,7 +107,6 @@ class MultisignatureVault extends MultisignatureWalletBase
     }
   }
 
-  //TODO : test
   /// Create a multisignature vault from a json string.
   factory MultisignatureVault.fromJson(String jsonStr) {
     Map<String, dynamic> json = jsonDecode(jsonStr);

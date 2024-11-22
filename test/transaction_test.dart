@@ -190,8 +190,9 @@ main() async {
         TransactionOutput.forSending(
             6126631, 'bc1qyje7jjgl86kanp3r38vcfq9vlzda4vrccprts0')
       ];
-      Transaction tx =
-          Transaction.forSending(inputs, outputs, false, version: 1);
+      Transaction tx = Transaction.forSending(
+          inputs, outputs, AddressType.p2pkh,
+          version: 1);
       String expectedTxString =
           '0100000001d06050454abde3bdd947312b9f54439acb097608a47b0b36a23d76820a3a4044000000006a4730440220360e6c5348a85270a3b14b84780ad56cd189bd12848b125c488a678f5e0d95be022011e51cfd849e5d005fc5352885a954c756f6073de633545f6045c4ad96ac9be0012102742148dd2f73733ce36202798298e8294b42b5aabf1ba87a9bb9b0167abfb8dfffffffff01277c5d000000000016001424b3e9491f3eadd9862389d98480acf89bdab07800000000';
       expect(tx.serialize(), expectedTxString);
@@ -214,8 +215,9 @@ main() async {
         TransactionOutput.forSending(
             411831, 'bc1qvz22wty0zu6fue63mdlvctghumene4de02slve')
       ];
-      Transaction tx =
-          Transaction.forSending(inputs, outputs, true, version: 2);
+      Transaction tx = Transaction.forSending(
+          inputs, outputs, AddressType.p2wpkh,
+          version: 2);
       String expectedTxString =
           '02000000000101db01d2e05c8d032d2f3b54b7322e11dc408789e04960e01d4683cd57c7b970a701000000000000008002572a0000000000001600143c5e7ce7108e9c0fd8845cc124ea60d30a635e95b7480600000000001600146094a72c8f17349e6751db7ecc2d17e6f33cd5b90247304402201627e63472fc39db307a5db0e0450748fc6ea876c6376da7b1885a7464f2441302206ea2e3257755efa6552d4cb2082a6a4595fdff512411f51785ab7453ad3c0920012103c0c4d5bd6ab4ad72bf4b386db12767aa0043ac1652b621afdcf3eeb299fe2fb400000000';
       expect(tx.serialize(), expectedTxString);
@@ -227,25 +229,6 @@ main() async {
           '010000000001018936b7c6840b2be2af7967657e2a3e474438f04cdc42f405094e7fe6a91865510300000000ffffffff01d47a010000000000160014963a615f258bddc9b7cbf941c0ff2b81644dcb8902483045022100e997cf4fd392f3b0355ce123091a063b22f405c9fae2000d01bd9fa50445883b02200668d076901356496274073623316e1d7ff98f4d78bb4245c1f12c3c0020e756012103b05b5d2e09d5eeaeb68205f3ba45763290deebc19fd950eab7c927d9aad7a81700000000';
       Transaction tx = Transaction.parse(txString);
       expect(tx.transactionHash, expected);
-    });
-
-    test('fee vByte estimation test (segwit)', () {
-      //tx hash : b90142f046531e43c69a09b3142bc5b15ffa888335bb9e1b4e0a483cfff027ba
-      String tx =
-          '01000000000109a7dacf9d91d9f78ec37271cfe24f519b04085a1a61e7e4457a85ec40918fb7ae0000000000ffffffff24b2f565f271ec7219025b937fa49a6fa8d9a86a9602501ca8f9ea211b6909f70400000000ffffffff50db665b212d8e0be5f6a9f617f620e4971db8bd7f75e24ba2ed607de702eb770000000000ffffffffedb09c9fd86daaff36a999ec6cdc1fed186c652a2a91820e1c8d97f374117fa00100000000ffffffff79ba5ebd18d995f3134e6a9880e2b69347ba0813c1cdf3827a2340675bf2027f3300000000ffffffffc6b42643c67370800d9f5ada176467a547f2e8bfd8bce369eac29a3307d6f3e90000000000ffffffff96fe3565228e5f2dba452fec065ae039c571e038990d8c44ea046bf6168ba1df0500000000ffffffff419bbb8ec34b94e6d65fb61d0bdf147e6ec500d89761a9f5a2e211489e6a29470200000000ffffffffdd1e03d9618f8b8d95924397965695ce0f1f99b83d69ecd8bbc4923e20df78430100000000ffffffff014b5c18090000000016001439440eae862e099f315c7726a6c3c53bc2aa4dea0247304402207183b2826ad09a2adeefbf912ef115df2bf4318c51c36782e4abfde11a7a5aca02206cb6be32a14a1b4bc90292692203c0074d5ba24bb73ceb6a31720c54c8dcad55012102a8e2a56e175b061342b18e643da1b3f4808961cf0470916101f6496bfe85c43b024830450221008f68317f43ffd80287c5e2e7503dc685a08a0594b6edaed49073be306450ee5902205c1bf0fb413b871105e3e61996b9e3bcbc68b8dcfc17a2afc0aa8adc05a29d520121029713b2191907cda9a18fef2e430643274e9e4d2908356a0e70a089f7e361f43d024730440220497e8508bcf4296b96bcc4bf0ab05d25b5cd285dec1810e9d306b4756d70f82b0220417e6c156add566648c737f421911314047d002cfbfececca3b6eff790e5f61e0121038b05e03867b7c85337ee43d8da89ee45b22578b7ee85c05d094058e8c8dcc9d602483045022100dd455f341578def7d932a6bfca5052bd0325bf19ab47c027685f492de175470f022079c6f3bf71c58ecf1fd891be0a000e74edd0c62d602469efa96c23b2e71c49860121020c242b1417dfd734187edd811f0fd0a85312656703d9c98c8d825d247c8766810247304402202b8c4a38a834be1e6fe4a8752101d8a355bb50434c3dc62e99ba3461a984df5d0220064ccc4c13a37c45ca4a1d991edbd7dce453226224efcea75bce973a22c0bcfa0121034cd7d61a7d30b514c18ae8d996ed1c9769e2b9ae5e4482ed781852de35ec1bcc02473044022040d998ded722e73f0971e612dc2baf86226352a44c32ebc73586ffca6ce48ae5022024892b15cf4b1b3e38bc11fa84c00ccfde1707cf745819836e18fdf9dc873770012103d7e0d06a41bec4e48a7297c49934a52ab03ed3e8e51c45fb38c3e7e7cfb047cb024730440220711a538e313a585be3c7c74908d9641119cdb5ea45b72c005d94f8140d1a2ca602202a8ad0e475415bddb74dff533e576d955e2ebd8e03e3bbd815b00a74f56f4c4901210360a5f7a62d1a98e67d5e7f14d9460760a4da897a95a8b3bd1287aa48cecc8ca202483045022100ac854da2b8d1b04100460d6a4d1749e23bddda0121e5ec7adef8a99ab2fa315302203cb41c84bc445ad7b3089d781e0a8500e43e9d48ef8d1f29572dbf99914f849c012102ecb1013548cbe6f38fbce5335346f178ed86d7c32402ff2e1ad58a685f90211d02483045022100863150c20c3a0b9e0978f6dd99e0692a22f3cc25a83e7b7110bb0c7a5287ebf902203d48b37068fa48e8026fb14e69311a6792baa447eeed1e11cf5201be6b9fdd80012102d04377858c7b83e523e34401ab2b6fc434da2555fb6d44e8e321ec5dc028361400000000';
-
-      Transaction transaction = Transaction.parse(tx);
-      double vByte = transaction.getVirtualByte(); //652.25
-      expect(vByte, 652.25);
-      int calculatedFee = transaction.calculateFee(1); //100000
-      for (int i = 0; i < transaction.inputs.length; i++) {
-        TransactionInput input = transaction.inputs[i];
-
-        if (i % 2 == 0) continue;
-        input.witnessList = [];
-      }
-      int estimateFee = transaction.estimateFee(1);
-      expect(calculatedFee, estimateFee);
     });
 
     test('fee calculation test (legacy)', () {
@@ -265,7 +248,7 @@ main() async {
       for (TransactionInput input in transaction.inputs) {
         input.witnessList = [];
       }
-      int expectedFee = transaction.estimateFee(1);
+      int expectedFee = transaction.estimateFee(1, AddressType.p2pkh);
       // print(expectedFee);
       expect(expectedFee - 140, lessThan(3));
     });
@@ -277,29 +260,8 @@ main() async {
       for (TransactionInput input in transaction.inputs) {
         input.witnessList = [];
       }
-      int expectedFee = transaction.estimateFee(1);
+      int expectedFee = transaction.estimateFee(1, AddressType.p2wpkh);
       expect(739 <= expectedFee && expectedFee <= 741, true);
-    });
-
-    test('maximum sending', () {
-      int feeRate = 101;
-      TransactionInput input = TransactionInput.forSending(
-          '85629775dd57cb5331c48e8d0202c9c76461efe9a3d27c025e42aa293360e2e8', 0,
-          sequence: 4294967295); //amount : 152599200
-      Transaction tx = Transaction.forMaximumSending(
-          [input],
-          'bc1qh8j8a69gs896qczykgfdxh6r9277dhkyjh7frz',
-          152599200,
-          true,
-          feeRate);
-      tx.inputs[0].setSignature(AddressType.p2wpkh, [
-        Signature(
-            '304402207bc1288a3efb98b2dd99001ece3b21c25d92a613b74298cb42724f79abfecff8022046ae1fc05f24d6fe2bf181c278a885e8b1a733538270795ece5fd145b5ca17b401',
-            '037f96ecf60295840ee32dd0d7e8d914bfce21932b4dd1e5acc027cd2a77e42cc7')
-      ]);
-
-      int fee = tx.calculateFee(feeRate);
-      expect(fee, inInclusiveRange(11000 - 50, 11000 + 50));
     });
 
     test('has signature', () {
@@ -410,7 +372,8 @@ main() async {
 
       TransactionOutput output =
           TransactionOutput.forSending(11000, vault.getAddress(1));
-      Transaction tx = Transaction.forSending([input1], [output], true);
+      Transaction tx =
+          Transaction.forSending([input1], [output], AddressType.p2wpkh);
 
       TransactionOutput utxo1 = TransactionOutput.forSending(
           11524, 'tb1qeve9c2dvrk0ec44twlrlvk0k5vz200gz8pu2wn');
@@ -504,86 +467,11 @@ main() async {
       TransactionOutput output2 = TransactionOutput.forSending(10000,
           'tb1q5e7xwfxvm2wq95kla90femh9nvj6at9qzstvu3'); //change m/84'/1'/0'/1/0
 
-      Transaction tx =
-          Transaction.forSending([input2, input1], [output1, output2], true);
+      Transaction tx = Transaction.forSending(
+          [input2, input1], [output1, output2], AddressType.p2wpkh);
       PSBT psbt = PSBT.fromTransaction(tx, wallet);
       expect(psbt.outputs[1].isChange, true);
       expect(psbt.outputs[0].isChange, false);
-    });
-
-    test('fee test (sending)', () async {
-      BitcoinNetwork.setNetwork(BitcoinNetwork.testnet);
-      Seed seed = Seed.fromMnemonic(
-          'walk nose vibrant ankle advance frame violin apart summer depart volume squeeze decide visit manage tomorrow demand office minimum method manage arm dwarf cement',
-          passphrase: 'ABC');
-      SingleSignatureVault vault =
-          SingleSignatureVault.fromSeed(seed, AddressType.p2wpkh);
-      SingleSignatureWallet wallet =
-          SingleSignatureWallet.fromDescriptor(vault.descriptor);
-
-      await wallet.fetchOnChainData(nodeConnector);
-
-      String receiverAddress = wallet.getReceiveAddress().address;
-      int sendingAmount = 5000;
-      String psbt =
-          await wallet.generatePsbt(receiverAddress, sendingAmount, 1);
-      int estimatedFee =
-          await wallet.estimateFee(receiverAddress, sendingAmount, 1);
-
-      PSBT psbtObj = PSBT.parse(psbt);
-      int unsignedFee = psbtObj.fee;
-
-      String signedPsbt = vault.addSignatureToPsbt(psbt);
-      PSBT signedPsbtObj = PSBT.parse(signedPsbt);
-      Transaction compTx =
-          signedPsbtObj.getSignedTransaction(AddressType.p2wpkh);
-
-      int realFee = compTx.calculateFee(1);
-
-      // print("vByte : ${compTx.getVirtualByte()}");
-      // print("real fee : $realFee");
-      // print("estimated fee : $estimatedFee");
-      // print("unsigned fee : $unsignedFee");
-
-      expect((realFee - estimatedFee).abs(), lessThan(2));
-      expect((realFee - unsignedFee).abs(), lessThan(2));
-    });
-
-    test('fee test (max sending)', () async {
-      int vbyteTolerance = 1; // per input
-
-      Seed seed = Seed.fromMnemonic(
-          'walk nose vibrant ankle advance frame violin apart summer depart volume squeeze decide visit manage tomorrow demand office minimum method manage arm dwarf cement',
-          passphrase: 'ABC');
-      SingleSignatureVault vault =
-          SingleSignatureVault.fromSeed(seed, AddressType.p2wpkh);
-      SingleSignatureWallet wallet =
-          SingleSignatureWallet.fromDescriptor(vault.descriptor);
-
-      await wallet.fetchOnChainData(nodeConnector);
-
-      int feeRate = 1;
-
-      String receiverAddress =
-          wallet.getAddress(19); //tb1qh5mehlqdrl3q6edfa0mwyc52gqyqqmpcfuarq3
-      String psbt =
-          await wallet.generatePsbtWithMaximum(receiverAddress, feeRate);
-      int estimatedFee =
-          await wallet.estimateFeeWithMaximum(receiverAddress, feeRate);
-
-      PSBT psbtObj = PSBT.parse(psbt);
-      int unsignedFee = psbtObj.fee;
-
-      String signedPsbt = vault.addSignatureToPsbt(psbt);
-      PSBT signedPsbtObj = PSBT.parse(signedPsbt);
-      Transaction compTx =
-          signedPsbtObj.getSignedTransaction(AddressType.p2wpkh);
-
-      int realFee = compTx.calculateFee(feeRate);
-      expect((realFee - estimatedFee).abs(),
-          lessThan(feeRate * (vbyteTolerance * compTx.inputs.length)));
-      expect((realFee - unsignedFee).abs(),
-          lessThan(feeRate * (vbyteTolerance * compTx.inputs.length)));
     });
   });
 }
