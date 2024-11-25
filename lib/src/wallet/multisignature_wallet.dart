@@ -118,7 +118,8 @@ class MultisignatureWallet extends MultisignatureWalletBase
       String receiverAddress, int sendingAmount, int feeRate) async {
     PSBT psbt = await Future(
         () => PSBT.forSending(receiverAddress, sendingAmount, feeRate, this));
-    return psbt.estimateFee(feeRate, addressType);
+    return psbt.estimateFee(feeRate, addressType,
+        requiredSignature: requiredSignature, totalSigner: keyStoreList.length);
   }
 
   @override
@@ -126,7 +127,8 @@ class MultisignatureWallet extends MultisignatureWalletBase
       String receiverAddress, int feeRate) async {
     PSBT psbt = await Future(
         () => PSBT.forMaximumSending(receiverAddress, feeRate, this));
-    return psbt.estimateFee(feeRate, addressType);
+    return psbt.estimateFee(feeRate, addressType,
+        requiredSignature: requiredSignature, totalSigner: keyStoreList.length);
   }
 
   @override
