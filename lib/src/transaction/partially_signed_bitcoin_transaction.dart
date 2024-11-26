@@ -17,9 +17,6 @@ class PSBT {
   /// @nodoc
   List<DerivationPath> derivationPathList = [];
 
-  /// @nodoc
-  WalletBase? wallet;
-
   /// Get the fee of the transaction.
   int get fee => () {
         int totalInput = 0;

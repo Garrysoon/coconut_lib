@@ -232,6 +232,8 @@ class AddressType {
   /// @nodoc
   static String getP2wshAddress(
       List<String> publicKeys, int requiredSignatures) {
+    publicKeys.sort();
+
     List<Uint8List> pubKeys =
         publicKeys.map((hex) => Converter.hexToBytes(hex)).toList();
 

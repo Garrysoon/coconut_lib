@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:coconut_lib/coconut_lib.dart';
 
 void main() async {
-  bool send = true;
+  bool send = false;
   BitcoinNetwork.setNetwork(BitcoinNetwork.regtest);
 
   //Generate 2-of-3 Multisig Vault with 2 Outside signer
@@ -28,6 +28,14 @@ void main() async {
       outsideVault1.getSignerBsms(AddressType.p2wsh, "OutsideSigner1"));
   KeyStore outsideKey2 = KeyStore.fromSignerBsms(
       outsideVault2.getSignerBsms(AddressType.p2wsh, "OutsideSigner2"));
+
+  print(insideKey1.masterFingerprint);
+  print(outsideKey1.masterFingerprint);
+  print(outsideKey2.masterFingerprint);
+
+//   AEF5B293
+// BAD41B33
+// 62A936C3
 
   MultisignatureVault multisignatureVault =
       MultisignatureVault.fromKeyStoreList(
@@ -56,7 +64,7 @@ void main() async {
     throw Exception('Unsupported Address Type');
   }
 
-  print("descriptor: ${watchOnlyWallet.descriptor}");
+  print("descriptor: ${multisignatureVault.descriptor}");
 
   print("${watchOnlyWallet.getReceiveAddress()}");
 
@@ -74,7 +82,7 @@ void main() async {
   // PSBT unsignedPSBT = PSBT.forSending(
   //     "bcrt1qjc4p02r0782v5326j3njeeucesly7pnrwnaqft", 4000, 3, watchOnlyWallet);
   PSBT unsignedPSBT = PSBT.forMaximumSending(
-      "bcrt1qkn8haxetu7gmku4q5lums0yv8f84ze4z6sgjgxq6kw0z5qrfrfkqpgl75y",
+      "bc1qkxvft4ugmm2he6j6h6ymhgr866ce5k8dh4vu7ggxvg7dxkzwg93q89unlu",
       3,
       watchOnlyWallet);
 

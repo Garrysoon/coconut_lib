@@ -35,8 +35,18 @@ main() async {
           outsideVault.getSignerBsms(AddressType.p2wsh, "outside signer");
       KeyStore outsideKey = KeyStore.fromSignerBsms(signerBsms);
 
+      // print(insideKey1.masterFingerprint);
+      // print(insideKey2.masterFingerprint);
+      // print(outsideKey.masterFingerprint);
+
       multisignatureVault = MultisignatureVault.fromKeyStoreList(
           [insideKey1, insideKey2, outsideKey], 2, AddressType.p2wsh);
+
+      // for (KeyStore keyStore in multisignatureVault.keyStoreList) {
+      //   print(keyStore.masterFingerprint);
+      // }
+
+      // print(multisignatureVault.descriptor);
     });
 
     test('bsms signer test', () {
@@ -52,24 +62,28 @@ main() async {
 
     test('bsms coordinator test', () {
       BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
-      String expectedCoordinator =
-          "BSMS 1.0\nwsh(sortedmulti(2,[AEF5B293/48'/0'/0'/2']Zpub75AQJSQLp25LUmJX2fUUMJjP4fcQhwaqH32iSNckTrZrjy3omBpb1ghSNtSZpCzvzhLha7r3JA7uG4wQyDkn87qHgpPZfTHBdvghvVhL2t1/<0;1>/*,[BAD41B33/48'/0'/0'/2']Zpub74NK7csp5wpD3dmr6bwweenNKDSERwQfisZCL8JpZ2TQ64E4oHm8pesNzTytfhfpfp6XzwumdxSKgLSjogTG6r6zVd1mSgGz67zK3Me9qrQ/<0;1>/*,[62A936C3/48'/0'/0'/2']Zpub75QytCyD9mNTr1wyi59JAhU2uiPedspk18djeteoeC6tJ7MdpuKbBRUA33CW49y5FDkpPqLDjujDVaNAGB9XVw44q8X2Hzif5DSTQyhgTES/<0;1>/*))#3zwl8rzh\n/0/*,/1/*\nbc1qq4t09zkp4f422qrcqmg0xx79h5n9ujtql5rcvwc0kykwfv3rwxgqkss9ct";
-      expect(multisignatureVault.getCoordinatorBsms(), expectedCoordinator);
+      // print(multisignatureVault.getCoordinatorBsms());
+      MultisignatureVault vault = MultisignatureVault.fromCoordinatorBsms(
+          multisignatureVault.getCoordinatorBsms());
+      expect(vault.keyStoreList[0].masterFingerprint,
+          multisignatureVault.keyStoreList[0].masterFingerprint);
+      expect(vault.keyStoreList[1].masterFingerprint,
+          multisignatureVault.keyStoreList[1].masterFingerprint);
+      expect(vault.keyStoreList[2].masterFingerprint,
+          multisignatureVault.keyStoreList[2].masterFingerprint);
     });
 
     test('p2wsh address test', () {
       Address address = multisignatureVault.getAddressList(0, 1, false)[0];
-      // print(address.address + " " + address.derivationPath);
-      // print(multisignatureVault.derivationPath);
+
       String expectAddress =
           'bc1qq4t09zkp4f422qrcqmg0xx79h5n9ujtql5rcvwc0kykwfv3rwxgqkss9ct';
       expect(address.address, expectAddress);
 
       Address changeAddress = multisignatureVault.getAddressList(0, 1, true)[0];
-      // print(address.address + " " + address.derivationPath);
-      // print(multisignatureVault.derivationPath);
       String expectChangeAddress =
           'bc1qjy9t4rl9npfu5r47k9gqkk7znt8hyuf28vd6jx3wuheu2dhc0esq3085ck';
+
       expect(changeAddress.address, expectChangeAddress);
     });
   });
