@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:coconut_lib/coconut_lib.dart';
 
 void main() async {
-  bool send = false;
+  bool send = true;
   BitcoinNetwork.setNetwork(BitcoinNetwork.regtest);
 
   //Generate 2-of-3 Multisig Vault with 2 Outside signer
@@ -80,9 +80,10 @@ void main() async {
 
   // PSBT unsignedPSBT = PSBT.forSending(
   //     "bcrt1qjc4p02r0782v5326j3njeeucesly7pnrwnaqft", 4000, 3, watchOnlyWallet);
-  PSBT unsignedPSBT = PSBT.forMaximumSending(
-      "bc1qkxvft4ugmm2he6j6h6ymhgr866ce5k8dh4vu7ggxvg7dxkzwg93q89unlu",
-      3,
+  PSBT unsignedPSBT = PSBT.forSending(
+      "bcrt1qkn8haxetu7gmku4q5lums0yv8f84ze4z6sgjgxq6kw0z5qrfrfkqpgl75y",
+      100000,
+      1,
       watchOnlyWallet);
 
   print("Unsigned PSBT: ${unsignedPSBT.serialize()}");

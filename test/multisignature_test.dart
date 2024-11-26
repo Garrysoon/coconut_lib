@@ -151,4 +151,100 @@ main() async {
           '522102e639419a5e796a0fb6aec2c5a0a5d74416ea405c27ed2ceed48121b7aedefa5621032e88ef30f5316cf0ef753894287f01570250adbb62de502035e0ce7c7a802fda2103d46417aa41ce16b5ad0ddc7144f4b3acf12cb4ad0b20c75dc17410394f97950453ae');
     });
   });
+
+  group('psbt test', () {
+    late SingleSignatureVault insideVault1;
+    late SingleSignatureVault insideVault2;
+    late SingleSignatureVault outsideVault;
+    late MultisignatureVault multisignatureVault;
+    late MultisignatureWallet wallet;
+    late MultisignatureVault outsideMultisignatureVault;
+
+    setUpAll(() async {
+      BitcoinNetwork.setNetwork(BitcoinNetwork.regtest);
+
+      insideVault1 = SingleSignatureVault.fromMnemonic(
+          'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
+          AddressType.p2wpkh,
+          passphrase: 'ABC');
+
+      insideVault2 = SingleSignatureVault.fromMnemonic(
+          'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
+          AddressType.p2wpkh,
+          passphrase: 'DEF');
+
+      outsideVault = SingleSignatureVault.fromMnemonic(
+          'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
+          AddressType.p2wpkh,
+          passphrase: 'GHI');
+
+      KeyStore insideKey1 =
+          KeyStore.fromSeed(insideVault1.keyStore.seed, AddressType.p2wsh);
+      KeyStore insideKey2 =
+          KeyStore.fromSeed(insideVault2.keyStore.seed, AddressType.p2wsh);
+      String signerBsms =
+          outsideVault.getSignerBsms(AddressType.p2wsh, "outside signer");
+      KeyStore outsideKey = KeyStore.fromSignerBsms(signerBsms);
+
+      multisignatureVault = MultisignatureVault.fromKeyStoreList(
+          [insideKey1, insideKey2, outsideKey], 2, AddressType.p2wsh);
+
+      outsideMultisignatureVault = MultisignatureVault.fromCoordinatorBsms(
+          multisignatureVault.getCoordinatorBsms());
+      outsideMultisignatureVault.bindSeedToKeyStore(outsideVault.keyStore.seed);
+
+      wallet =
+          MultisignatureWallet.fromDescriptor(multisignatureVault.descriptor);
+      print(wallet.getAddress(0));
+      NodeConnector nodeConnector = await NodeConnector.connectSync(
+          'regtest-electrum.coconut.onl', 60401,
+          ssl: true);
+
+      /// fetch on chain data
+      await wallet.fetchOnChainData(nodeConnector);
+
+      if (wallet.getBalance() < 10000) {
+        throw Exception('Insufficient balance to test');
+      }
+    });
+
+    test('psbt sign flag test', () async {
+      PSBT unsignedPSBT = PSBT.forSending(
+          "bc1qkxvft4ugmm2he6j6h6ymhgr866ce5k8dh4vu7ggxvg7dxkzwg93q89unlu",
+          1000,
+          1,
+          wallet);
+
+      expect(unsignedPSBT.isSigned(multisignatureVault.keyStoreList[0]), false);
+      expect(unsignedPSBT.isSigned(multisignatureVault.keyStoreList[1]), false);
+      expect(unsignedPSBT.isSigned(multisignatureVault.keyStoreList[2]), false);
+
+      String signed0 = multisignatureVault.keyStoreList[0]
+          .addSignatureToPsbt(unsignedPSBT.serialize());
+
+      PSBT signed0Psbt = PSBT.parse(signed0);
+
+      expect(signed0Psbt.isSigned(multisignatureVault.keyStoreList[0]), true);
+      expect(signed0Psbt.isSigned(multisignatureVault.keyStoreList[1]), false);
+      expect(signed0Psbt.isSigned(multisignatureVault.keyStoreList[2]), false);
+
+      String signed1 = multisignatureVault.keyStoreList[1]
+          .addSignatureToPsbt(unsignedPSBT.serialize());
+      PSBT signed1Psbt = PSBT.parse(signed1);
+
+      expect(signed1Psbt.isSigned(multisignatureVault.keyStoreList[0]), false);
+      expect(signed1Psbt.isSigned(multisignatureVault.keyStoreList[1]), true);
+      expect(signed1Psbt.isSigned(multisignatureVault.keyStoreList[2]), false);
+
+      String signed02 = outsideMultisignatureVault.addSignatureToPsbt(signed0);
+      PSBT signed02Psbt = PSBT.parse(signed02);
+
+      expect(signed02Psbt.isSigned(multisignatureVault.keyStoreList[0]), true);
+      expect(signed02Psbt.isSigned(multisignatureVault.keyStoreList[1]), false);
+      expect(signed02Psbt.isSigned(multisignatureVault.keyStoreList[2]), true);
+
+      KeyStore notImportedKeyStore = KeyStore.random(AddressType.p2wsh);
+      expect(signed02Psbt.isSigned(notImportedKeyStore), false);
+    });
+  });
 }

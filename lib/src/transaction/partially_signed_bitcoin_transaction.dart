@@ -563,6 +563,24 @@ class PSBT {
     return jsonEncode(psbtMap);
   }
 
+  bool isSigned(KeyStore keyStore) {
+    bool isSigned = false;
+    for (PsbtInput input in inputs) {
+      for (DerivationPath path in input._derivationPathList) {
+        if (keyStore.masterFingerprint == path.masterFingerprint) {
+          isSigned = true;
+          String publicKey = keyStore.getPublicKeyWithDerivationPath(path.path);
+          if (!input.partialSigList
+              .any((element) => element.publicKey == publicKey)) {
+            return false;
+          }
+        }
+      }
+    }
+
+    return isSigned;
+  }
+
   static int _getOffset(int prefix) {
     if (prefix == 0xfd) {
       return 3;

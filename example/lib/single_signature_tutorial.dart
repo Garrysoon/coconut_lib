@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:coconut_lib/coconut_lib.dart';
 
 void main() async {
+  bool isForSending = true;
   /*
   This shows the process from creating a Bitcoin wallet in the Coconut Library to sending Bitcoin.
   Please check that the roles of the Vault and the Wallet are separate.
@@ -37,8 +38,9 @@ void main() async {
   print("balance before tx : ${watchOnlyWallet.getBalance()}");
 
   /// create a PSBT(BIP-0174) to my another address
-  PSBT unsignedPSBT = PSBT.forMaximumSending(
+  PSBT unsignedPSBT = PSBT.forSending(
       "bcrt1qkn8haxetu7gmku4q5lums0yv8f84ze4z6sgjgxq6kw0z5qrfrfkqpgl75y",
+      100000,
       1,
       watchOnlyWallet);
 
@@ -61,9 +63,11 @@ void main() async {
   Transaction signedTx = signedPSBT
       .getSignedTransaction(watchOnlyWallet.addressType); // transaction object
 
-  Result result =
-      await nodeConnector.broadcast(signedTx.serialize()); // broadcast
-  print(' - Transaction is broadcasted: ${result.value}');
+  if (isForSending) {
+    Result result =
+        await nodeConnector.broadcast(signedTx.serialize()); // broadcast
+    print(' - Transaction is broadcasted: ${result.value}');
+  }
 
   /// need to sync again
   await watchOnlyWallet.fetchOnChainData(nodeConnector);
