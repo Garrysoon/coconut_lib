@@ -195,7 +195,7 @@ main() async {
 
       wallet =
           MultisignatureWallet.fromDescriptor(multisignatureVault.descriptor);
-      print(wallet.getAddress(0));
+      // print(wallet.getAddress(0));
       NodeConnector nodeConnector = await NodeConnector.connectSync(
           'regtest-electrum.coconut.onl', 60401,
           ssl: true);
@@ -245,6 +245,44 @@ main() async {
 
       KeyStore notImportedKeyStore = KeyStore.random(AddressType.p2wsh);
       expect(signed02Psbt.isSigned(notImportedKeyStore), false);
+    });
+
+    test('signature sorting test', () {
+      PSBT unsignedPSBT = PSBT.forSending(
+          "bc1qkxvft4ugmm2he6j6h6ymhgr866ce5k8dh4vu7ggxvg7dxkzwg93q89unlu",
+          1000,
+          1,
+          wallet);
+
+      String signed0 = multisignatureVault.keyStoreList[0]
+          .addSignatureToPsbt(unsignedPSBT.serialize());
+      String signed1 = multisignatureVault.keyStoreList[1]
+          .addSignatureToPsbt(unsignedPSBT.serialize());
+
+      PSBT signed0Psbt = PSBT.parse(signed0);
+      PSBT signed1Psbt = PSBT.parse(signed1);
+
+      String signed01 = multisignatureVault.keyStoreList[1]
+          .addSignatureToPsbt(signed0Psbt.serialize());
+
+      String signed10 = multisignatureVault.keyStoreList[0]
+          .addSignatureToPsbt(signed1Psbt.serialize());
+
+      // print(signed10);
+
+      PSBT signed01Psbt = PSBT.parse(signed01);
+      PSBT signed10Psbt = PSBT.parse(signed10);
+
+      Transaction signed01Tx =
+          signed01Psbt.getSignedTransaction(wallet.addressType);
+      Transaction signed10Tx =
+          signed10Psbt.getSignedTransaction(wallet.addressType);
+
+      expect(signed01Tx.inputs[0].witnessList[1],
+          signed10Tx.inputs[0].witnessList[1]);
+
+      expect(signed01Tx.inputs[0].witnessList[2],
+          signed10Tx.inputs[0].witnessList[2]);
     });
   });
 }

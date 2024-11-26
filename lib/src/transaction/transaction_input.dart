@@ -107,6 +107,7 @@ class TransactionInput {
       if (witnessScript == null) {
         throw ArgumentError('witnessScript is required for p2wsh');
       }
+      signatureList.sort((a, b) => a.publicKey.compareTo(b.publicKey));
 
       scriptSig = ScriptSignature.p2wsh();
       witnessList = ["00"];

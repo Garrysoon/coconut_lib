@@ -208,7 +208,6 @@ class KeyStore {
         if (validateSignatureWithDerivationPath(
             signature, sigHash, thisInput.derivationPathList[j].path)) {}
         psbtObject.addSignature(i, signature, publicKey);
-        psbtObject.addSignature(i, signature, publicKey);
       }
       // String publicKey =
       //     getPublicKeyWithDerivationPath(thisInput.derivationPathList!.path);
@@ -217,7 +216,6 @@ class KeyStore {
       // if (validateSignatureWithDerivationPath(
       //     signature, sigHash, thisInput.derivationPathList!.path)) {}
     }
-
     return psbtObject.serialize();
   }
 

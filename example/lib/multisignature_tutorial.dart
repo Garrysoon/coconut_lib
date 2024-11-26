@@ -29,13 +29,9 @@ void main() async {
   KeyStore outsideKey2 = KeyStore.fromSignerBsms(
       outsideVault2.getSignerBsms(AddressType.p2wsh, "OutsideSigner2"));
 
-  print(insideKey1.masterFingerprint);
-  print(outsideKey1.masterFingerprint);
-  print(outsideKey2.masterFingerprint);
-
-//   AEF5B293
-// BAD41B33
-// 62A936C3
+  // print(insideKey1.masterFingerprint); //AEF5B293
+  // print(outsideKey1.masterFingerprint); //BAD41B33
+  // print(outsideKey2.masterFingerprint); //62A936C3
 
   MultisignatureVault multisignatureVault =
       MultisignatureVault.fromKeyStoreList(

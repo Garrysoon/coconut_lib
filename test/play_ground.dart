@@ -3,24 +3,10 @@ import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
 
 void main() async {
-  SingleSignatureVault vault = SingleSignatureVault.fromMnemonic(
-      'thank split shrimp error own spirit slow glow act evidence globe slight',
-      AddressType.p2wpkh);
-
-  SingleSignatureWallet wallet =
-      SingleSignatureWallet.fromDescriptor(vault.descriptor);
-
-  NodeConnector nodeConnector = await NodeConnector.connectSync(
-      'regtest-electrum.coconut.onl', 60401,
-      ssl: true);
-
-  print('fetch on chain data');
-  await wallet.fetchOnChainData(nodeConnector);
-
-  print("balance : ${wallet.getBalance()}");
-
-  List<Transfer> tList = wallet.getTransferList(cursor: 0, count: 5);
-  for (Transfer t in tList) {
-    print(t.blockHeight);
+  String witnessProgram =
+      '522103525b642f33199f8adb34c611432158bbfd885c5bed5719e9bc85ba9580bea66821038af6b25b2428600d09f3a9a61cdff43bbe4d76d6ca6cb4f77e0d195007cbc56a210381e1e7501e9a816c4646a012e73500b6524c5249e4d349d18784782d542abb9653ae';
+  Script script = WitnessScript.parse(witnessProgram);
+  for (var i = 0; i < script.commands.length; i++) {
+    print(script.commands[i]);
   }
 }

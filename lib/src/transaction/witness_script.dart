@@ -11,6 +11,17 @@ class WitnessScript extends Script {
   static WitnessScript p2wsh(
       int requiredSignature, int totalSignature, List<Uint8List> publicKeys) {
     List<dynamic> cmds = [];
+
+    publicKeys.sort((a, b) {
+      for (int i = 0; i < a.length && i < b.length; i++) {
+        if (a[i] != b[i]) {
+          return a[i].compareTo(b[i]);
+        }
+      }
+      return a.length
+          .compareTo(b.length); // Compare by length if all bytes are equal
+    });
+
     cmds.add(ScriptOperationCode.getHex('OP_${requiredSignature.toString()}'));
     for (var publicKey in publicKeys) {
       cmds.add(publicKey);
