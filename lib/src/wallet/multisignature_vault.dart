@@ -95,9 +95,9 @@ class MultisignatureVault extends MultisignatureWalletBase
     });
   }
 
-  void bindSeedToKeyStore(Seed seed, int index) {
+  void bindSeedToKeyStore(Seed seed, {int accountIndex = 0}) {
     KeyStore keyStoreFromSeed =
-        KeyStore.fromSeed(seed, addressType, accountIndex: index);
+        KeyStore.fromSeed(seed, addressType, accountIndex: accountIndex);
 
     for (KeyStore keyStore in keyStoreList) {
       if (keyStore.masterFingerprint == keyStoreFromSeed.masterFingerprint) {

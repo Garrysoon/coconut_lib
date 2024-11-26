@@ -47,8 +47,7 @@ void main() async {
           multisignatureVault.getCoordinatorBsms());
 
   // Find Seed in Outside Vault and bind it to KeyStore
-  outsideMultisignatureVault.bindSeedToKeyStore(
-      outsideVault1.keyStore.seed, outsideVault1.accountIndex);
+  outsideMultisignatureVault.bindSeedToKeyStore(outsideVault1.keyStore.seed);
 
   // Make WatchOnlyWallet for multisig
   MultisignatureWallet watchOnlyWallet;
