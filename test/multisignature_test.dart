@@ -1,5 +1,6 @@
 @Tags(['integration'])
 import 'package:coconut_lib/coconut_lib.dart';
+import 'package:coconut_lib/src/utils/converter.dart';
 import 'package:test/test.dart';
 
 main() async {
@@ -149,6 +150,38 @@ main() async {
       Transaction tx = Transaction.parse(txText);
       expect(tx.inputs[0].witnessList[3],
           '522102e639419a5e796a0fb6aec2c5a0a5d74416ea405c27ed2ceed48121b7aedefa5621032e88ef30f5316cf0ef753894287f01570250adbb62de502035e0ce7c7a802fda2103d46417aa41ce16b5ad0ddc7144f4b3acf12cb4ad0b20c75dc17410394f97950453ae');
+    });
+
+    test('witness script validator', () {
+      // String badPublicKeyOrder =
+      //     '0653210378eee0245a53a7adcd2cfefc4bf5d13ee1a70c4ca5d4df1c9b1bccafed26e5fa2103b0f61d342e1c217e6d40a1d7b95a2ded2b14f4b4a2c9f4a381e3e5837eba629b2102868fd6ae25b2fe30a5020418e0b5e8f31c5a63b50a6907c9dba50001cbcc6aa353ae';
+      // expect(() => WitnessScript.parse(badPublicKeyOrder), throwsException);
+      expect(
+          () => WitnessScript.parse(
+              "${Converter.decToHex((noMultisigOperation.length / 2).ceil())}$noMultisigOperation"),
+          throwsException);
+
+      String noMultisigOperation =
+          '53210378eee0245a53a7adcd2cfefc4bf5d13ee1a70c4ca5d4df1c9b1bccafed26e5fa2103b0f61d342e1c217e6d40a1d7b95a2ded2b14f4b4a2c9f4a381e3e5837eba629b2102868fd6ae25b2fe30a5020418e0b5e8f31c5a63b50a6907c9dba50001cbcc6aa353';
+      expect(
+          () => WitnessScript.parse(
+              "${Converter.decToHex((noMultisigOperation.length / 2).ceil())}$noMultisigOperation"),
+          throwsException);
+
+      String wrongSignatureLength =
+          '53210378eee0245a53a7adcd2cfefc4bf5d13ee1a70c4ca5d4df1c9b1bccafed26e5fa2103b0f61d342e1c217e6d40a1d7b95a2ded2b14f4b4a2c9f4a381e3e5837eba629b200286d6ae25b2fe30a5020418e0b5e8f31c5a63b50a6907c9dba50001cbcc6aa353ae';
+      expect(
+          () => WitnessScript.parse(
+              "${Converter.decToHex((wrongSignatureLength.length / 2).ceil())}$wrongSignatureLength"),
+          throwsException);
+
+      String clean =
+          '532102868fd6ae25b2fe30a5020418e0b5e8f31c5a63b50a6907c9dba50001cbcc6aa3210378eee0245a53a7adcd2cfefc4bf5d13ee1a70c4ca5d4df1c9b1bccafed26e5fa2103b0f61d342e1c217e6d40a1d7b95a2ded2b14f4b4a2c9f4a381e3e5837eba629b53ae';
+      // Converter.decToHex((clean.length / 2).ceil());
+      expect(
+          () => WitnessScript.parse(
+              "${Converter.decToHex((clean.length / 2).ceil())}$clean"),
+          returnsNormally);
     });
   });
 
