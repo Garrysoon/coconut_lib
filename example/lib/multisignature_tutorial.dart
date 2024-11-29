@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:coconut_lib/coconut_lib.dart';
 
 void main() async {
-  bool send = true;
+  bool send = false;
   BitcoinNetwork.setNetwork(BitcoinNetwork.regtest);
 
   //Generate 2-of-3 Multisig Vault with 2 Outside signer
@@ -114,6 +114,10 @@ void main() async {
 
   /// check the balance again
   print("balance after sending: ${watchOnlyWallet.getBalance()}");
+
+  for (Transfer tf in watchOnlyWallet.getTransferList()) {
+    print("${tf.timestamp} ${tf.transferType} ${tf.amount} ${tf.fee}");
+  }
 
   exit(0);
 }

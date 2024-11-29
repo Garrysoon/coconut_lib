@@ -153,12 +153,11 @@ main() async {
     });
 
     test('witness script validator', () {
-      // String badPublicKeyOrder =
-      //     '0653210378eee0245a53a7adcd2cfefc4bf5d13ee1a70c4ca5d4df1c9b1bccafed26e5fa2103b0f61d342e1c217e6d40a1d7b95a2ded2b14f4b4a2c9f4a381e3e5837eba629b2102868fd6ae25b2fe30a5020418e0b5e8f31c5a63b50a6907c9dba50001cbcc6aa353ae';
-      // expect(() => WitnessScript.parse(badPublicKeyOrder), throwsException);
+      String badPublicKeyOrder =
+          '0653210378eee0245a53a7adcd2cfefc4bf5d13ee1a70c4ca5d4df1c9b1bccafed26e5fa2103b0f61d342e1c217e6d40a1d7b95a2ded2b14f4b4a2c9f4a381e3e5837eba629b2102868fd6ae25b2fe30a5020418e0b5e8f31c5a63b50a6907c9dba50001cbcc6aa353ae';
       expect(
           () => WitnessScript.parse(
-              "${Converter.decToHex((noMultisigOperation.length / 2).ceil())}$noMultisigOperation"),
+              "${Converter.decToHex((badPublicKeyOrder.length / 2).ceil())}$badPublicKeyOrder"),
           throwsException);
 
       String noMultisigOperation =

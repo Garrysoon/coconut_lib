@@ -87,6 +87,7 @@ class MultisignatureWallet extends MultisignatureWalletBase
     for (Transaction entity in walletStatus!.transactionList) {
       transferList.add(Transfer.fromTransactions(addressBook, entity));
     }
+    transferList.sort((a, b) => b.timestamp!.compareTo(a.timestamp!));
     return transferList;
   }
 
