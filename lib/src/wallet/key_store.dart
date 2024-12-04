@@ -23,7 +23,7 @@ class KeyStore {
   Seed get seed => _seed!;
 
   /// Set the seed of the key store.
-  set seed(Seed seed) {
+  set seed(Seed? seed) {
     _seed = seed;
   }
 
