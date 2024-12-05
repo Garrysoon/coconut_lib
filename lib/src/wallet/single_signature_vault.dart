@@ -79,7 +79,7 @@ class SingleSignatureVault extends SingleSignatureWalletBase
       throw Exception('Use Multisig address type.');
     }
     KeyStore multisigKeyStore =
-        KeyStore.fromSeed(keyStore.seed, targetAddressType);
+        KeyStore.fromSeed(keyStore.seed!, targetAddressType);
 
     BSMS bsms = BSMS.fromSigner(
         multisigKeyStore.masterFingerprint,
