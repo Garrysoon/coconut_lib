@@ -72,6 +72,9 @@ class SingleSignatureVault extends SingleSignatureWalletBase
 
   /// Display BSMS for multisig setup.
   String getSignerBsms(AddressType targetAddressType, String description) {
+    if (keyStore.hasSeed == false) {
+      throw Exception('Use seed to create signer.');
+    }
     if (!targetAddressType.isMultisig) {
       throw Exception('Use Multisig address type.');
     }
