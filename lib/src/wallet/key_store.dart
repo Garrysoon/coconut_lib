@@ -20,7 +20,7 @@ class KeyStore {
   ExtendedPublicKey get extendedPublicKey => _extendedPublicKey;
 
   /// The seed of the key store.
-  Seed? get seed => _seed!;
+  Seed get seed => _seed!;
 
   /// Set the seed of the key store.
   set seed(Seed? seed) {
@@ -141,9 +141,6 @@ class KeyStore {
 
   ///Check if the PSBT can be signed from this vault.
   bool canSignToPsbt(String psbt) {
-    if (!hasSeed) {
-      return false;
-    }
     PSBT psbtObj = PSBT.parse(psbt);
     for (int i = 0; i < psbtObj.unsignedTransaction!.inputs.length; i++) {
       PsbtInput thisInput = psbtObj.inputs[i];
