@@ -69,8 +69,10 @@ class PSBT {
 
       List<DerivationPath> inputDerivationPathList = [];
       List<Signature> partialSigList = [];
+      WitnessScript? witnessScript;
 
       psbtMap["inputs"][i].keys.forEach((key) {
+        // 06 : BIP32_DERIVATION
         if (key.startsWith('06')) {
           String publicKey = key.substring(2);
           String masterFingerprint = psbtMap["inputs"][i][key].substring(0, 8);
@@ -79,15 +81,23 @@ class PSBT {
           inputDerivationPathList.add(
               DerivationPath(publicKey, masterFingerprint, derivationPath));
         }
-
+        // 02 : PARTIAL_SIG
         if (key.startsWith('02')) {
           String publicKey = key.substring(2);
           String signature = psbtMap["inputs"][i][key];
           partialSigList.add(Signature(signature, publicKey));
         }
+        // 05 : WITNESS_SCRIPT
+        if (key.startsWith('05')) {
+          String script = psbtMap["inputs"][i][key];
+          String size =
+              Converter.bytesToHex(Varints.encode(script.length ~/ 2));
+          witnessScript = WitnessScript.parse(size + script);
+        }
       });
       inputs.add(PsbtInput(
-          prevTx, witnessUtxo, inputDerivationPathList, partialSigList));
+          prevTx, witnessUtxo, inputDerivationPathList, partialSigList,
+          witnessScript: witnessScript));
     }
 
     for (int i = 0; i < psbtMap["outputs"].length; i++) {
@@ -172,25 +182,46 @@ class PSBT {
       totalInputAmount += utxo.amount;
       inputs.add(TransactionInput.forSending(utxo.transactionHash, utxo.index));
     }
-    int fee = _calculateEstimationFee(
-        selectedUtxos.length, 2, feeRate, wallet.addressType);
-    int change = totalInputAmount - amount - fee;
+
     String changeAddress = wallet.getChangeAddress().address;
 
     TransactionOutput sendingOutput =
         TransactionOutput.forSending(amount, address);
     TransactionOutput changeOutput =
-        TransactionOutput.forSending(change, changeAddress);
+        TransactionOutput.forSending(0, changeAddress);
 
     outputs.add(sendingOutput);
     outputs.add(changeOutput);
-    Transaction tx = Transaction.forSending(inputs, outputs, true);
+
+    Transaction tx =
+        Transaction.forSending(inputs, outputs, wallet.addressType);
+
+    // print("Input : ${tx.inputs.length}, Output : ${tx.outputs.length}");
+
+    double vByte = 0.0;
+    if (wallet.addressType == AddressType.p2wpkh) {
+      vByte = tx.estimateVirtualByte(wallet.addressType);
+    } else if (wallet.addressType == AddressType.p2wsh) {
+      MultisignatureWallet multisignatureWallet =
+          wallet as MultisignatureWallet;
+      vByte = tx.estimateVirtualByte(wallet.addressType,
+          requiredSignature: multisignatureWallet.requiredSignature,
+          totalSigner: multisignatureWallet.totalSigner);
+    } else {
+      throw Exception('Unsupported Address Type');
+    }
+
+    int fee = (vByte * feeRate).ceil();
+
+    // print("Fee : $fee");
+
+    changeOutput.setAmount(totalInputAmount - amount - fee);
 
     //minimum fee check
-    if (tx.getVirtualByte() > fee) {
-      change = totalInputAmount - amount - tx.getVirtualByte().ceil();
-      changeOutput.setAmount(change);
-    }
+    // if (tx.getVirtualByte() > fee) {
+    //   int change = totalInputAmount - amount - tx.getVirtualByte().ceil();
+    //   changeOutput.setAmount(change);
+    // }
 
     return PSBT.fromTransaction(tx, wallet);
   }
@@ -207,6 +238,7 @@ class PSBT {
     List<UTXO> utxoList = walletFeature.getUtxoList();
 
     List<TransactionInput> inputs = [];
+    List<TransactionOutput> outputs = [];
     int inputAmount = 0;
     for (UTXO utxo in utxoList) {
       if (utxo.blockHeight == 0) {
@@ -216,37 +248,41 @@ class PSBT {
       inputAmount += utxo.amount;
     }
 
-    Transaction tx = Transaction.forMaximumSending(
-        inputs, address, inputAmount, wallet.addressType.isSegwit, feeRate);
+    if (inputAmount == 0) {
+      throw Exception('No balance to send');
+    }
+
+    TransactionOutput sendingOutput = TransactionOutput.forSending(0, address);
+    outputs.add(sendingOutput);
+
+    Transaction tx =
+        Transaction.forSending(inputs, outputs, wallet.addressType);
+
+    double vByte = 0.0;
+    if (wallet.addressType == AddressType.p2wpkh) {
+      vByte = tx.estimateVirtualByte(wallet.addressType);
+    } else if (wallet.addressType == AddressType.p2wsh) {
+      MultisignatureWallet multisignatureWallet =
+          wallet as MultisignatureWallet;
+      vByte = tx.estimateVirtualByte(wallet.addressType,
+          requiredSignature: multisignatureWallet.requiredSignature,
+          totalSigner: multisignatureWallet.totalSigner);
+    } else {
+      throw Exception('Unsupported Address Type');
+    }
+
+    int fee = (vByte * feeRate).ceil();
+
+    if (inputAmount < fee) {
+      throw Exception('Not enough amount for sending. (Fee : $fee)');
+    }
+
+    sendingOutput.setAmount(inputAmount - fee);
+
+    // Transaction tx = Transaction.forMaximumSending(
+    //     inputs, address, inputAmount, wallet.addressType, feeRate);
     // print(tx.serialize());
     return PSBT.fromTransaction(tx, wallet);
-  }
-
-  static int _calculateEstimationFee(int numberOfInput, int numberOfOutput,
-      int feeRate, AddressType addressType) {
-    int baseByte = 10;
-    int perOutputByte = 0;
-    int perInputByte = 0;
-
-    if (addressType == AddressType.p2pkh) {
-      perOutputByte = 34;
-      perInputByte = 148;
-    } else if (addressType == AddressType.p2wpkh) {
-      perOutputByte = 31;
-      perInputByte = 68;
-      baseByte += 2;
-    } else if (addressType == AddressType.p2sh) {
-      perOutputByte = 32;
-      perInputByte = 91;
-    } else if (addressType == AddressType.p2wsh) {
-      perOutputByte = 43;
-      perInputByte = 68;
-      baseByte += 2;
-    }
-    int totalByte = baseByte +
-        perOutputByte * numberOfOutput +
-        perInputByte * numberOfInput;
-    return totalByte * feeRate;
   }
 
   static List<UTXO> _selectOptimalUtxo(
@@ -363,12 +399,10 @@ class PSBT {
         inputData[bip32DerivationKeyType + publicKey] = fingerPrint +
             Converter.bytesToHex(_serializeDerivationPath(derivationPath));
       } else if (wallet is MultisignatureWallet) {
-        for (int i = 0; i < multisignatureWallet.totalSigner; i++) {
-          String publicKey = multisignatureWallet.keyStoreList[i]
-              .getPublicKeyWithDerivationPath(derivationPath);
-          String fingerPrint =
-              multisignatureWallet.keyStoreList[i].masterFingerprint;
-
+        for (KeyStore keyStore in multisignatureWallet.keyStoreList) {
+          String publicKey =
+              keyStore.getPublicKeyWithDerivationPath(derivationPath);
+          String fingerPrint = keyStore.masterFingerprint;
           inputData[bip32DerivationKeyType + publicKey] = fingerPrint +
               Converter.bytesToHex(_serializeDerivationPath(derivationPath));
         }
@@ -383,7 +417,7 @@ class PSBT {
       if (wallet.addressType == AddressType.p2wsh) {
         String witnessScriptKey = getKeyType(inputKeyType, 'WITNESS_SCRIPT');
         String witnessScript =
-            multisignatureWallet.getRedeemScript(derivationPath);
+            multisignatureWallet.getWitnessScript(derivationPath);
         inputData[witnessScriptKey] = witnessScript;
       }
       psbtData["inputs"].add(inputData);
@@ -529,6 +563,24 @@ class PSBT {
     return jsonEncode(psbtMap);
   }
 
+  bool isSigned(KeyStore keyStore) {
+    bool isSigned = false;
+    for (PsbtInput input in inputs) {
+      for (DerivationPath path in input._derivationPathList) {
+        if (keyStore.masterFingerprint == path.masterFingerprint) {
+          isSigned = true;
+          String publicKey = keyStore.getPublicKeyWithDerivationPath(path.path);
+          if (!input.partialSigList
+              .any((element) => element.publicKey == publicKey)) {
+            return false;
+          }
+        }
+      }
+    }
+
+    return isSigned;
+  }
+
   static int _getOffset(int prefix) {
     if (prefix == 0xfd) {
       return 3;
@@ -651,21 +703,25 @@ class PSBT {
   Transaction getSignedTransaction(AddressType addressType) {
     Transaction signedTransaction =
         Transaction.parseUnsignedTransaction(unsignedTransaction!.serialize());
-    if (addressType.isMultisig) {
+    signedTransaction._isSegwit = addressType.isSegwit;
+    if (addressType == AddressType.p2wsh) {
       for (int i = 0; i < inputs.length; i++) {
         if (inputs[i].partialSigList.length < inputs[i].requiredSignature) {
           throw Exception('Not enough signatures');
         }
-        signedTransaction.inputs[i]
-            .setSignature(addressType, inputs[i].partialSigList);
+        signedTransaction.inputs[i].setSignature(
+            addressType, inputs[i].partialSigList,
+            witnessScript: inputs[i].witnessScript);
+
         if (signedTransaction.validateSignature(
-            i, inputs[i].witnessUtxo!.serialize(), addressType)) {
+            i, inputs[i].witnessUtxo!.serialize(), addressType,
+            witnessScript: inputs[i].witnessScript!.rawSerialize())) {
           continue;
         } else {
           throw Exception('Invalid Signatures');
         }
       }
-    } else {
+    } else if (addressType == AddressType.p2wpkh) {
       //every input should have 2 partial sigs
       for (int i = 0; i < inputs.length; i++) {
         if (inputs[i].partialSigList.length != 1) {
@@ -680,16 +736,32 @@ class PSBT {
           throw Exception('Invalid Signatures');
         }
       }
+    } else {
+      throw Exception('Unsupported Address Type');
     }
-
-    signedTransaction._isSegwit = addressType.isSegwit;
     return signedTransaction;
   }
 
   /// Get estimated fee for the transaction.
-  int estimateFee(int feeRate, AddressType addressType) {
-    return _calculateEstimationFee(unsignedTransaction!.inputs.length,
-        unsignedTransaction!.outputs.length, feeRate, addressType);
+  int estimateFee(int feeRate, AddressType addressType,
+      {int? requiredSignature, int? totalSigner}) {
+    Transaction tx =
+        Transaction.parseUnsignedTransaction(unsignedTransaction!.serialize());
+    tx._isSegwit = addressType.isSegwit;
+    double vByte = 0.0;
+    if (addressType == AddressType.p2wpkh) {
+      vByte = tx.estimateVirtualByte(addressType);
+    } else if (addressType == AddressType.p2wsh) {
+      if (requiredSignature == null || totalSigner == null) {
+        throw Exception("No requiredSignature, totalSiger data");
+      }
+      vByte = tx.estimateVirtualByte(addressType,
+          requiredSignature: requiredSignature, totalSigner: totalSigner);
+    } else {
+      throw Exception("Not supported address type.");
+    }
+
+    return (vByte * feeRate).ceil();
   }
 }
 
@@ -699,17 +771,23 @@ class PsbtInput {
   final TransactionOutput? _witnessUtxo;
   final List<DerivationPath> _derivationPathList;
   final List<Signature> _partialSigList;
-  final int requiredSignature;
-  final int totalSignature;
+  final WitnessScript? witnessScript;
 
   Transaction? get previousTransaction => _previousTransaction;
   TransactionOutput? get witnessUtxo => _witnessUtxo;
   List<DerivationPath> get derivationPathList => _derivationPathList;
   List<Signature> get partialSigList => _partialSigList;
+  int get requiredSignature {
+    if (witnessScript != null) {
+      return 1;
+    } else {
+      return witnessScript!.getRequiredSignature();
+    }
+  }
 
   PsbtInput(this._previousTransaction, this._witnessUtxo,
       this._derivationPathList, this._partialSigList,
-      {this.requiredSignature = 1, this.totalSignature = 1});
+      {this.witnessScript});
 
   _addSignature(String signature, String publicKey) {
     _partialSigList.add(Signature(signature, publicKey));
@@ -735,6 +813,9 @@ class PsbtOutput {
   bool get isChange {
     if (derivationPath == null) {
       return false;
+    } else if (derivationPath!.path.split('/')[1].startsWith('48') &&
+        derivationPath!.path.split('/')[5] == '1') {
+      return true;
     } else if (derivationPath!.path.split('/')[4] == '1') {
       return true;
     } else {

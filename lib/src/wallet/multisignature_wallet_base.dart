@@ -45,13 +45,26 @@ abstract class MultisignatureWalletBase extends WalletBase {
     return _addressType.getMultisignatureAddress(pubkeys, _requiredSignature);
   }
 
-  String getRedeemScript(String derivationPath) {
-    List<Uint8List> publicKeys = _keyStoreList
-        .map((e) => Converter.hexToBytes(e.getPublicKey(0, isChange: false)))
-        .toList();
-    RedeemScript script = RedeemScript.multiSignature(
-        requiredSignature, keyStoreList.length, publicKeys);
+  String getCoordinatorBsms() {
+    BSMS bsms = BSMS(
+        coordinator: Coordinator(getAddress(0), Descriptor.parse(descriptor)));
+    return bsms.serializeCoordinator();
+  }
 
-    return script.serialize();
+  String getWitnessScript(String derivationPath) {
+    if (addressType == AddressType.p2wsh) {
+      List<Uint8List> publicKeys = [];
+      for (KeyStore keyStore in keyStoreList) {
+        String pub = keyStore.getPublicKeyWithDerivationPath(derivationPath);
+        publicKeys.add(Converter.hexToBytes(pub));
+      }
+
+      WitnessScript script =
+          WitnessScript.p2wsh(requiredSignature, totalSigner, publicKeys);
+
+      return script.rawSerialize();
+    } else {
+      throw Exception('Not support witness script for this address type.');
+    }
   }
 }

@@ -93,6 +93,10 @@ class Script {
     return Uint8List.fromList(serialized);
   }
 
+  String rawSerialize() {
+    return Converter.bytesToHex(_rawSerialize());
+  }
+
   /// Serialize the script.
   String serialize() {
     if (commands.isEmpty) {
@@ -104,7 +108,9 @@ class Script {
       return Converter.bytesToHex(raw);
     }
 
-    return Converter.bytesToHex(Varints.encode(raw.length)) +
+    String serialized = Converter.bytesToHex(Varints.encode(raw.length)) +
         Converter.bytesToHex(raw);
+
+    return serialized;
   }
 }

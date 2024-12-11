@@ -4344,13 +4344,30 @@
 											"height": 13,
 											"text": "+fromJson(json: String): SingleSignatureVault",
 											"horizontalAlignment": 0
+										},
+										{
+											"_type": "UMLOperationView",
+											"_id": "AAAAAAGS5W8zuOmJqrk=",
+											"_parent": {
+												"$ref": "AAAAAAGQ44B6DwsODj8="
+											},
+											"model": {
+												"$ref": "AAAAAAGS5W8zqOl6Clw="
+											},
+											"font": "Arial;13;0",
+											"left": 53,
+											"top": 953,
+											"width": 891.83642578125,
+											"height": 13,
+											"text": "+displayMultisigExtendedPublicKey(addressType: AddressType)",
+											"horizontalAlignment": 0
 										}
 									],
 									"font": "Arial;13;0",
 									"left": 48,
 									"top": 843,
 									"width": 901.83642578125,
-									"height": 113
+									"height": 128
 								},
 								{
 									"_type": "UMLReceptionCompartmentView",
@@ -4390,7 +4407,7 @@
 							"left": 48,
 							"top": 808,
 							"width": 900.83642578125,
-							"height": 148,
+							"height": 163,
 							"nameCompartment": {
 								"$ref": "AAAAAAGQ44B6DwsI69w="
 							},
@@ -4428,7 +4445,7 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 512,
+									"left": 513,
 									"top": 766,
 									"height": 13,
 									"alpha": 1.5707963267948966,
@@ -4449,7 +4466,7 @@
 									},
 									"visible": null,
 									"font": "Arial;13;0",
-									"left": 498,
+									"left": 499,
 									"top": 762,
 									"height": 13,
 									"alpha": 1.5707963267948966,
@@ -4470,7 +4487,7 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 541,
+									"left": 542,
 									"top": 775,
 									"height": 13,
 									"alpha": -1.5707963267948966,
@@ -4489,7 +4506,7 @@
 								"$ref": "AAAAAAGQ44B6DwsH5oE="
 							},
 							"lineStyle": 1,
-							"points": "519:807;536:747",
+							"points": "520:807;537:747",
 							"showVisibility": true,
 							"nameLabel": {
 								"$ref": "AAAAAAGQ44JOLhIKBQg="
@@ -6689,8 +6706,8 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 468,
-									"top": 504,
+									"left": 467,
+									"top": 505,
 									"height": 13,
 									"alpha": 0.5235987755982988,
 									"distance": 30,
@@ -6732,7 +6749,7 @@
 									"visible": false,
 									"font": "Arial;13;0",
 									"left": 440,
-									"top": 504,
+									"top": 503,
 									"height": 13,
 									"alpha": -0.5235987755982988,
 									"distance": 25,
@@ -6752,7 +6769,7 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 500,
+									"left": 499,
 									"top": 773,
 									"height": 13,
 									"alpha": -0.5235987755982988,
@@ -6772,7 +6789,7 @@
 									},
 									"visible": false,
 									"font": "Arial;13;0",
-									"left": 513,
+									"left": 512,
 									"top": 769,
 									"height": 13,
 									"alpha": -0.7853981633974483,
@@ -6793,7 +6810,7 @@
 									"visible": false,
 									"font": "Arial;13;0",
 									"left": 473,
-									"top": 781,
+									"top": 780,
 									"height": 13,
 									"alpha": 0.5235987755982988,
 									"distance": 25,
@@ -6838,7 +6855,7 @@
 								"$ref": "AAAAAAGQ581HRdJaVLM="
 							},
 							"lineStyle": 1,
-							"points": "450:487;489:807",
+							"points": "450:487;488:807",
 							"showVisibility": true,
 							"nameLabel": {
 								"$ref": "AAAAAAGQ58+b5eXX9kw="
@@ -12238,6 +12255,27 @@
 										"$ref": "AAAAAAGQ44B6DwsFJrk="
 									},
 									"direction": "return"
+								}
+							]
+						},
+						{
+							"_type": "UMLOperation",
+							"_id": "AAAAAAGS5W8zqOl6Clw=",
+							"_parent": {
+								"$ref": "AAAAAAGQ44B6DwsFJrk="
+							},
+							"name": "displayMultisigExtendedPublicKey",
+							"parameters": [
+								{
+									"_type": "UMLParameter",
+									"_id": "AAAAAAGS5XBRcergPXg=",
+									"_parent": {
+										"$ref": "AAAAAAGS5W8zqOl6Clw="
+									},
+									"name": "addressType",
+									"type": {
+										"$ref": "AAAAAAGQ3oIOMxXjPqA="
+									}
 								}
 							]
 						}
@@ -18209,7 +18247,8 @@
 									"_parent": {
 										"$ref": "AAAAAAGQ7X23PhkbGCI="
 									},
-									"name": "feeRate int"
+									"name": "feeRate int",
+									"type": ""
 								},
 								{
 									"_type": "UMLParameter",

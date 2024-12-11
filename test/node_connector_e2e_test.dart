@@ -94,8 +94,8 @@ Future<void> main() async {
           .reduce((a, b) => a + b);
       print('totalOutput: $totalOutput');
       print('totalInput: ${wallet.getBalance()}');
-      print('transaction.calculateFee(1): ${transaction.calculateFee(1)}');
-      print('transaction.estimateFee(1): ${transaction.estimateFee(1)}');
+      print(
+          'transaction.estimateFee(1): ${transaction.estimateFee(1, AddressType.p2wpkh)}');
 
       var result = await nodeConnector.broadcast(transaction.serialize());
 

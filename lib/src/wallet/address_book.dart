@@ -152,11 +152,12 @@ class AddressBook {
       address = _wallet.addressType
           .getAddress(_wallet.keyStore.getPublicKey(index, isChange: isChange));
     } else if (_wallet is MultisignatureWalletBase) {
-      address = _wallet.addressType.getMultisignatureAddress(
-          _wallet.keyStoreList
-              .map((e) => e.getPublicKey(index, isChange: isChange))
-              .toList(),
-          _wallet.requiredSignature);
+      List<String> pubKeys = [];
+      for (KeyStore keyStore in _wallet.keyStoreList) {
+        pubKeys.add(keyStore.getPublicKey(index, isChange: isChange));
+      }
+      address = _wallet.addressType
+          .getMultisignatureAddress(pubKeys, _wallet.requiredSignature);
     }
     String derivationPath =
         '${_wallet.derivationPath}/${isChange ? 1 : 0}/$index';

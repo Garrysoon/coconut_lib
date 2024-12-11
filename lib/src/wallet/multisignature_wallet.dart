@@ -37,7 +37,10 @@ class MultisignatureWallet extends MultisignatureWalletBase
       if (derivationPath != descriptorObject.getDerivationPath(i)) {
         throw Exception('Derivation Path is not same for all public keys');
       }
-      keyStores.add(KeyStore(fingerprint, wallet, extendedPublicKey));
+
+      KeyStore keyStore =
+          KeyStore(addressType, fingerprint, wallet, extendedPublicKey);
+      keyStores.add(keyStore);
     }
 
     return MultisignatureWallet(descriptorObject.requiredSignatures,
@@ -84,6 +87,7 @@ class MultisignatureWallet extends MultisignatureWalletBase
     for (Transaction entity in walletStatus!.transactionList) {
       transferList.add(Transfer.fromTransactions(addressBook, entity));
     }
+    transferList.sort((a, b) => b.timestamp!.compareTo(a.timestamp!));
     return transferList;
   }
 
@@ -115,7 +119,8 @@ class MultisignatureWallet extends MultisignatureWalletBase
       String receiverAddress, int sendingAmount, int feeRate) async {
     PSBT psbt = await Future(
         () => PSBT.forSending(receiverAddress, sendingAmount, feeRate, this));
-    return psbt.estimateFee(feeRate, addressType);
+    return psbt.estimateFee(feeRate, addressType,
+        requiredSignature: requiredSignature, totalSigner: keyStoreList.length);
   }
 
   @override
@@ -123,7 +128,8 @@ class MultisignatureWallet extends MultisignatureWalletBase
       String receiverAddress, int feeRate) async {
     PSBT psbt = await Future(
         () => PSBT.forMaximumSending(receiverAddress, feeRate, this));
-    return psbt.estimateFee(feeRate, addressType);
+    return psbt.estimateFee(feeRate, addressType,
+        requiredSignature: requiredSignature, totalSigner: keyStoreList.length);
   }
 
   @override

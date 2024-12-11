@@ -37,19 +37,54 @@ class MultisignatureVault extends MultisignatureWalletBase
         derivationPath, keyStores);
   }
 
+  factory MultisignatureVault.fromCoordinatorBsms(String coordinator,
+      {AddressType? addressType}) {
+    addressType ??= AddressType.p2wsh;
+    BSMS bsms = BSMS.parseCoordinator(coordinator);
+    List<KeyStore> keyStores = [];
+    Descriptor descriptor = bsms.coordinator!.descriptor;
+    for (int i = 0; i < descriptor.totalSignature; i++) {
+      ExtendedPublicKey extendedPublicKey =
+          ExtendedPublicKey.parse(descriptor.getPublicKey(i));
+      HDWallet hdWallet = HDWallet.fromPublicKey(
+          extendedPublicKey.publicKey, extendedPublicKey.chainCode);
+      KeyStore keyStore = KeyStore(addressType, descriptor.getFingerprint(i),
+          hdWallet, extendedPublicKey);
+      keyStores.add(keyStore);
+    }
+
+    return MultisignatureVault.fromKeyStoreList(
+        keyStores,
+        descriptor.requiredSignatures,
+        AddressType.getAddressTypeFromScriptType("p2${descriptor.scriptType}"));
+  }
+
   @override
   bool canSignToPsbt(String psbt) {
-    //TODO : implement
+    for (KeyStore keyStore in keyStoreList) {
+      if (keyStore.canSignToPsbt(psbt)) {
+        return true;
+      }
+    }
     return false;
   }
 
   @override
   String addSignatureToPsbt(String psbt) {
-    //TODO : implement
-    return " ";
+    if (!canSignToPsbt(psbt)) {
+      throw Exception('No keyStore can sign to the PSBT.');
+    }
+
+    String signedPsbt = psbt;
+
+    for (KeyStore keyStore in keyStoreList) {
+      if (keyStore.canSignToPsbt(signedPsbt)) {
+        signedPsbt = keyStore.addSignatureToPsbt(signedPsbt);
+      }
+    }
+    return signedPsbt;
   }
 
-  //TODO : test
   /// Get Json string of the multisignature vault.
   String toJson() {
     return jsonEncode({
@@ -60,13 +95,24 @@ class MultisignatureVault extends MultisignatureWalletBase
     });
   }
 
-  //TODO : test
+  void bindSeedToKeyStore(Seed seed, {int accountIndex = 0}) {
+    KeyStore keyStoreFromSeed =
+        KeyStore.fromSeed(seed, addressType, accountIndex: accountIndex);
+
+    for (KeyStore keyStore in keyStoreList) {
+      if (keyStore.masterFingerprint == keyStoreFromSeed.masterFingerprint) {
+        keyStoreList[keyStoreList.indexOf(keyStore)] = keyStoreFromSeed;
+        return;
+      }
+    }
+  }
+
   /// Create a multisignature vault from a json string.
   factory MultisignatureVault.fromJson(String jsonStr) {
     Map<String, dynamic> json = jsonDecode(jsonStr);
     List<KeyStore> keyStores = [];
     for (var keyStoreJson in json['keyStores']) {
-      keyStores.add(KeyStore.fromJson(jsonEncode(keyStoreJson)));
+      keyStores.add(KeyStore.fromJson(keyStoreJson));
     }
     return MultisignatureVault.fromKeyStoreList(
         keyStores,

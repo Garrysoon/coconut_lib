@@ -233,6 +233,7 @@ class AddressType {
   static String getP2wshAddress(
       List<String> publicKeys, int requiredSignatures) {
     publicKeys.sort();
+
     List<Uint8List> pubKeys =
         publicKeys.map((hex) => Converter.hexToBytes(hex)).toList();
 
@@ -252,6 +253,7 @@ class AddressType {
         Hash.sha256fromByte(Uint8List.fromList(redeemScript));
 
     var version = 0x00; // 0x00 for P2WSH
+
     var program = Converter.convertBits(redeemScriptHash, 8, 5, pad: true);
     var hrp = _getSegwitHrp();
     var address = bech32.encode(Bech32(hrp, [version] + program));

@@ -57,31 +57,20 @@ class Transaction {
         return total;
       }();
 
-  /// Get the length of the witness.
-  int get witnessLength => () {
-        int total = 0;
-        int witnessCount = 0;
-        for (int i = 0; i < _inputs.length; i++) {
-          Converter.bytesToHex(Varints.encode(inputs[i].witness.length));
-          witnessCount += inputs[i].witness.length;
-        }
-        total += Varints.encode(witnessCount).length;
-        for (TransactionInput input in _inputs) {
-          total += input.witnessLength;
-        }
-        return total;
-      }();
-
   /// @nodoc
   Transaction(this._version, this._inputs, this._outputs, this._lockTime,
       this._isSegwit);
 
   /// Create a transaction for sending Bitcoin.
   factory Transaction.forSending(List<TransactionInput> inputs,
-      List<TransactionOutput> outputs, bool isSegwit,
+      List<TransactionOutput> outputs, AddressType addressType,
       {int version = 2, int lockTime = 0}) {
-    return Transaction(Converter.intToLittleEndianBytes(version, 4), inputs,
-        outputs, Converter.intToLittleEndianBytes(lockTime, 4), isSegwit);
+    return Transaction(
+        Converter.intToLittleEndianBytes(version, 4),
+        inputs,
+        outputs,
+        Converter.intToLittleEndianBytes(lockTime, 4),
+        addressType.isSegwit);
   }
 
   /// Create a transaction for sending all Bitcoin in the wallet.
@@ -89,15 +78,15 @@ class Transaction {
       List<TransactionInput> inputs,
       String receiverAddress,
       int inputAmount,
-      bool isSegwit,
+      AddressType addressType,
       int feeRatePerByte,
       {int version = 2,
       int lockTime = 0}) {
     TransactionOutput output =
         TransactionOutput.forSending(inputAmount, receiverAddress);
-    Transaction tx = Transaction.forSending(inputs, [output], isSegwit,
+    Transaction tx = Transaction.forSending(inputs, [output], addressType,
         version: version, lockTime: lockTime);
-    int fee = tx.estimateFee(feeRatePerByte);
+    int fee = tx.estimateFee(feeRatePerByte, addressType);
 
     if (fee < tx.getVirtualByte()) {
       fee = tx.getVirtualByte().ceil();
@@ -188,13 +177,21 @@ class Transaction {
           offset += itemLen;
         }
       }
-      txIn.witness = items;
+      txIn.witnessList = [];
+      // txIn.witnessList = items.map((e) => Converter.bytesToHex(e)).toList();
+      for (dynamic item in items) {
+        if (item == 0) {
+          txIn.witnessList.add('00');
+        } else {
+          txIn.witnessList.add(Converter.bytesToHex(item));
+        }
+      }
     }
     Uint8List locktime = txBytes.sublist(offset);
     offset += 4;
     // return Transaction(version, inputs, outputs, locktime,
     //     testnet: testnet, segwit: true);
-    //print('witness : ' + inputs[0].witness.toString());
+    // print('witness : ' + inputs[0].witness.toString());
     return Transaction(version, inputs, outputs, locktime, true);
   }
 
@@ -299,18 +296,25 @@ class Transaction {
     for (int i = 0; i < outputs.length; i++) {
       serialized += outputs[i].serialize();
     }
+
+    //serialize witness
     for (int i = 0; i < inputs.length; i++) {
       serialized +=
-          Converter.bytesToHex(Varints.encode(inputs[i].witness.length));
-      for (int j = 0; j < inputs[i].witness.length; j++) {
-        if (inputs[i].witness[j] == 0) {
+          Converter.bytesToHex(Varints.encode(inputs[i].witnessList.length));
+
+      //if the script is p2wpkh or else
+      for (int j = 0; j < inputs[i].witnessList.length; j++) {
+        if (inputs[i].witnessList[j].isEmpty ||
+            inputs[i].witnessList[j] == '00') {
           serialized += '00';
         } else {
-          serialized += Converter.decToHex((inputs[i].witness[j]).length);
-          serialized += Converter.bytesToHex(inputs[i].witness[j]);
+          int size = inputs[i].witnessList[j].length ~/ 2;
+          serialized += Converter.decToHex(size);
+          serialized += inputs[i].witnessList[j];
         }
       }
     }
+
     serialized += lockTime;
     return serialized;
   }
@@ -335,13 +339,21 @@ class Transaction {
   }
 
   /// Get the signature hash of the transaction.
-  String getSigHash(int index, String utxo, bool isSegwit, {int hashType = 1}) {
+  String getSigHash(int index, String utxo, AddressType addressType,
+      {int hashType = 1, String? witnessScript}) {
     if (hashType != 1) {
       throw Exception("Only SIGHASH_ALL supported.");
     }
 
-    if (isSegwit) {
-      return _getSegwitSigHash(index, utxo, hashType);
+    if (addressType.isSegwit) {
+      if (addressType == AddressType.p2wsh) {
+        if (witnessScript == null) {
+          throw ArgumentError('witnessScript is required for p2wsh');
+        }
+        return _getSegwitSigHash(index, utxo, hashType, addressType,
+            witnessScript: witnessScript);
+      }
+      return _getSegwitSigHash(index, utxo, hashType, addressType);
     } else {
       return _getLegacySigHash(index, utxo, hashType);
     }
@@ -365,7 +377,9 @@ class Transaction {
   }
 
   //BIP143
-  String _getSegwitSigHash(int index, String utxo, int hashType) {
+  String _getSegwitSigHash(
+      int index, String utxo, int hashType, AddressType addressType,
+      {String? witnessScript}) {
     String sigHash = '';
     sigHash += version;
     sigHash += _getHashPrevOuts();
@@ -373,9 +387,16 @@ class Transaction {
     sigHash += _getHashSequence();
     sigHash += _getOutPoint(index);
     TransactionOutput prevUtxo = TransactionOutput.parse(utxo);
-    if (prevUtxo.scriptPubKey.isP2WPKH()) {
+    if (addressType == AddressType.p2wpkh) {
       sigHash +=
           "1976a914${Converter.bytesToHex(prevUtxo.scriptPubKey.commands[1])}88ac";
+    } else if (addressType == AddressType.p2wsh) {
+      if (witnessScript == null) {
+        throw ArgumentError('witnessScript is required for p2wsh');
+      }
+      int length = witnessScript.length ~/ 2;
+      sigHash += Converter.bytesToHex(Varints.encode(length));
+      sigHash += witnessScript;
     } else {
       sigHash += prevUtxo.scriptPubKey.serialize();
     }
@@ -428,25 +449,68 @@ class Transaction {
   }
 
   /// check if the signature is valid in the transaction.
-  bool validateSignature(int inputIndex, String utxo, AddressType addressType) {
-    String sigHash = getSigHash(inputIndex, utxo, addressType.isSegwit);
-    if (addressType.isMultisig) {
-      //TODO: Implement multisig
-      return true;
+  bool validateSignature(int inputIndex, String utxo, AddressType addressType,
+      {String? witnessScript}) {
+    String sigHash;
+    if (addressType == AddressType.p2wpkh) {
+      sigHash = getSigHash(inputIndex, utxo, addressType);
+    } else if (addressType == AddressType.p2wsh) {
+      if (witnessScript == null) {
+        throw ArgumentError('witnessScript is required for p2wsh');
+      }
+      sigHash = getSigHash(inputIndex, utxo, addressType,
+          witnessScript: witnessScript);
     } else {
+      throw Exception('Unsupported Address Type');
+    }
+    Uint8List msg = Converter.hexToBytes(sigHash);
+
+    if (addressType == AddressType.p2wsh) {
+      String script = inputs[inputIndex].witnessList.last;
+      String size = Converter.bytesToHex(Varints.encode(script.length ~/ 2));
+      WitnessScript witnessScript = WitnessScript.parse(size + script);
+
+      List<Uint8List> signatures = [];
+
+      for (int i = 1; i < inputs[inputIndex].witnessList.length - 1; i++) {
+        signatures.add(Converter.hexToBytes(inputs[inputIndex].witnessList[i]));
+      }
+
+      List<Uint8List> pubKeys = witnessScript.getPublicKeys();
+
+      int requiredSigs = witnessScript.getRequiredSignature();
+
+      if (signatures.length < requiredSigs) {
+        return false;
+      }
+
+      int validSigs = 0;
+
+      for (Uint8List sig in signatures) {
+        for (Uint8List pub in pubKeys) {
+          int rLen = sig[3];
+          Uint8List r = sig.sublist(4, 4 + rLen);
+          if (r[0] == 0) r = r.sublist(1);
+          int sLen = sig[4 + rLen + 1];
+          Uint8List s = sig.sublist(4 + rLen + 2, 4 + rLen + 2 + sLen);
+          Uint8List rs = Uint8List.fromList([...r, ...s]);
+
+          if (ecc.verify(msg, pub, rs)) {
+            validSigs += 1;
+            continue;
+          }
+        }
+      }
+      return validSigs >= requiredSigs;
+    } else if (addressType == AddressType.p2wpkh) {
+      //validate single signature
       String signature;
       String publicKey;
 
-      if (addressType.isSegwit) {
-        signature = inputs[inputIndex].witnessList[0];
-        publicKey = inputs[inputIndex].witnessList[1];
-      } else {
-        signature = inputs[inputIndex].scriptSig.commands[0];
-        publicKey = inputs[inputIndex].scriptSig.commands[1];
-      }
+      signature = inputs[inputIndex].witnessList[0];
+      publicKey = inputs[inputIndex].witnessList[1];
 
       Uint8List sig = Converter.hexToBytes(signature);
-      Uint8List msg = Converter.hexToBytes(sigHash);
       Uint8List pub = Converter.hexToBytes(publicKey);
 
       int rLen = sig[3];
@@ -457,6 +521,8 @@ class Transaction {
       Uint8List rs = Uint8List.fromList([...r, ...s]);
 
       return ecc.verify(msg, pub, rs);
+    } else {
+      throw Exception('Unsupported Address Type');
     }
   }
 
@@ -465,9 +531,11 @@ class Transaction {
     double totalByte = (Converter.hexToBytes(serialize()).length) * 1.0;
     double witnessByte = 0;
     for (TransactionInput input in inputs) {
-      for (int i = 0; i < input.witness.length; i++) {
-        if (input.witness[i] != 0) {
+      for (int i = 0; i < input.witnessList.length; i++) {
+        if (input.witnessList[i] != "00") {
           witnessByte += (input.witnessList[i].length / 2).floor();
+          witnessByte += 1;
+        } else {
           witnessByte += 1;
         }
       }
@@ -487,34 +555,91 @@ class Transaction {
     return vByte;
   }
 
-  /// Calculate the fee of the transaction.
-  int calculateFee(int feeRatePerByte) {
-    // print((getVirtualByte() * feeRatePerByte).ceil());
-    return (getVirtualByte() * feeRatePerByte).ceil();
+  double estimateVirtualByte(AddressType addressType,
+      {int? requiredSignature, int? totalSigner}) {
+    if (!addressType.isSegwit) {
+      return getVirtualByte();
+    }
+
+    double vByte = getVirtualByte();
+
+    const int sigSize = 73; // 72 + 1(length)
+    const int pubKeySize = 34; // 33 + 1(length)
+
+    // int baseSize = Converter.hexToBytes(serializeSegwit()).length;
+    int additionalWitnessSize = 0;
+
+    // baseSize -= 2; //marker + flag
+    // witnessSize += 2; //marker + flag
+    // witnessSize += 1; //num of witness
+
+    if (addressType == AddressType.p2wpkh) {
+      int emptyWitness = 0;
+      for (TransactionInput input in inputs) {
+        if (input.witnessList.isEmpty) {
+          additionalWitnessSize += (sigSize + pubKeySize);
+          emptyWitness += 1;
+        }
+      }
+      if (emptyWitness == inputs.length) {
+        additionalWitnessSize += 1; // number of witness
+      }
+    } else if (addressType == AddressType.p2wsh) {
+      if (requiredSignature == null || totalSigner == null) {
+        throw ArgumentError(
+            'requiredSignature and totalSignature is required for p2wsh');
+      }
+      int emptyWitness = 0;
+      for (TransactionInput input in inputs) {
+        if (input.witnessList.isEmpty) {
+          emptyWitness += 1;
+          additionalWitnessSize += 1; // 00
+          additionalWitnessSize += requiredSignature * (sigSize);
+          int scriptSize = 0;
+          scriptSize += 3; // m,n,OP_CHECKMULTISIG
+          scriptSize += totalSigner * (pubKeySize);
+          additionalWitnessSize += scriptSize;
+        }
+      }
+      if (emptyWitness == inputs.length) {
+        additionalWitnessSize += 1; // number of witness
+      }
+    }
+
+    vByte = vByte + (additionalWitnessSize / 4);
+
+    return vByte;
+  }
+
+  int calculateFeeWithWitnessSize(int feeRatePerByte, int witnessSize) {
+    return ((getVirtualByte() - witnessSize) * feeRatePerByte).ceil();
   }
 
   /// Estimate the fee of the transaction.
-  int estimateFee(int feeRatePerByte) {
-    bool hasSignatureLength = !hasNoSignature();
-    int unsignedInput = 0;
-    double vByte = getVirtualByte();
-    int sigByte = 106;
-    for (TransactionInput input in inputs) {
-      if (!input.hasSignature(_isSegwit)) {
-        unsignedInput++;
-      }
-    }
-    if (_isSegwit) {
-      double additionalByte = 4.0;
-      additionalByte += unsignedInput * sigByte;
-      if (!hasSignatureLength) {
-        additionalByte += 2;
-      }
-      vByte += (additionalByte / 4);
-    } else {
-      vByte += unsignedInput * sigByte;
-    }
+  int estimateFee(int feeRatePerByte, AddressType addressType,
+      {int? requiredSignature, int? totalSinger}) {
+    // bool hasSignatureLength = !hasNoSignature();
+    // int unsignedInput = 0;
+    // double vByte = getVirtualByte();
+    // int sigByte = 106;
+    // for (TransactionInput input in inputs) {
+    //   if (!input.hasSignature(_isSegwit)) {
+    //     unsignedInput++;
+    //   }
+    // }
+    // if (_isSegwit) {
+    //   double additionalByte = 4.0;
+    //   additionalByte += unsignedInput * sigByte;
+    //   if (!hasSignatureLength) {
+    //     additionalByte += 2;
+    //   }
+    //   vByte += (additionalByte / 4);
+    // } else {
+    //   vByte += unsignedInput * sigByte;
+    // }
     // print("vByte : $vByte");
+    double vByte = estimateVirtualByte(addressType,
+        requiredSignature: requiredSignature, totalSigner: totalSinger);
     return (vByte * feeRatePerByte).ceil();
   }
 

@@ -13,8 +13,8 @@ class SingleSignatureWallet extends SingleSignatureWalletBase
       AddressType addressType,
       String derivationPath,
       ExtendedPublicKey extendedPublicKey)
-      : super(KeyStore(fingerprint, wallet, extendedPublicKey), addressType,
-            derivationPath, false);
+      : super(KeyStore(addressType, fingerprint, wallet, extendedPublicKey),
+            addressType, derivationPath, false);
 
   /// Create a single signature wallet from descriptor.
   factory SingleSignatureWallet.fromDescriptor(String descriptor) {
@@ -71,7 +71,8 @@ class SingleSignatureWallet extends SingleSignatureWalletBase
   @override
   List<Transfer> getTransferList({int cursor = 0, int count = 5}) {
     List<Transfer> transferList = [];
-    for (Transaction entity in walletStatus!.transactionList) {
+    for (Transaction entity
+        in walletStatus!.getTransactionList(count, cursor)) {
       transferList.add(Transfer.fromTransactions(addressBook, entity));
     }
     return transferList;
