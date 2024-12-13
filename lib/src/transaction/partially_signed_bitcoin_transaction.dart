@@ -778,7 +778,7 @@ class PsbtInput {
   List<DerivationPath> get derivationPathList => _derivationPathList;
   List<Signature> get partialSigList => _partialSigList;
   int get requiredSignature {
-    if (witnessScript != null) {
+    if (witnessScript == null) {
       return 1;
     } else {
       return witnessScript!.getRequiredSignature();
