@@ -5,7 +5,7 @@ class Descriptor {
   String _scriptType;
   List<String> _publicKeyList = [];
   int requiredSignatures = 1;
-  int get totalSignature => _publicKeyList.length;
+  int get totalSigner => _publicKeyList.length;
 
   /// @nodoc
   Descriptor(this._scriptType, this._publicKeyList,

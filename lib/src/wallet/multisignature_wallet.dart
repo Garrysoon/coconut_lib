@@ -28,7 +28,7 @@ class MultisignatureWallet extends MultisignatureWalletBase
     List<KeyStore> keyStores = [];
     String derivationPath = descriptorObject.getDerivationPath(0);
 
-    for (int i = 0; i < descriptorObject.totalSignature; i++) {
+    for (int i = 0; i < descriptorObject.totalSigner; i++) {
       String fingerprint = descriptorObject.getFingerprint(i);
       ExtendedPublicKey extendedPublicKey =
           ExtendedPublicKey.parse(descriptorObject.getPublicKey(i));
