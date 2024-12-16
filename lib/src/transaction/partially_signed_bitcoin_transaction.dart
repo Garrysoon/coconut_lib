@@ -785,6 +785,10 @@ class PsbtInput {
     }
   }
 
+  int get totalSinger {
+    return derivationPathList.length;
+  }
+
   PsbtInput(this._previousTransaction, this._witnessUtxo,
       this._derivationPathList, this._partialSigList,
       {this.witnessScript});
