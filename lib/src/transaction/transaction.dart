@@ -6,7 +6,7 @@ class Transaction {
   List<TransactionInput> _inputs;
   List<TransactionOutput> _outputs;
   Uint8List _lockTime;
-  late bool _isSegwit;
+  bool _isSegwit;
 
   // Field for from Blockchain Ledger
   late int? _timestamp = 0;
@@ -61,8 +61,7 @@ class Transaction {
   Transaction(this._version, this._inputs, this._outputs, this._lockTime,
       this._isSegwit);
 
-  /// Create a transaction for sending Bitcoin.
-  factory Transaction.forSending(List<TransactionInput> inputs,
+  factory Transaction.withDefault(List<TransactionInput> inputs,
       List<TransactionOutput> outputs, AddressType addressType,
       {int version = 2, int lockTime = 0}) {
     return Transaction(
@@ -73,30 +72,164 @@ class Transaction {
         addressType.isSegwit);
   }
 
-  /// Create a transaction for sending all Bitcoin in the wallet.
-  factory Transaction.forMaximumSending(
-      List<TransactionInput> inputs,
-      String receiverAddress,
-      int inputAmount,
-      AddressType addressType,
-      int feeRatePerByte,
-      {int version = 2,
-      int lockTime = 0}) {
-    TransactionOutput output =
-        TransactionOutput.forSending(inputAmount, receiverAddress);
-    Transaction tx = Transaction.forSending(inputs, [output], addressType,
+  /// Create a transaction for simple payment.
+  factory Transaction.forPayment(
+      String address, int amount, int feeRate, WalletBase wallet,
+      {int version = 2, int lockTime = 0}) {
+    late WalletFeature walletFeature;
+    try {
+      walletFeature = wallet as WalletFeature;
+    } catch (e) {
+      print("Vault cannot call OptimalSending");
+    }
+
+    List<UTXO> utxoList = _selectOptimalUtxo(
+        walletFeature.getUtxoList(), amount, feeRate, wallet.addressType);
+
+    int totalInputAmount = 0;
+    List<TransactionInput> inputs = [];
+    List<TransactionOutput> outputs = [];
+    for (UTXO utxo in utxoList) {
+      totalInputAmount += utxo.amount;
+      inputs.add(TransactionInput.forPayment(utxo.transactionHash, utxo.index));
+    }
+
+    String changeAddress = wallet.getChangeAddress().address;
+
+    TransactionOutput sendingOutput =
+        TransactionOutput.forPayment(amount, address);
+    TransactionOutput changeOutput =
+        TransactionOutput.forPayment(0, changeAddress);
+
+    outputs.add(sendingOutput);
+    outputs.add(changeOutput);
+
+    Transaction tx = Transaction.withDefault(
+        inputs, outputs, wallet.addressType,
         version: version, lockTime: lockTime);
-    int fee = tx.estimateFee(feeRatePerByte, addressType);
 
-    if (fee < tx.getVirtualByte()) {
-      fee = tx.getVirtualByte().ceil();
+    // print("Input : ${tx.inputs.length}, Output : ${tx.outputs.length}");
+
+    double vByte = 0.0;
+    if (wallet.addressType == AddressType.p2wpkh) {
+      vByte = tx.estimateVirtualByte(wallet.addressType);
+    } else if (wallet.addressType == AddressType.p2wsh) {
+      MultisignatureWallet multisignatureWallet =
+          wallet as MultisignatureWallet;
+      vByte = tx.estimateVirtualByte(wallet.addressType,
+          requiredSignature: multisignatureWallet.requiredSignature,
+          totalSigner: multisignatureWallet.totalSigner);
+    } else {
+      throw Exception('Unsupported Address Type');
     }
 
-    output.setAmount(inputAmount - fee);
+    int fee = (vByte * feeRate).ceil();
 
-    if (fee > inputAmount) {
-      throw Exception('Insufficient amount. Estimated fee is $fee');
+    // print("Fee : $fee");
+    int changeAmount = totalInputAmount - amount - fee;
+
+    if (changeAmount <= 0) {
+      for (TransactionOutput output in tx.outputs) {
+        if (output.scriptPubKey.getAddress() == changeAddress) {
+          tx.outputs.remove(output);
+          break;
+        }
+      }
+    } else {
+      changeOutput.setAmount(changeAmount);
     }
+    return tx;
+  }
+
+  static List<UTXO> _selectOptimalUtxo(
+      List<UTXO> utxos, int amount, int feeRate, AddressType addressType) {
+    int baseVbyte = 72; //0 input, 2 output
+    int vBytePerInput = 0;
+    if (addressType.isSegwit) {
+      vBytePerInput = 68; //segwit discount
+    } else {
+      vBytePerInput = 148;
+    }
+    List<UTXO> selectedUtxos = [];
+
+    int totalAmount = 0;
+    int totalVbyte = baseVbyte;
+    int finalFee = 0;
+    utxos.sort((a, b) => b.amount.compareTo(a.amount));
+    for (UTXO utxo in utxos) {
+      if (utxo.blockHeight == 0) {
+        continue;
+      }
+      selectedUtxos.add(utxo);
+      totalAmount += utxo.amount;
+      totalVbyte += vBytePerInput;
+      int fee = totalVbyte * feeRate;
+      if (totalAmount >= amount + fee) {
+        return selectedUtxos;
+      }
+      finalFee = fee;
+    }
+    throw Exception('Not enough amount for sending. (Fee : $finalFee)');
+  }
+
+  /// Create a transaction for sending all Bitcoin in the wallet.
+  factory Transaction.forSweep(String address, int feeRate, WalletBase wallet,
+      {int version = 2, int lockTime = 0}) {
+    late WalletFeature walletFeature;
+    try {
+      walletFeature = wallet as WalletFeature;
+    } catch (e) {
+      print("Vault cannot generate sweep transaction");
+    }
+
+    List<UTXO> utxoList = walletFeature.getUtxoList();
+
+    List<TransactionInput> inputs = [];
+    List<TransactionOutput> outputs = [];
+    int inputAmount = 0;
+    for (UTXO utxo in utxoList) {
+      if (utxo.blockHeight == 0) {
+        continue;
+      }
+      inputs.add(TransactionInput.forPayment(utxo.transactionHash, utxo.index));
+      inputAmount += utxo.amount;
+    }
+
+    if (inputAmount == 0) {
+      throw Exception('No balance to send');
+    }
+
+    TransactionOutput sendingOutput = TransactionOutput.forPayment(0, address);
+    outputs.add(sendingOutput);
+
+    Transaction tx = Transaction.withDefault(
+        inputs, outputs, wallet.addressType,
+        version: version, lockTime: lockTime);
+
+    double vByte = 0.0;
+    if (wallet.addressType == AddressType.p2wpkh) {
+      vByte = tx.estimateVirtualByte(wallet.addressType);
+    } else if (wallet.addressType == AddressType.p2wsh) {
+      MultisignatureWallet multisignatureWallet =
+          wallet as MultisignatureWallet;
+      vByte = tx.estimateVirtualByte(wallet.addressType,
+          requiredSignature: multisignatureWallet.requiredSignature,
+          totalSigner: multisignatureWallet.totalSigner);
+    } else {
+      throw Exception('Unsupported Address Type');
+    }
+
+    int fee = (vByte * feeRate).ceil();
+
+    if (inputAmount < fee) {
+      throw Exception('Not enough amount for sending. (Fee : $fee)');
+    }
+
+    sendingOutput.setAmount(inputAmount - fee);
+
+    // Transaction tx = Transaction.forMaximumSending(
+    //     inputs, address, inputAmount, wallet.addressType, feeRate);
+    // print(tx.serialize());
     return tx;
   }
 
@@ -661,6 +794,74 @@ class Transaction {
       }
     }
     return true;
+  }
+
+  /// Add utxo to the transaction.
+  void addIntpusWithUtxo(UTXO utxo, int feeRate, WalletBase wallet) {
+    for (TransactionInput input in inputs) {
+      if (input.transactionHash == utxo.transactionHash &&
+          input.index == utxo.index) {
+        throw Exception('UTXO already exists in the transaction');
+      }
+    }
+    TransactionInput input =
+        TransactionInput.forPayment(utxo.transactionHash, utxo.index);
+    inputs.add(input);
+    int oldFee = estimateFee(feeRate, wallet.addressType);
+    String changeAddress = wallet.getChangeAddress().address;
+    TransactionOutput changeOutput =
+        TransactionOutput.forPayment(0, changeAddress);
+    for (TransactionOutput output in outputs) {
+      if (output.scriptPubKey.getAddress() == changeAddress) {
+        changeOutput = output;
+        break;
+      }
+    }
+
+    int fee = estimateFee(feeRate, wallet.addressType);
+    int changeAmount = changeOutput.amount + utxo.amount + oldFee - fee;
+    changeOutput.setAmount(changeAmount);
+  }
+
+  // Remove utxo from the transaction.
+  void removeInputWithUtxo(UTXO utxo, int feeRate, WalletBase wallet) {
+    int oldFee = estimateFee(feeRate, wallet.addressType);
+    String changeAddress = wallet.getChangeAddress().address;
+    TransactionInput? removeTarget;
+    for (TransactionInput input in inputs) {
+      if (input.transactionHash == utxo.transactionHash &&
+          input.index == utxo.index) {
+        removeTarget = input;
+        break;
+      }
+    }
+    if (removeTarget == null) {
+      throw Exception('UTXO not found in the transaction');
+    }
+
+    TransactionOutput changeOutput =
+        TransactionOutput.forPayment(0, changeAddress);
+    for (TransactionOutput output in outputs) {
+      if (output.scriptPubKey.getAddress() == changeAddress) {
+        changeOutput = output;
+        break;
+      }
+    }
+    for (TransactionInput input in inputs) {
+      if (input.transactionHash == utxo.transactionHash &&
+          input.index == utxo.index) {
+        inputs.remove(input);
+        break;
+      }
+    }
+    int fee = estimateFee(feeRate, wallet.addressType);
+    int changeAmount = changeOutput.amount - utxo.amount + oldFee - fee;
+
+    if (changeAmount <= 0) {
+      outputs.remove(changeOutput);
+    } else {
+      changeOutput.setAmount(changeAmount);
+    }
   }
 
   String toJson() {

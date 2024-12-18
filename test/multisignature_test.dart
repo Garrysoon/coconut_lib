@@ -241,11 +241,12 @@ main() async {
     });
 
     test('psbt sign flag test', () async {
-      PSBT unsignedPSBT = PSBT.forSending(
-          "bc1qkxvft4ugmm2he6j6h6ymhgr866ce5k8dh4vu7ggxvg7dxkzwg93q89unlu",
+      Transaction tx = Transaction.forPayment(
+          "bcrt1q3e20um9mrcwpl34agd07v0t76hg48n97ufjwe20mku7n5nqll32sxawr52",
           1000,
           1,
           wallet);
+      PSBT unsignedPSBT = PSBT.fromTransaction(tx, wallet);
 
       expect(unsignedPSBT.isSigned(multisignatureVault.keyStoreList[0]), false);
       expect(unsignedPSBT.isSigned(multisignatureVault.keyStoreList[1]), false);
@@ -280,11 +281,12 @@ main() async {
     });
 
     test('signature sorting test', () {
-      PSBT unsignedPSBT = PSBT.forSending(
-          "bc1qkxvft4ugmm2he6j6h6ymhgr866ce5k8dh4vu7ggxvg7dxkzwg93q89unlu",
+      Transaction tx = Transaction.forPayment(
+          "bcrt1q3e20um9mrcwpl34agd07v0t76hg48n97ufjwe20mku7n5nqll32sxawr52",
           1000,
           1,
           wallet);
+      PSBT unsignedPSBT = PSBT.fromTransaction(tx, wallet);
 
       String signed0 = multisignatureVault.keyStoreList[0]
           .addSignatureToPsbt(unsignedPSBT.serialize());
