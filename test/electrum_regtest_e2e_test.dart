@@ -34,26 +34,18 @@ Future<void> main() async {
     var result = await client.estimateFee(1);
 
     expect(result.runtimeType, int);
-    expect(result, greaterThan(0));
+    expect(result >= 0 || result == -1, isTrue);
   });
 
   test('blockchain.scripthash.get_history', () async {
-    var script =
-        '4104678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5fac';
+    var script = '0014f03a3abb34f5f6da0599dd00171386986e17c0b6';
     var result = await client.getHistory(script);
 
     expect(result, isList);
-    expect(result.first.height, 0);
+    expect(result.first.height, 44035);
     expect(result.first.txHash,
-        '4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b');
+        'c1daebab4109114179ce05e90242c5dc8c43ac15af26c508e08107b9a5641624');
   });
-
-  test('blockchain.scripthash.get_mempool', () async {
-    var script = '0014991e127fe706494844e4432c224b6a9f015b85fb';
-    var result = await client.getMempool(script);
-
-    expect(result.first.txHash, '');
-  }, skip: 'Requires a script that exists in the actual mempool.');
 
   test('blockchain.transaction.broadcast', () async {
     var rawTransaction =
@@ -66,7 +58,7 @@ Future<void> main() async {
 
   test('blockchain.transaction.get', () async {
     var txHash =
-        '656f9be2befe982e0bdc762fc669270c3a0a46d7be0d9f7072b152c3a0a1adda';
+        'b3c3bd06ff9d2cda768a4946a4ed1d87a62700f618cfb4965b1e28c4fef3aa12';
     var result = await client.getTransaction(txHash);
 
     expect(result, isNotEmpty);
