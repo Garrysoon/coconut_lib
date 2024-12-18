@@ -823,7 +823,7 @@ class Transaction {
     changeOutput.setAmount(changeAmount);
   }
 
-  // Remove utxo from the transaction.
+  /// Remove utxo from the transaction.
   void removeInputWithUtxo(UTXO utxo, int feeRate, WalletBase wallet) {
     int oldFee = estimateFee(feeRate, wallet.addressType);
     String changeAddress = wallet.getChangeAddress().address;
@@ -862,6 +862,16 @@ class Transaction {
     } else {
       changeOutput.setAmount(changeAmount);
     }
+  }
+
+  /// Get the change amount of the transaction with AddressBook.
+  int getChangeAmount(AddressBook addressBook) {
+    for (TransactionOutput output in outputs) {
+      if (addressBook.containsInChange(output.scriptPubKey.getAddress())) {
+        return output.amount;
+      }
+    }
+    return 0;
   }
 
   String toJson() {
