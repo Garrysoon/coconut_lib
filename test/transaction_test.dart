@@ -477,7 +477,6 @@ main() async {
 
   group('add and remove utxo', () {
     late SingleSignatureWallet wallet;
-    int feeRate = 3;
     List<UTXO> manyUtxoList = [
       UTXO('14bb0d89a09a7ce559330855581382c96c57a3c0bdd7b77c87d10479b671709b',
           0, 21000, 'm/84/1/0/0/2', 1722588900, 4322),
@@ -507,7 +506,7 @@ main() async {
           changeMaxGap: 20);
     });
 
-    void printTransaction(Transaction tx) {
+    void printTransaction(Transaction tx, {int feeRate = 3}) {
       print("--------------------");
       for (TransactionInput input in tx.inputs) {
         print("input txid : ${input.transactionHash}");
@@ -522,6 +521,7 @@ main() async {
     }
 
     test('add utxo', () {
+      int feeRate = 3;
       int sendAmount = 30000;
       Transaction tx =
           Transaction.forPayment(wallet.getAddress(25), sendAmount, 3, wallet);
@@ -542,6 +542,7 @@ main() async {
     });
 
     test('remove utxo', () {
+      int feeRate = 3;
       int sendAmount = 30000;
       Transaction tx = Transaction.fromUtxoList(
           [manyUtxoList[0], manyUtxoList[1]],
@@ -565,6 +566,32 @@ main() async {
               sendAmount +
                   tx.getChangeAmount(wallet.addressBook) +
                   tx.estimateFee(feeRate, AddressType.p2wpkh),
+          true);
+    });
+
+    test('update fee rate', () {
+      int sendAmount = 30000;
+      Transaction tx = Transaction.fromUtxoList(
+          [manyUtxoList[0], manyUtxoList[1], manyUtxoList[2]],
+          wallet.getAddress(25),
+          sendAmount,
+          3,
+          wallet);
+      int oldChange = tx.getChangeAmount(wallet.addressBook);
+
+      // printTransaction(tx);
+      tx.updateFeeRate(5, wallet);
+      // printTransaction(tx, feeRate: 5);
+
+      int newChange = tx.getChangeAmount(wallet.addressBook);
+
+      expect(oldChange > newChange, true);
+
+      expect(
+          tx.totalInputAmount ==
+              sendAmount +
+                  tx.getChangeAmount(wallet.addressBook) +
+                  tx.estimateFee(5, AddressType.p2wpkh),
           true);
     });
   });

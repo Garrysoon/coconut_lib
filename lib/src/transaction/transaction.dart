@@ -833,12 +833,10 @@ class Transaction {
     _utxoList!.add(newUtxo);
     String changeAddress = wallet.getChangeAddress().address;
     TransactionOutput? changeOutput;
-    int sendingAmount = 0;
     for (TransactionOutput output in outputs) {
       if (output.scriptPubKey.getAddress() == changeAddress) {
         changeOutput = output;
-      } else {
-        sendingAmount += output.amount;
+        break;
       }
     }
 
@@ -848,7 +846,8 @@ class Transaction {
     }
 
     int fee = estimateFee(feeRate, wallet.addressType);
-    int changeAmount = totalInputAmount - sendingAmount - fee;
+    int changeAmount =
+        totalInputAmount - getSendingAmount(wallet.addressBook) - fee;
     changeOutput.setAmount(changeAmount);
   }
 
@@ -873,12 +872,10 @@ class Transaction {
 
     TransactionOutput changeOutput =
         TransactionOutput.forPayment(0, changeAddress);
-    int sendingAmount = 0;
     for (TransactionOutput output in outputs) {
       if (output.scriptPubKey.getAddress() == changeAddress) {
         changeOutput = output;
-      } else {
-        sendingAmount += output.amount;
+        break;
       }
     }
 
@@ -891,31 +888,36 @@ class Transaction {
     }
     _utxoList!.remove(utxoToRemove);
     int fee = estimateFee(feeRate, wallet.addressType);
-    int changeAmount = totalInputAmount - sendingAmount - fee;
+    int changeAmount =
+        totalInputAmount - getSendingAmount(wallet.addressBook) - fee;
 
     if (changeAmount <= 0) {
-      outputs.remove(changeOutput);
+      changeOutput.setAmount(0);
     } else {
       changeOutput.setAmount(changeAmount);
     }
   }
 
-  void updateFeeRate(int feeRate, WalletBase wallet, int sendingAmount) {
+  void updateFeeRate(int feeRate, WalletBase wallet) {
     int fee = estimateFee(feeRate, wallet.addressType);
     String changeAddress = wallet.getChangeAddress().address;
     TransactionOutput changeOutput =
         TransactionOutput.forPayment(0, changeAddress);
 
-    int sendingAmount = 0;
     for (TransactionOutput output in outputs) {
       if (output.scriptPubKey.getAddress() == changeAddress) {
         changeOutput = output;
-      } else {
-        sendingAmount += output.amount;
+        break;
       }
     }
+    int changeAmount =
+        totalInputAmount - getSendingAmount(wallet.addressBook) - fee;
 
-    changeOutput.setAmount(totalInputAmount - sendingAmount - fee);
+    if (changeAmount <= 0) {
+      changeOutput.setAmount(0);
+    } else {
+      changeOutput.setAmount(changeAmount);
+    }
   }
 
   /// Get the change amount of the transaction with AddressBook.
