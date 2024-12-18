@@ -485,6 +485,8 @@ main() async {
           0, 10000, 'm/84/1/0/0/3', 1722589200, 4323),
       UTXO('b5b9656068d3029b8b68da8c213a89f1bd5f96d6fccd932bb6a27b563a222b80',
           0, 15000, 'm/84/1/0/0/12', 1723616100, 7746),
+      UTXO('b5b9656068d3029b8b68da8c213a89f1bd5f96d6fccd932bb6a27b563a222b80',
+          1, 10000, 'm/84/1/0/0/12', 1723616100, 7746),
     ];
     setUpAll(() {
       BitcoinNetwork.setNetwork(BitcoinNetwork.regtest);
@@ -506,19 +508,23 @@ main() async {
     });
 
     void printTransaction(Transaction tx) {
+      print("--------------------");
       for (TransactionInput input in tx.inputs) {
-        print(input.transactionHash);
+        print("input txid : ${input.transactionHash}");
       }
       for (TransactionOutput output in tx.outputs) {
-        print(output.amount);
+        print("output amount : ${output.amount}");
       }
+      print("TotalInputAmount: ${tx.totalInputAmount}");
+      print("ChangeAmount: ${tx.getChangeAmount(wallet.addressBook)}");
+      print("SendingAmount: ${tx.getSendingAmount(wallet.addressBook)}");
       print("Estimated Fee: ${tx.estimateFee(feeRate, wallet.addressType)}");
     }
 
     test('add utxo', () {
+      int sendAmount = 30000;
       Transaction tx =
-          Transaction.forPayment(wallet.getAddress(25), 30000, 3, wallet);
-      printTransaction(tx);
+          Transaction.forPayment(wallet.getAddress(25), sendAmount, 3, wallet);
 
       expect(() => tx.addIntputWithUtxo(manyUtxoList[0], feeRate, wallet),
           throwsException);
@@ -527,17 +533,39 @@ main() async {
       tx.addIntputWithUtxo(adding, feeRate, wallet);
 
       expect(tx.inputs.length, 3);
+      expect(
+          tx.totalInputAmount ==
+              sendAmount +
+                  tx.getChangeAmount(wallet.addressBook) +
+                  tx.estimateFee(feeRate, AddressType.p2wpkh),
+          true);
     });
 
     test('remove utxo', () {
-      Transaction tx =
-          Transaction.forPayment(wallet.getAddress(25), 30000, 3, wallet);
-      printTransaction(tx);
+      int sendAmount = 30000;
+      Transaction tx = Transaction.fromUtxoList(
+          [manyUtxoList[0], manyUtxoList[1]],
+          wallet.getAddress(25),
+          sendAmount,
+          3,
+          wallet);
 
-      UTXO removing = wallet.getUtxoList()[2];
+      UTXO removing = manyUtxoList[1];
       tx.removeInputWithUtxo(removing, feeRate, wallet);
 
-      expect(tx.inputs.length, 1);
+      tx.addIntputWithUtxo(manyUtxoList[2], feeRate, wallet);
+      tx.addIntputWithUtxo(manyUtxoList[3], feeRate, wallet);
+
+      tx.removeInputWithUtxo(manyUtxoList[3], feeRate, wallet);
+
+      printTransaction(tx);
+
+      expect(
+          tx.totalInputAmount ==
+              sendAmount +
+                  tx.getChangeAmount(wallet.addressBook) +
+                  tx.estimateFee(feeRate, AddressType.p2wpkh),
+          true);
     });
   });
 }
