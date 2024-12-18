@@ -4,7 +4,12 @@ enum KeyChain { external, internal }
 
 enum ConnectionTypeEnum { electrum, rpc }
 
-enum UtxoOrderEnum { byAmountDesc, byTimestampDesc }
+enum UtxoOrderEnum {
+  byAmountDesc,
+  byAmountAsc,
+  byTimestampDesc,
+  byTimestampAsc
+}
 
 enum TransactionTypeEnum {
   received('RECEIVED'),

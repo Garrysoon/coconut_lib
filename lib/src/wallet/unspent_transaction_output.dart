@@ -49,8 +49,14 @@ class UTXO {
       case UtxoOrderEnum.byAmountDesc:
         utxos.sort((a, b) => b.amount.compareTo(a.amount));
         break;
+      case UtxoOrderEnum.byAmountAsc:
+        utxos.sort((a, b) => a.amount.compareTo(b.amount));
+        break;
       case UtxoOrderEnum.byTimestampDesc:
         utxos.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        break;
+      case UtxoOrderEnum.byTimestampAsc:
+        utxos.sort((a, b) => a.timestamp.compareTo(b.timestamp));
         break;
     }
   }
