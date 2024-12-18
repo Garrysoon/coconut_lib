@@ -520,11 +520,11 @@ main() async {
           Transaction.forPayment(wallet.getAddress(25), 30000, 3, wallet);
       printTransaction(tx);
 
-      expect(() => tx.addIntpusWithUtxo(manyUtxoList[0], feeRate, wallet),
+      expect(() => tx.addIntputWithUtxo(manyUtxoList[0], feeRate, wallet),
           throwsException);
 
       UTXO adding = wallet.getUtxoList()[1];
-      tx.addIntpusWithUtxo(adding, feeRate, wallet);
+      tx.addIntputWithUtxo(adding, feeRate, wallet);
 
       expect(tx.inputs.length, 3);
     });

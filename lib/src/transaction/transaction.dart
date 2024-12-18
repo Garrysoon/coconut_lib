@@ -797,7 +797,7 @@ class Transaction {
   }
 
   /// Add utxo to the transaction.
-  void addIntpusWithUtxo(UTXO utxo, int feeRate, WalletBase wallet) {
+  void addIntputWithUtxo(UTXO utxo, int feeRate, WalletBase wallet) {
     for (TransactionInput input in inputs) {
       if (input.transactionHash == utxo.transactionHash &&
           input.index == utxo.index) {
