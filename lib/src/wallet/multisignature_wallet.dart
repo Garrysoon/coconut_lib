@@ -93,8 +93,15 @@ class MultisignatureWallet extends MultisignatureWalletBase
 
   @override
   List<UTXO> getUtxoList(
-      {UtxoOrderEnum order = UtxoOrderEnum.byTimestampDesc}) {
+      {UtxoOrderEnum order = UtxoOrderEnum.byTimestampDesc,
+      int? cursor,
+      int? count}) {
     UTXO.sortUTXO(walletStatus!.utxoList, order);
+
+    if (cursor != null && count != null) {
+      return walletStatus!.utxoList.skip(cursor).take(count).toList();
+    }
+
     return walletStatus!.utxoList;
   }
 
