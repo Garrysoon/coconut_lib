@@ -89,14 +89,14 @@ void main() async {
 
     test('expect vertual byte', () {
       double expectedVByte = 188.75;
-      Transaction tx = Transaction.forSending([
-        TransactionInput.forSending(
+      Transaction tx = Transaction.withDefault([
+        TransactionInput.forPayment(
             'e72de6706e380d1a0c984b0ddb75dadca932ab9bef641343353b1204c4d473c9',
             0)
       ], [
-        TransactionOutput.forSending(
+        TransactionOutput.forPayment(
             4000, 'bcrt1qjc4p02r0782v5326j3njeeucesly7pnrwnaqft'),
-        TransactionOutput.forSending(49883282,
+        TransactionOutput.forPayment(49883282,
             'bcrt1q4jp4x0wz5z5zelajmve9dmm3llds2k5q057gnnlz4nam0hje6lrsx95yv2')
       ], AddressType.p2wsh);
       expect(

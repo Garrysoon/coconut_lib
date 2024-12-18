@@ -99,7 +99,7 @@ main() async {
     test('Ouput for sending(p2wpkh)', () {
       String address = 'bc1qkfr6qzkvrnpvpd97p57r3krxl8qg6fz24nzjsa';
       int amount = 1000;
-      TransactionOutput output = TransactionOutput.forSending(amount, address);
+      TransactionOutput output = TransactionOutput.forPayment(amount, address);
       String expectedOutputString =
           'e803000000000000160014b247a00acc1cc2c0b4be0d3c38d866f9c08d244a';
       expect(output.serialize(), expectedOutputString);
@@ -108,7 +108,7 @@ main() async {
     test('Ouput for sending(p2pkh)', () {
       String address = '1JieyK6YYufbwwcMMm7rB31QJcLQEphpTA';
       int amount = 724300;
-      TransactionOutput output = TransactionOutput.forSending(amount, address);
+      TransactionOutput output = TransactionOutput.forPayment(amount, address);
       String expectedOutputString =
           '4c0d0b00000000001976a914c25ae3a6ea9d9d639f1e7c78edeb522629e51dfa88ac';
       expect(output.serialize(), expectedOutputString);
@@ -134,7 +134,7 @@ main() async {
     test('input for Sending (P2PKH)', () {
       String inputString =
           'd06050454abde3bdd947312b9f54439acb097608a47b0b36a23d76820a3a4044000000006a4730440220360e6c5348a85270a3b14b84780ad56cd189bd12848b125c488a678f5e0d95be022011e51cfd849e5d005fc5352885a954c756f6073de633545f6045c4ad96ac9be0012102742148dd2f73733ce36202798298e8294b42b5aabf1ba87a9bb9b0167abfb8dfffffffff';
-      TransactionInput input = TransactionInput.forSending(
+      TransactionInput input = TransactionInput.forPayment(
           '44403a0a82763da2360b7ba4087609cb9a43549f2b3147d9bde3bd4a455060d0',
           0);
       input.setSignature(AddressType.p2pkh, [
@@ -148,7 +148,7 @@ main() async {
       String inputString =
           'db01d2e05c8d032d2f3b54b7322e11dc408789e04960e01d4683cd57c7b970a7010000000000000080';
 
-      TransactionInput input = TransactionInput.forSending(
+      TransactionInput input = TransactionInput.forPayment(
           'a770b9c757cd83461de06049e0898740dc112e32b7543b2f2d038d5ce0d201db', 1,
           sequence: 2147483648);
       input.setSignature(AddressType.p2wpkh, [
@@ -177,7 +177,7 @@ main() async {
 
     test('transaction for sending (legacy)', () {
       List<TransactionInput> inputs = [
-        TransactionInput.forSending(
+        TransactionInput.forPayment(
             '44403a0a82763da2360b7ba4087609cb9a43549f2b3147d9bde3bd4a455060d0',
             0)
       ];
@@ -187,10 +187,10 @@ main() async {
             '02742148dd2f73733ce36202798298e8294b42b5aabf1ba87a9bb9b0167abfb8df')
       ]);
       List<TransactionOutput> outputs = [
-        TransactionOutput.forSending(
+        TransactionOutput.forPayment(
             6126631, 'bc1qyje7jjgl86kanp3r38vcfq9vlzda4vrccprts0')
       ];
-      Transaction tx = Transaction.forSending(
+      Transaction tx = Transaction.withDefault(
           inputs, outputs, AddressType.p2pkh,
           version: 1);
       String expectedTxString =
@@ -199,7 +199,7 @@ main() async {
     });
     test('transaction for sending (segwit)', () {
       List<TransactionInput> inputs = [
-        TransactionInput.forSending(
+        TransactionInput.forPayment(
             'a770b9c757cd83461de06049e0898740dc112e32b7543b2f2d038d5ce0d201db',
             1,
             sequence: 2147483648)
@@ -210,12 +210,12 @@ main() async {
             '03c0c4d5bd6ab4ad72bf4b386db12767aa0043ac1652b621afdcf3eeb299fe2fb4')
       ]);
       List<TransactionOutput> outputs = [
-        TransactionOutput.forSending(
+        TransactionOutput.forPayment(
             10839, 'bc1q8308eecs36wqlkyytnqjf6nq6v9xxh54wt3fj8'),
-        TransactionOutput.forSending(
+        TransactionOutput.forPayment(
             411831, 'bc1qvz22wty0zu6fue63mdlvctghumene4de02slve')
       ];
-      Transaction tx = Transaction.forSending(
+      Transaction tx = Transaction.withDefault(
           inputs, outputs, AddressType.p2wpkh,
           version: 2);
       String expectedTxString =
@@ -366,16 +366,16 @@ main() async {
               passphrase: 'ABC'),
           AddressType.p2wpkh);
 
-      TransactionInput input1 = TransactionInput.forSending(
+      TransactionInput input1 = TransactionInput.forPayment(
           "6b90e3232186d8ea27e5b8a5d8fe63e26892148019466a0334e0c529deee2065", 1,
           sequence: 1);
 
       TransactionOutput output =
-          TransactionOutput.forSending(11000, vault.getAddress(1));
+          TransactionOutput.forPayment(11000, vault.getAddress(1));
       Transaction tx =
-          Transaction.forSending([input1], [output], AddressType.p2wpkh);
+          Transaction.withDefault([input1], [output], AddressType.p2wpkh);
 
-      TransactionOutput utxo1 = TransactionOutput.forSending(
+      TransactionOutput utxo1 = TransactionOutput.forPayment(
           11524, 'tb1qeve9c2dvrk0ec44twlrlvk0k5vz200gz8pu2wn');
 
       String sigHash = tx.getSigHash(0, utxo1.serialize(), AddressType.p2wpkh);
@@ -456,22 +456,88 @@ main() async {
 
       await wallet.fetchOnChainData(nodeConnector);
 
-      TransactionInput input1 = TransactionInput.forSending(
+      TransactionInput input1 = TransactionInput.forPayment(
           "90af61b59a23f51e6308f3c69c59df5c3f2dc0b71931321324b9591f36b28fa2", 0,
           sequence: 1); //11000
-      TransactionInput input2 = TransactionInput.forSending(
+      TransactionInput input2 = TransactionInput.forPayment(
           "78342fcec91b178c13ef8d2ba4fbc354d4b817a55d55edd75cff3aa6bc9bba05", 9,
           sequence: 1); //1000
-      TransactionOutput output1 = TransactionOutput.forSending(
+      TransactionOutput output1 = TransactionOutput.forPayment(
           1000, 'tb1q65r879rlsca63c2ju4q4832289d9hte7m7mkgm');
-      TransactionOutput output2 = TransactionOutput.forSending(10000,
+      TransactionOutput output2 = TransactionOutput.forPayment(10000,
           'tb1q5e7xwfxvm2wq95kla90femh9nvj6at9qzstvu3'); //change m/84'/1'/0'/1/0
 
-      Transaction tx = Transaction.forSending(
+      Transaction tx = Transaction.withDefault(
           [input2, input1], [output1, output2], AddressType.p2wpkh);
       PSBT psbt = PSBT.fromTransaction(tx, wallet);
       expect(psbt.outputs[1].isChange, true);
       expect(psbt.outputs[0].isChange, false);
+    });
+  });
+
+  group('add and remove utxo', () {
+    late SingleSignatureWallet wallet;
+    int feeRate = 3;
+    List<UTXO> manyUtxoList = [
+      UTXO('14bb0d89a09a7ce559330855581382c96c57a3c0bdd7b77c87d10479b671709b',
+          0, 21000, 'm/84/1/0/0/2', 1722588900, 4322),
+      UTXO('0a355cdeb93d9104bf8ef33e9cde1094fd84fb9e425f98ddefd4fd0b937cc868',
+          0, 10000, 'm/84/1/0/0/3', 1722589200, 4323),
+      UTXO('b5b9656068d3029b8b68da8c213a89f1bd5f96d6fccd932bb6a27b563a222b80',
+          0, 15000, 'm/84/1/0/0/12', 1723616100, 7746),
+    ];
+    setUpAll(() {
+      BitcoinNetwork.setNetwork(BitcoinNetwork.regtest);
+      wallet = SingleSignatureWallet.fromDescriptor(
+          SingleSignatureVault.fromEntropy(
+                  '11111111111111111111111111111111', AddressType.p2wpkh)
+              .descriptor);
+      wallet.walletStatus = WalletStatus(
+          transactionList: [],
+          utxoList: manyUtxoList,
+          balance: Balance(0, 0),
+          blockHeaderMap: {},
+          receiveAddressBalanceMap: {},
+          changeAddressBalanceMap: {},
+          receiveUsedIndexList: [],
+          changeUsedIndexList: [],
+          receiveMaxGap: 20,
+          changeMaxGap: 20);
+    });
+
+    void printTransaction(Transaction tx) {
+      for (TransactionInput input in tx.inputs) {
+        print(input.transactionHash);
+      }
+      for (TransactionOutput output in tx.outputs) {
+        print(output.amount);
+      }
+      print("Estimated Fee: ${tx.estimateFee(feeRate, wallet.addressType)}");
+    }
+
+    test('add utxo', () {
+      Transaction tx =
+          Transaction.forPayment(wallet.getAddress(25), 30000, 3, wallet);
+      printTransaction(tx);
+
+      expect(() => tx.addIntpusWithUtxo(manyUtxoList[0], feeRate, wallet),
+          throwsException);
+
+      UTXO adding = wallet.getUtxoList()[1];
+      tx.addIntpusWithUtxo(adding, feeRate, wallet);
+
+      expect(tx.inputs.length, 3);
+    });
+
+    test('remove utxo', () {
+      Transaction tx =
+          Transaction.forPayment(wallet.getAddress(25), 30000, 3, wallet);
+      printTransaction(tx);
+
+      UTXO removing = wallet.getUtxoList()[2];
+      tx.removeInputWithUtxo(removing, feeRate, wallet);
+
+      expect(tx.inputs.length, 1);
     });
   });
 }

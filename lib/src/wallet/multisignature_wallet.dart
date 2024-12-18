@@ -108,24 +108,26 @@ class MultisignatureWallet extends MultisignatureWalletBase
   @override
   Future<String> generatePsbt(
       String receiverAddress, int sendingAmount, int feeRate) async {
-    PSBT psbt = await Future(
-        () => PSBT.forSending(receiverAddress, sendingAmount, feeRate, this));
+    PSBT psbt = await Future(() => PSBT.fromTransaction(
+        Transaction.forPayment(receiverAddress, sendingAmount, feeRate, this),
+        this));
     return psbt.serialize();
   }
 
   @override
   Future<String> generatePsbtWithMaximum(
       String receiverAddress, int feeRate) async {
-    PSBT psbt = await Future(
-        () => PSBT.forMaximumSending(receiverAddress, feeRate, this));
+    PSBT psbt = await Future(() => PSBT.fromTransaction(
+        Transaction.forSweep(receiverAddress, feeRate, this), this));
     return psbt.serialize();
   }
 
   @override
   Future<int> estimateFee(
       String receiverAddress, int sendingAmount, int feeRate) async {
-    PSBT psbt = await Future(
-        () => PSBT.forSending(receiverAddress, sendingAmount, feeRate, this));
+    PSBT psbt = await Future(() => PSBT.fromTransaction(
+        Transaction.forPayment(receiverAddress, sendingAmount, feeRate, this),
+        this));
     return psbt.estimateFee(feeRate, addressType,
         requiredSignature: requiredSignature, totalSigner: keyStoreList.length);
   }
@@ -133,8 +135,8 @@ class MultisignatureWallet extends MultisignatureWalletBase
   @override
   Future<int> estimateFeeWithMaximum(
       String receiverAddress, int feeRate) async {
-    PSBT psbt = await Future(
-        () => PSBT.forMaximumSending(receiverAddress, feeRate, this));
+    PSBT psbt = await Future(() => PSBT.fromTransaction(
+        Transaction.forSweep(receiverAddress, feeRate, this), this));
     return psbt.estimateFee(feeRate, addressType,
         requiredSignature: requiredSignature, totalSigner: keyStoreList.length);
   }

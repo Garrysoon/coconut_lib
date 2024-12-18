@@ -38,10 +38,12 @@ void main() async {
   print("balance before tx : ${watchOnlyWallet.getBalance()}");
 
   /// create a PSBT(BIP-0174) to my another address
-  PSBT unsignedPSBT = PSBT.forSending(
-      "bcrt1q3e20um9mrcwpl34agd07v0t76hg48n97ufjwe20mku7n5nqll32sxawr52",
-      100000,
-      1,
+  PSBT unsignedPSBT = PSBT.fromTransaction(
+      Transaction.forPayment(
+          "bcrt1q3e20um9mrcwpl34agd07v0t76hg48n97ufjwe20mku7n5nqll32sxawr52",
+          100000,
+          1,
+          watchOnlyWallet),
       watchOnlyWallet);
 
   print(unsignedPSBT.serialize());

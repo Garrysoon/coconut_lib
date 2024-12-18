@@ -161,161 +161,6 @@ class PSBT {
     return globalBytes;
   }
 
-  /// Create a PSBT for sending bitcoin.
-  factory PSBT.forSending(
-      String address, int amount, int feeRate, WalletBase wallet) {
-    late WalletFeature walletFeature;
-    try {
-      walletFeature = wallet as WalletFeature;
-    } catch (e) {
-      print("Vault cannot generate PSBT");
-    }
-    List<UTXO> utxoList = walletFeature.getUtxoList();
-
-    List<UTXO> selectedUtxos =
-        _selectOptimalUtxo(utxoList, amount, feeRate, wallet.addressType);
-
-    int totalInputAmount = 0;
-    List<TransactionInput> inputs = [];
-    List<TransactionOutput> outputs = [];
-    for (UTXO utxo in selectedUtxos) {
-      totalInputAmount += utxo.amount;
-      inputs.add(TransactionInput.forSending(utxo.transactionHash, utxo.index));
-    }
-
-    String changeAddress = wallet.getChangeAddress().address;
-
-    TransactionOutput sendingOutput =
-        TransactionOutput.forSending(amount, address);
-    TransactionOutput changeOutput =
-        TransactionOutput.forSending(0, changeAddress);
-
-    outputs.add(sendingOutput);
-    outputs.add(changeOutput);
-
-    Transaction tx =
-        Transaction.forSending(inputs, outputs, wallet.addressType);
-
-    // print("Input : ${tx.inputs.length}, Output : ${tx.outputs.length}");
-
-    double vByte = 0.0;
-    if (wallet.addressType == AddressType.p2wpkh) {
-      vByte = tx.estimateVirtualByte(wallet.addressType);
-    } else if (wallet.addressType == AddressType.p2wsh) {
-      MultisignatureWallet multisignatureWallet =
-          wallet as MultisignatureWallet;
-      vByte = tx.estimateVirtualByte(wallet.addressType,
-          requiredSignature: multisignatureWallet.requiredSignature,
-          totalSigner: multisignatureWallet.totalSigner);
-    } else {
-      throw Exception('Unsupported Address Type');
-    }
-
-    int fee = (vByte * feeRate).ceil();
-
-    // print("Fee : $fee");
-
-    changeOutput.setAmount(totalInputAmount - amount - fee);
-
-    //minimum fee check
-    // if (tx.getVirtualByte() > fee) {
-    //   int change = totalInputAmount - amount - tx.getVirtualByte().ceil();
-    //   changeOutput.setAmount(change);
-    // }
-
-    return PSBT.fromTransaction(tx, wallet);
-  }
-
-  /// Create a PSBT for sending all bitcoin in the wallet.
-  factory PSBT.forMaximumSending(
-      String address, int feeRate, WalletBase wallet) {
-    late WalletFeature walletFeature;
-    try {
-      walletFeature = wallet as WalletFeature;
-    } catch (e) {
-      print("Vault cannot generate PSBT");
-    }
-    List<UTXO> utxoList = walletFeature.getUtxoList();
-
-    List<TransactionInput> inputs = [];
-    List<TransactionOutput> outputs = [];
-    int inputAmount = 0;
-    for (UTXO utxo in utxoList) {
-      if (utxo.blockHeight == 0) {
-        continue;
-      }
-      inputs.add(TransactionInput.forSending(utxo.transactionHash, utxo.index));
-      inputAmount += utxo.amount;
-    }
-
-    if (inputAmount == 0) {
-      throw Exception('No balance to send');
-    }
-
-    TransactionOutput sendingOutput = TransactionOutput.forSending(0, address);
-    outputs.add(sendingOutput);
-
-    Transaction tx =
-        Transaction.forSending(inputs, outputs, wallet.addressType);
-
-    double vByte = 0.0;
-    if (wallet.addressType == AddressType.p2wpkh) {
-      vByte = tx.estimateVirtualByte(wallet.addressType);
-    } else if (wallet.addressType == AddressType.p2wsh) {
-      MultisignatureWallet multisignatureWallet =
-          wallet as MultisignatureWallet;
-      vByte = tx.estimateVirtualByte(wallet.addressType,
-          requiredSignature: multisignatureWallet.requiredSignature,
-          totalSigner: multisignatureWallet.totalSigner);
-    } else {
-      throw Exception('Unsupported Address Type');
-    }
-
-    int fee = (vByte * feeRate).ceil();
-
-    if (inputAmount < fee) {
-      throw Exception('Not enough amount for sending. (Fee : $fee)');
-    }
-
-    sendingOutput.setAmount(inputAmount - fee);
-
-    // Transaction tx = Transaction.forMaximumSending(
-    //     inputs, address, inputAmount, wallet.addressType, feeRate);
-    // print(tx.serialize());
-    return PSBT.fromTransaction(tx, wallet);
-  }
-
-  static List<UTXO> _selectOptimalUtxo(
-      List<UTXO> utxos, int amount, int feeRate, AddressType addressType) {
-    int baseVbyte = 72; //0 input, 2 output
-    int vBytePerInput = 0;
-    if (addressType.isSegwit) {
-      vBytePerInput = 68; //segwit discount
-    } else {
-      vBytePerInput = 148;
-    }
-    List<UTXO> selectedUtxos = [];
-
-    int totalAmount = 0;
-    int totalVbyte = baseVbyte;
-    int finalFee = 0;
-    utxos.sort((a, b) => b.amount.compareTo(a.amount));
-    for (UTXO utxo in utxos) {
-      if (utxo.blockHeight == 0) {
-        continue;
-      }
-      selectedUtxos.add(utxo);
-      totalAmount += utxo.amount;
-      totalVbyte += vBytePerInput;
-      int fee = totalVbyte * feeRate;
-      if (totalAmount >= amount + fee) {
-        return selectedUtxos;
-      }
-      finalFee = fee;
-    }
-    throw Exception('Not enough amount for sending. (Fee : $finalFee)');
-  }
-
   /// Create a PSBT from a Transaction object.
   factory PSBT.fromTransaction(Transaction tx, WalletBase wallet) {
     late WalletFeature walletFeature;
@@ -341,27 +186,6 @@ class PSBT {
     Map<String, dynamic> globalData = {};
     String txKey = getKeyType(globalKeyType, 'UNSIGNED_TX');
     globalData[txKey] = tx.serializeLegacy(); //old serialze format BIP0174
-    // String xpubKeyType = getKeyType(globalKeyType, 'XPUB');
-
-    // if (wallet is SingleSignatureWallet) {
-    //   String xpub =
-    //       Converter.bytesToHex(wallet.keyStore.extendedPublicKey.publicKey);
-    //   String xpubKey = xpubKeyType + xpub;
-    //   String xpubValue = Converter.bytesToHex(
-    //       wallet.keyStore.extendedPublicKey.parentFingerprintByte +
-    //           _serializeDerivationPath(wallet.derivationPath));
-    //   globalData[xpubKey] = xpubValue;
-    // } else if (wallet is MultisignatureWallet) {
-    //   for (int i = 0; i < wallet.totalSigner; i++) {
-    //     String xpub = Converter.bytesToHex(
-    //         wallet.keyStoreList[i]._extendedPublicKey.publicKey);
-    //     String xpubKey = xpubKeyType + xpub;
-    //     String xpubValue = Converter.bytesToHex(
-    //         wallet.keyStoreList[i]._extendedPublicKey.parentFingerprintByte +
-    //             _serializeDerivationPath(wallet.derivationPath));
-    //     globalData[xpubKey] = xpubValue;
-    //   }
-    // }
     psbtData["global"] = globalData;
 
     //input
@@ -456,7 +280,23 @@ class PSBT {
       }
       psbtData["outputs"].add(outputData);
     }
-    return PSBT(psbtData);
+
+    PSBT psbt = PSBT(psbtData);
+
+    //check input amount is enough
+    int totalInputAmount = 0;
+    for (PsbtInput input in psbt.inputs) {
+      totalInputAmount += input.witnessUtxo!.amount;
+    }
+    int totalOutputAmount = 0;
+    for (PsbtOutput output in psbt.outputs) {
+      totalOutputAmount += output.amount!;
+    }
+    if (totalOutputAmount > totalInputAmount) {
+      throw Exception('Not enough input amount');
+    }
+
+    return psbt;
   }
 
   /// Parse a PSBT from a base64 string.

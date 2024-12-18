@@ -78,7 +78,9 @@ class SingleSignatureVault extends SingleSignatureWalletBase
     if (!targetAddressType.isMultisig) {
       throw Exception('Use Multisig address type.');
     }
+
     KeyStore multisigKeyStore =
+        // ignore: unnecessary_non_null_assertion
         KeyStore.fromSeed(keyStore.seed!, targetAddressType);
 
     BSMS bsms = BSMS.fromSigner(
