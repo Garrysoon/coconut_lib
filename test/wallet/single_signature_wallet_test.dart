@@ -29,7 +29,8 @@ List<UTXO> manyUtxoList = [
       21000, 'm/84/1/0/0/12', 1723616100, 7746),
 ];
 
-List<UTXO> emptyUtxoList = [];
+String descriptor =
+    'wpkh([051098C4/84\'/1\'/0\']vpub5Y8vmXLYP5oLkcG1bjieNzqKqUEZscVZdbaJJSsWmH1CowJceaiRp58FUUcDikSE8MinQ5QzJbVZDeA4WvSqwWj4JjKaM6SCWgX3xMwY1xt/<0;1>/*)#vyjy7nsm';
 
 void main() async {
   group('SingleSignatureWallet', () {
@@ -47,12 +48,8 @@ void main() async {
       changeMaxGap: 0,
     );
 
-    SingleSignatureVault mnemonicVault = SingleSignatureVault.fromMnemonic(
-        'output opera coin bottom power cable abuse bitter maximum cost gift burger',
-        AddressType.p2wpkh);
-
     SingleSignatureWallet watchOnlyWallet =
-        SingleSignatureWallet.fromDescriptor(mnemonicVault.descriptor);
+        SingleSignatureWallet.fromDescriptor(descriptor);
 
     watchOnlyWallet.walletStatus = walletStatus;
 

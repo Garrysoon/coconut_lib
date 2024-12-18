@@ -29,8 +29,8 @@ List<UTXO> manyUtxoList = [
       21000, 'm/84/1/0/0/12', 1723616100, 7746),
 ];
 
-List<UTXO> emptyUtxoList = [];
-
+String descriptor =
+    'wsh(sortedmulti(2,[AEF5B293/48\'/1\'/0\'/2\']Vpub5nPUGCe9LkKe84RidJpnT4PXxqFCMnp7MFBvksxDAvKGQMuBaCnrS72AXwoWM6JmvDfAdUoAiRPHwAFTP2RvE5kLgkcyMRjgHAqWVkEdWPb/<0;1>/*,[62A936C3/48\'/1\'/0\'/2\']Vpub5nJPDy5rAwoiBH3yiGuABQT8KXzfiq1YWexHeYs3RN2vui8Whp3JsqbWjiEqN5joJWMH7jsjp81CD8AZsaNGhd6DrdNUTneAEEBDaXt1N5d/<0;1>/*,[62A936C3/48\'/1\'/0\'/2\']Vpub5nJPDy5rAwoiBH3yiGuABQT8KXzfiq1YWexHeYs3RN2vui8Whp3JsqbWjiEqN5joJWMH7jsjp81CD8AZsaNGhd6DrdNUTneAEEBDaXt1N5d/<0;1>/*))#5x00xzuf';
 void main() async {
   group('MultisignatureWallet', () {
     WalletStatus walletStatus = WalletStatus(
@@ -47,44 +47,9 @@ void main() async {
       changeMaxGap: 0,
     );
 
-    SingleSignatureVault insideVault1 = SingleSignatureVault.fromMnemonic(
-        'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
-        AddressType.p2wpkh,
-        passphrase: 'ABC');
-
-    SingleSignatureVault outsideVault1 = SingleSignatureVault.fromMnemonic(
-        'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
-        AddressType.p2wpkh,
-        passphrase: 'DEF');
-
-    SingleSignatureVault outsideVault2 = SingleSignatureVault.fromMnemonic(
-        'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
-        AddressType.p2wpkh,
-        passphrase: 'GHI');
-
-    //Generate P2WSH Keystore
-    KeyStore insideKey1 =
-        KeyStore.fromSeed(insideVault1.keyStore.seed, AddressType.p2wsh);
-    KeyStore outsideKey1 =
-        KeyStore.fromSeed(outsideVault2.keyStore.seed, AddressType.p2wsh);
-    KeyStore outsideKey2 =
-        KeyStore.fromSeed(outsideVault2.keyStore.seed, AddressType.p2wsh);
-
-    MultisignatureVault multisignatureVault =
-        MultisignatureVault.fromKeyStoreList(
-            [insideKey1, outsideKey1, outsideKey2], 2, AddressType.p2wsh);
-
-    // Share Coordinator BSMS with Outside Signers
-    MultisignatureVault outsideMultisignatureVault =
-        MultisignatureVault.fromCoordinatorBsms(
-            multisignatureVault.getCoordinatorBsms());
-
-    // Find Seed in Outside Vault and bind it to KeyStore
-    outsideMultisignatureVault.bindSeedToKeyStore(outsideVault1.keyStore.seed);
-
     // Make WatchOnlyWallet for multisig
     MultisignatureWallet watchOnlyWallet =
-        MultisignatureWallet.fromDescriptor(multisignatureVault.descriptor);
+        MultisignatureWallet.fromDescriptor(descriptor);
 
     watchOnlyWallet.walletStatus = walletStatus;
 
