@@ -9,13 +9,11 @@ Download from Appstore and Play Store.
 - [Coconut Vault (for Android)](https://play.google.com/store/apps/details?id=onl.coconut.vault.regtest)
 - [Coconut Wallet (for Android)](https://play.google.com/store/apps/details?id=onl.coconut.wallet.regtest)
 
-
 And visit tutorial page for Self-custody we provided. (www.coconut.onl)
 
 > ⚠ The Coconut_lib is still a project under development.
 > Therefore, we are not responsible for any problems that may arise while using it.
 > Please review it carefully and use it.
-
 
 ## About
 
@@ -25,7 +23,6 @@ In particular, The Coconut_lib designed to develop air-gap-based vault and walle
 You can use the Coconut_lib to create your own air-gap based vault and wallet.
 
 "Don't trust, verify and develop!"
-
 
 ## Architecture
 
@@ -38,6 +35,7 @@ You can use the Coconut_lib to create your own air-gap based vault and wallet.
 > For more development information, visit the [coconut_lib docs](https://pub.dev/documentation/coconut_lib/latest/coconut_lib/coconut_lib-library.html).
 
 ## Example
+
 ```dart
 import 'dart:io';
 import 'package:coconut_lib/coconut_lib.dart';
@@ -128,6 +126,26 @@ void main() async {
   exit(0);
 }
 ```
+
+## Bip Support List
+
+- [BIP-11](https://github.com/bitcoin/bips/blob/master/bip-0011.mediawiki): M-of-N Standard Transactions
+- [BIP-32](https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki): Hierarchical Deterministic Wallets
+- [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki): Mnemonic code for generating deterministic keys
+- [BIP-44](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki): Multi-Account Hierarchy for Deterministic Wallets
+- [BIP-48](https://github.com/bitcoin/bips/blob/master/bip-0048.mediawiki): Multi-Script Hierarchy for Multi-Sig Wallets
+- [BIP-67](https://github.com/bitcoin/bips/blob/master/bip-0067.mediawiki): Deterministic Multisig Key Sorting
+- [BIP-84](https://github.com/bitcoin/bips/blob/master/bip-0084.mediawiki): Derivation scheme for P2WPKH based accounts
+- [BIP-129](https://github.com/bitcoin/bips/blob/master/bip-0129.mediawiki): Bitcoin Secure Multisig Setup (BSMS)
+- [BIP-142](https://github.com/bitcoin/bips/blob/master/bip-0142.mediawiki): Address Format for Segregated Witness
+- [BIP-143](https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki): Transaction Signature Verification for Version 0 Witness Program
+- [BIP-173](https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki): Base32 address format for native v0-16 witness outputs
+- [BIP-174](https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki): Partially Signed Bitcoin Transaction Format
+- [BIP-370](https://github.com/bitcoin/bips/blob/master/bip-0370.mediawiki): PSBT Version 2
+- [BIP-380](https://github.com/bitcoin/bips/blob/master/bip-0380.mediawiki): Output Script Descriptors General Operation
+- [BIP-381](https://github.com/bitcoin/bips/blob/master/bip-0381.mediawiki): Non-Segwit Output Script Descriptors
+- [BIP-382](https://github.com/bitcoin/bips/blob/master/bip-0382.mediawiki): Segwit Output Script Descriptors
+- [BIP-383](https://github.com/bitcoin/bips/blob/master/bip-0383.mediawiki): Multisig Output Script Descriptors
 
 ## Contribution
 
