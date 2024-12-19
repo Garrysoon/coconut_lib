@@ -1,4 +1,4 @@
-@Tags(['integration'])
+@Tags(['e2e'])
 
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';

@@ -42,14 +42,14 @@ void main() {
               StreamController<Uint8List>().stream.listen(null));
     });
 
-    test('should connect to server successfully', () async {
+    test('서버에 성공적으로 연결되어야 함', () async {
       await socketManager.connect('localhost', 1234, ssl: false);
 
       expect(socketManager.connectionStatus, SocketConnectionStatus.connected);
       verify(mockSocketFactory.createSocket('localhost', 1234)).called(1);
     });
 
-    test('should handle socket data', () async {
+    test('메시지를 보내고 응답 데이터를 처리해야 함', () async {
       when(mockSocket.listen(any,
               onError: anyNamed('onError'),
               onDone: anyNamed('onDone'),
@@ -76,7 +76,7 @@ void main() {
       expect(result['message'], equals('pong'));
     });
 
-    test('should handle fragmented JSON data', () async {
+    test('분할된 JSON 데이터를 처리해야 함', () async {
       // Simulate fragmented JSON data reception
       when(mockSocket.listen(any,
               onError: anyNamed('onError'),
@@ -113,7 +113,7 @@ void main() {
       expect(result['result']['test'], isA<List>());
     });
 
-    test('should handle connection error', () async {
+    test('연결 오류를 처리해야 함', () async {
       when(mockSocket.listen(any,
               onError: anyNamed('onError'),
               onDone: anyNamed('onDone'),
@@ -126,8 +126,7 @@ void main() {
           socketManager.connectionStatus, SocketConnectionStatus.reconnecting);
     });
 
-    test('should change to terminated state after maximum connection attempts',
-        () async {
+    test('최대 연결 시도 횟수 초과 시 종료 상태로 변경되어야 함', () async {
       SocketManager socketManager = SocketManager(
           factory: mockErrorSocketFactory, reconnectDelaySeconds: 0);
 
@@ -139,8 +138,7 @@ void main() {
       verify(mockErrorSocketFactory.createSocket('localhost', 1234)).called(30);
     });
 
-    test('should execute the callback function when attempting to reconnect',
-        () async {
+    test('재연결 시도 시 콜백 함수가 실행되어야 함', () async {
       SocketManager socketManager = SocketManager(
           factory: mockErrorSocketFactory,
           reconnectDelaySeconds: 0,
@@ -155,8 +153,7 @@ void main() {
       verify(mockCallback.call()).called(1);
     });
 
-    test('should change the state to `connecting` when attempting to connect',
-        () async {
+    test('연결 시도 시 상태가 `connecting`으로 변경되어야 함', () async {
       MockSocketFactory mockSocketFactory = MockSocketFactory();
       when(mockSocketFactory.createSocket('localhost', 1234))
           .thenAnswer((e) async {
@@ -192,7 +189,7 @@ void main() {
               StreamController<Uint8List>().stream.listen(null));
     });
 
-    test('should connect to ssl server successfully', () async {
+    test('SSL 서버에 성공적으로 연결되어야 함', () async {
       await socketManager.connect('localhost', 1234, ssl: true);
 
       expect(socketManager.connectionStatus, SocketConnectionStatus.connected);
