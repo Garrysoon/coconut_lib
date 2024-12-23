@@ -9,13 +9,11 @@ Download from Appstore and Play Store.
 - [Coconut Vault (for Android)](https://play.google.com/store/apps/details?id=onl.coconut.vault.regtest)
 - [Coconut Wallet (for Android)](https://play.google.com/store/apps/details?id=onl.coconut.wallet.regtest)
 
-
 And visit tutorial page for Self-custody we provided. (www.coconut.onl)
 
 > ⚠ The Coconut_lib is still a project under development.
 > Therefore, we are not responsible for any problems that may arise while using it.
 > Please review it carefully and use it.
-
 
 ## About
 
@@ -25,7 +23,6 @@ In particular, The Coconut_lib designed to develop air-gap-based vault and walle
 You can use the Coconut_lib to create your own air-gap based vault and wallet.
 
 "Don't trust, verify and develop!"
-
 
 ## Architecture
 
@@ -38,6 +35,7 @@ You can use the Coconut_lib to create your own air-gap based vault and wallet.
 > For more development information, visit the [coconut_lib docs](https://pub.dev/documentation/coconut_lib/latest/coconut_lib/coconut_lib-library.html).
 
 ## Example
+
 ```dart
 import 'dart:io';
 import 'package:coconut_lib/coconut_lib.dart';
@@ -127,6 +125,32 @@ void main() async {
 
   exit(0);
 }
+```
+
+## Tests
+
+### Generate Mock Classes
+
+```
+dart pub run build_runner build
+```
+
+### Unit Test
+
+```
+dart test -t "unit"
+```
+
+### E2E Test
+
+```
+dart test -t "e2e"
+```
+
+### Coverage
+
+```
+dart test -t "unit" --coverage="coverage"
 ```
 
 ## Contribution
