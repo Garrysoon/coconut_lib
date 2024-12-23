@@ -19,10 +19,10 @@ class UTXO {
     this._blockHeight,
   );
 
-  /// Get the previous transaction hash of this UTXO.
+  /// Get the transaction hash of this UTXO.
   String get transactionHash => _transactionHash;
 
-  /// Get the index of the previous transaction.
+  /// Get the index of the transaction output.
   int get index => _index;
 
   /// Get the amount of the UTXO.
