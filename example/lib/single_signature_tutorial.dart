@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:coconut_lib/coconut_lib.dart';
 
 void main() async {
-  bool isForSending = true;
+  bool isForSending = false;
   /*
   This shows the process from creating a Bitcoin wallet in the Coconut Library to sending Bitcoin.
   Please check that the roles of the Vault and the Wallet are separate.
@@ -33,6 +33,8 @@ void main() async {
 
   /// fetch on chain data
   await watchOnlyWallet.fetchOnChainData(nodeConnector);
+
+  print(watchOnlyWallet.walletStatus!.toJson());
 
   /// and then, check the balance
   print("balance before tx : ${watchOnlyWallet.getBalance()}");
