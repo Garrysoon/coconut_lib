@@ -9,8 +9,8 @@ class Transfer {
   final String? _memo;
   final int? _amount;
   final int? _fee;
-  final List<String> _inputAddressList;
-  final List<String> _outputAddressList;
+  final List<Address> _inputAddressList;
+  final List<Address> _outputAddressList;
 
   /// Get the transaction hash of this transfer.
   String get transactionHash => _transactionHash;
@@ -34,10 +34,10 @@ class Transfer {
   int? get fee => _fee;
 
   /// Get the input address list of this transfer.
-  List<String> get inputAddressList => _inputAddressList;
+  List<Address> get inputAddressList => _inputAddressList;
 
   /// Get the output address list of this transfer.
-  List<String> get outputAddressList => _outputAddressList;
+  List<Address> get outputAddressList => _outputAddressList;
 
   /// @nodoc
   Transfer(
@@ -60,8 +60,8 @@ class Transfer {
 
     int amount = 0;
     int fee = 0;
-    List<String> inputAddressList = [];
-    List<String> outputAddressList = [];
+    List<Address> inputAddressList = [];
+    List<Address> outputAddressList = [];
     int selfInputCount = 0;
     int selfOutputCount = 0;
 
@@ -71,22 +71,32 @@ class Transfer {
       var inputTxOutput = inputTx.outputs[input.index];
 
       String inputAddress = inputTxOutput.getAddress();
-      inputAddressList.add(inputAddress);
       fee += inputTxOutput.amount;
+
+      String derivationPath = '';
       if (addressBook.contains(inputAddress)) {
+        derivationPath = addressBook.getDerivationPath(inputAddress);
         selfInputCount++;
         amount -= inputTxOutput.amount;
       }
+
+      inputAddressList.add(Address(
+          inputAddress, derivationPath, 0, false, inputTxOutput.amount));
     }
 
     for (var output in tx.outputs) {
       String outputAddress = output.getAddress();
-      outputAddressList.add(outputAddress);
       fee -= output.amount;
+
+      String derivationPath = '';
       if (addressBook.contains(outputAddress)) {
+        derivationPath = addressBook.getDerivationPath(outputAddress);
         selfOutputCount++;
         amount += output.amount;
       }
+
+      outputAddressList
+          .add(Address(outputAddress, derivationPath, 0, false, output.amount));
     }
 
     TransactionTypeEnum txType;
