@@ -1,9 +1,8 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:coconut_lib/coconut_lib.dart';
 
-enum TestWalletType { forNormal }
+enum TestWalletType { forNormal, random }
 
 SingleSignatureVault getMockSingleVault(TestWalletType type) {
   SingleSignatureVault? vault;
@@ -11,7 +10,7 @@ SingleSignatureVault getMockSingleVault(TestWalletType type) {
     vault = SingleSignatureVault.fromMnemonic(
         'output opera coin bottom power cable abuse bitter maximum cost gift burger',
         AddressType.p2wpkh);
-  } else if (type == "random") {
+  } else if (type == TestWalletType.random) {
     vault = SingleSignatureVault.random(AddressType.p2wpkh);
   }
   return vault!;
@@ -24,7 +23,7 @@ SingleSignatureWallet getMockSingleWallet(TestWalletType type) {
   return wallet;
 }
 
-Future<WalletStatus> getWalletStatus(TestWalletType type) async {
+Future<WalletStatus> getMockWalletStatus(TestWalletType type) async {
   WalletStatus? status;
   if (type == TestWalletType.forNormal) {
     File file = File('test/mock_data/wallet_status_for_normal.json');
