@@ -5,11 +5,13 @@ import 'package:test/test.dart';
 import '../mock_generator.dart';
 
 void main() async {
+  BitcoinNetwork.setNetwork(BitcoinNetwork.regtest);
   WalletStatus mockWalletStatus =
       await getMockWalletStatus(TestWalletType.forNormal);
   SingleSignatureWallet mockWallet =
       getMockSingleWallet(TestWalletType.forNormal);
   mockWallet.walletStatus = mockWalletStatus;
+  mockWallet.addressBook.updateAddressBook();
 
   group('SingleSignatureWallet', () {
     group('getUtxoList', () {
@@ -125,6 +127,131 @@ void main() async {
       });
     });
 
-    group('getTransferList', () {});
+    group('getTransferList', () {
+      test('파라미터가 없을 경우 기본값(cursor: 0, count: 5)으로 Transfer를 반환한다.', () {
+        List<Transfer> transferList = mockWallet.getTransferList();
+
+        expect(transferList.isNotEmpty, isTrue);
+        expect(transferList[0].transactionHash,
+            '8a6ad9e7e143c97b24c969ed4b5bb84ce40b6fae78fef17208a36e4c0346e0ae');
+        expect(transferList.length, 5);
+        expect(transferList[4].transactionHash,
+            '5799e62fcb1fb1ce6c196ae5e990c6a1166b864fc2cc09be1fb3afd8a75a022f');
+      });
+
+      test('count 갯수만큼 Transfer를 반환한다.', () {
+        List<Transfer> transferList = mockWallet.getTransferList(count: 3);
+
+        expect(transferList.isNotEmpty, isTrue);
+        expect(transferList.length, 3);
+        expect(transferList[0].transactionHash,
+            '8a6ad9e7e143c97b24c969ed4b5bb84ce40b6fae78fef17208a36e4c0346e0ae');
+        expect(transferList[2].transactionHash,
+            'cf0f5be823525e9f385f5d7ff133131e5a5aa116a8703b49c045baa24ec7ac4f');
+      });
+
+      test('cursor 위치부터 count 갯수만큼 Transfer를 반환한다.', () {
+        List<Transfer> transferList =
+            mockWallet.getTransferList(cursor: 2, count: 3);
+
+        expect(transferList.isNotEmpty, isTrue);
+        expect(transferList.length, 3);
+        expect(transferList[0].transactionHash,
+            'cf0f5be823525e9f385f5d7ff133131e5a5aa116a8703b49c045baa24ec7ac4f');
+        expect(transferList[2].transactionHash,
+            '5799e62fcb1fb1ce6c196ae5e990c6a1166b864fc2cc09be1fb3afd8a75a022f');
+      });
+
+      test('cursor가 전체 Transfer 갯수보다 클 경우 빈 리스트를 반환한다.', () {
+        List<Transfer> transferList =
+            mockWallet.getTransferList(cursor: 1000, count: 5);
+
+        expect(transferList.isEmpty, isTrue);
+      });
+
+      test('count가 전체 Transfer 갯수보다 클 경우 남은 Transfer를 모두 반환한다.', () {
+        List<Transfer> transferList =
+            mockWallet.getTransferList(cursor: 0, count: 1000);
+
+        expect(transferList.isNotEmpty, isTrue);
+        expect(transferList.length, mockWalletStatus.transactionList.length);
+        expect(transferList.first.transactionHash,
+            '8a6ad9e7e143c97b24c969ed4b5bb84ce40b6fae78fef17208a36e4c0346e0ae');
+        expect(transferList.last.transactionHash,
+            'fbbb11a686ad004e1d2c25546cdedcf2a90e57f4d2de7049d25202e372cdce0e');
+      });
+
+      test('cursor 3, count 7 테스트', () {
+        List<Transfer> transferList =
+            mockWallet.getTransferList(cursor: 3, count: 7);
+
+        expect(transferList.isNotEmpty, isTrue);
+        expect(transferList.length, 7);
+        expect(transferList.first.transactionHash,
+            'd832dfccbb01376e8784fd91201178a496204302f44c8a4ac5070f381b9720e4');
+        expect(transferList.last.transactionHash,
+            '2c4647d4f785a8ad4f53c2b5b09bcfa6c6d9ba54223dcf8a391e9e64794e93b6');
+      });
+
+      test('cursor 5, count 5 테스트', () {
+        List<Transfer> transferList =
+            mockWallet.getTransferList(cursor: 5, count: 5);
+
+        expect(transferList.isNotEmpty, isTrue);
+        expect(transferList.length, 5);
+        expect(transferList.first.transactionHash,
+            '159e7810929876e3e71d0cb4f77ecc7ac8add3b6cc994aea426aff475f644bb1');
+        expect(transferList.last.transactionHash,
+            '2c4647d4f785a8ad4f53c2b5b09bcfa6c6d9ba54223dcf8a391e9e64794e93b6');
+      });
+
+      test(
+          'Self 유형의 Transfer인 경우 input/output 모든 주소에 derivationPath가 포함되어 있어야 한다.',
+          () {
+        List<Transfer> transferList = mockWallet.getTransferList();
+
+        Transfer transfer = transferList[0];
+
+        expect(transfer.transferType, TransactionTypeEnum.self.name);
+
+        for (Address inputAddress in transfer.inputAddressList) {
+          expect(inputAddress.derivationPath, isNotEmpty);
+        }
+        for (Address outputAddress in transfer.outputAddressList) {
+          expect(outputAddress.derivationPath, isNotEmpty);
+        }
+      });
+
+      test('Sent 유형의 Transfer인 경우 input 주소의 derivationPath가 모두 포함되어 있어야 한다.',
+          () {
+        List<Transfer> transferList =
+            mockWallet.getTransferList(cursor: 12, count: 1);
+
+        Transfer transfer = transferList[0];
+
+        expect(transfer.transferType, TransactionTypeEnum.sent.name);
+
+        for (Address inputAddress in transfer.inputAddressList) {
+          expect(inputAddress.derivationPath, isNotEmpty);
+        }
+
+        Address outputAddress = transfer.outputAddressList[0];
+
+        expect(outputAddress.derivationPath, isEmpty);
+      });
+
+      test('Received 유형의 Transfer인 경우 input 주소가 모두 본인 주소가 아니어야 한다.', () {
+        List<Transfer> transferList =
+            mockWallet.getTransferList(cursor: 14, count: 1);
+
+        Transfer transfer = transferList[0];
+
+        expect(transfer.transferType, TransactionTypeEnum.received.name);
+
+        for (Address inputAddress in transfer.inputAddressList) {
+          expect(inputAddress.derivationPath, isEmpty);
+        }
+      });
+    });
   });
 }
