@@ -10,7 +10,10 @@ import 'package:test/test.dart';
 
 import 'mock_generator.dart';
 
-DotEnv testEnv = DotEnv()..load(['.env.test']);
+DotEnv _testEnv = DotEnv()..load(['.env.test']);
+
+/// 아래 테스트 코드는 실제 Regtest 네트워크에 트랜잭션을 제출합니다.
+/// 필요한 케이스만 skip을 해제하여 사용합니다.
 
 void main() async {
   BitcoinNetwork.setNetwork(BitcoinNetwork.regtest);
@@ -38,7 +41,7 @@ void main() async {
   group('SingleSignatureWallet 트랜잭션 생성', () {
     test('테스트 지갑 faucet 요청', () async {
       var response =
-          await requestFaucet(wallet.getReceiveAddress().address, 100000000);
+          await _requestFaucet(wallet.getReceiveAddress().address, 100000000);
 
       expect(response.contains('txHash'), true);
     }, skip: true);
@@ -50,7 +53,7 @@ void main() async {
         throw Exception(
             'Wallet balance is less than 100000000, balance: $balance');
       }
-      Transaction signedTx = await generateSendTransaction(
+      Transaction signedTx = await _generateSendTransaction(
         vault,
         wallet,
         otherWallet.getReceiveAddress().address,
@@ -69,7 +72,7 @@ void main() async {
         throw Exception('Other wallet balance is 0');
       }
 
-      Transaction sweepTx = await generateSweepTransaction(
+      Transaction sweepTx = await _generateSweepTransaction(
         otherVault,
         otherWallet,
         wallet.getReceiveAddress().address,
@@ -85,7 +88,7 @@ void main() async {
 
   group('MultiSignatureWallet 트랜잭션 생성', () {
     test('테스트 지갑 faucet 요청', () async {
-      var response = await requestFaucet(
+      var response = await _requestFaucet(
           multiWallet.getReceiveAddress().address, 100000000);
 
       expect(response.contains('txHash'), true);
@@ -99,7 +102,7 @@ void main() async {
             'Wallet balance is less than 100000000, balance: $balance');
       }
 
-      Transaction signedTx = await generateSendMultisignatureTransaction(
+      Transaction signedTx = await _generateSendMultisignatureTransaction(
         multiVault,
         multiWallet,
         otherWallet.getReceiveAddress().address,
@@ -112,10 +115,28 @@ void main() async {
       expect(result.isSuccess, true);
     }, skip: true);
     // });
+
+    test('상대방 지갑에서 전액 회수하기', () async {
+      if (otherWallet.getBalance() == 0) {
+        throw Exception('Other wallet balance is 0');
+      }
+
+      Transaction sweepTx = await _generateSweepTransaction(
+        otherVault,
+        otherWallet,
+        wallet.getReceiveAddress().address,
+      );
+
+      Result<String, CoconutError> result =
+          await nodeConnector.broadcast(sweepTx.serialize());
+
+      expect(result.isSuccess, true);
+    }, skip: true);
+    // });
   });
 }
 
-Future<String> requestFaucet(String address, int satsAmount) async {
+Future<String> _requestFaucet(String address, int satsAmount) async {
   if (satsAmount >= 100000000) {
     satsAmount = 100000000;
   } else if (satsAmount <= 21000) {
@@ -124,9 +145,9 @@ Future<String> requestFaucet(String address, int satsAmount) async {
 
   double amount = double.parse(
       (satsAmount / 100000000).toStringAsFixed(8).replaceAll(',', ''));
-  String host = testEnv.getOrElse(
+  String host = _testEnv.getOrElse(
       'REGTEST_API_HOST', () => throw Exception('REGTEST_API_HOST is not set'));
-  String path = testEnv.getOrElse('REGTEST_API_PATH_FAUCET_REQUEST',
+  String path = _testEnv.getOrElse('REGTEST_API_PATH_FAUCET_REQUEST',
       () => throw Exception('REGTEST_API_PATH_FAUCET_REQUEST is not set'));
 
   var body = json.encode({
@@ -140,7 +161,7 @@ Future<String> requestFaucet(String address, int satsAmount) async {
   return response.body;
 }
 
-Future<Transaction> generateSendTransaction(VaultFeature vault,
+Future<Transaction> _generateSendTransaction(VaultFeature vault,
     WalletBase wallet, String receiveAddress, int satsAmount) async {
   if (satsAmount >= 100000000) {
     satsAmount = 100000000;
@@ -161,7 +182,7 @@ Future<Transaction> generateSendTransaction(VaultFeature vault,
       .getSignedTransaction(wallet.addressType); // transaction object
 }
 
-Future<Transaction> generateSweepTransaction(SingleSignatureVault vault,
+Future<Transaction> _generateSweepTransaction(SingleSignatureVault vault,
     SingleSignatureWallet wallet, String address) async {
   Transaction sweepTx = Transaction.forSweep(
     address,
@@ -175,7 +196,7 @@ Future<Transaction> generateSweepTransaction(SingleSignatureVault vault,
   return signedPsbt.getSignedTransaction(wallet.addressType);
 }
 
-Future<Transaction> generateSendMultisignatureTransaction(
+Future<Transaction> _generateSendMultisignatureTransaction(
     MultisignatureVault multiVault,
     MultisignatureWallet multiWallet,
     String address,
