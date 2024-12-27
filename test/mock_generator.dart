@@ -35,7 +35,8 @@ Future<WalletStatus> getMockWalletStatus(TestWalletType type,
     {bool isMultisig = false}) async {
   WalletStatus? status;
   if (type == TestWalletType.forNormal) {
-    File file = File('test/mock_data/wallet_status_for_normal.json');
+    File file = File(
+        'test/mock_data/wallet_status_for_normal${isMultisig ? '_multisig' : ''}.json');
     status = WalletStatus.fromJson(await file.readAsString());
   } else if (type == TestWalletType.random) {
     status = WalletStatus(
