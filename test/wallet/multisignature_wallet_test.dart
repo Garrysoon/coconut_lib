@@ -19,11 +19,11 @@ void main() async {
   print('wallet loaded: ${stopwatch.elapsedMilliseconds}');
   group('MultisignatureWallet', () {
     group('getUtxoList', () {
-      test('파라미터가 없을 경우 전체 UTXO를 반환한다.', () {
+      test('파라미터가 없을 경우 5개의 UTXO를 반환한다.', () {
         List<UTXO> utxoList = mockWallet.getUtxoList();
 
         expect(utxoList.isNotEmpty, isTrue);
-        expect(utxoList.length, mockWalletStatus.utxoList.length);
+        expect(utxoList.length, 5);
       });
 
       test('count 갯수만큼 UTXO를 반환한다.', () {

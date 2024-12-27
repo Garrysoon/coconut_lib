@@ -19,7 +19,7 @@ void main() async {
         List<UTXO> utxoList = mockWallet.getUtxoList();
 
         expect(utxoList.isNotEmpty, isTrue);
-        expect(utxoList.length, mockWalletStatus.utxoList.length);
+        expect(utxoList.length, 5);
       });
 
       test('count 갯수만큼 UTXO를 반환한다.', () {
@@ -58,8 +58,8 @@ void main() async {
       });
 
       test('order 파라미터가 금액 오름차순일 경우 UTXO를 오름차순으로 정렬하여 반환한다.', () {
-        List<UTXO> utxoList =
-            mockWallet.getUtxoList(order: UtxoOrderEnum.byAmountAsc);
+        List<UTXO> utxoList = mockWallet.getUtxoList(
+            order: UtxoOrderEnum.byAmountAsc, count: 100);
 
         expect(utxoList.isNotEmpty, isTrue);
         expect(utxoList.length, mockWalletStatus.utxoList.length);
@@ -68,8 +68,8 @@ void main() async {
       });
 
       test('금액 내림차순일 경우 UTXO를 내림차순으로 정렬하여 반환한다.', () {
-        List<UTXO> utxoList =
-            mockWallet.getUtxoList(order: UtxoOrderEnum.byAmountDesc);
+        List<UTXO> utxoList = mockWallet.getUtxoList(
+            order: UtxoOrderEnum.byAmountDesc, count: 100);
 
         expect(utxoList.isNotEmpty, isTrue);
         expect(utxoList.length, mockWalletStatus.utxoList.length);
@@ -78,8 +78,8 @@ void main() async {
       });
 
       test('타임스탬프 오름차순일 경우 UTXO를 오름차순으로 정렬하여 반환한다.', () {
-        List<UTXO> utxoList =
-            mockWallet.getUtxoList(order: UtxoOrderEnum.byTimestampAsc);
+        List<UTXO> utxoList = mockWallet.getUtxoList(
+            order: UtxoOrderEnum.byTimestampAsc, count: 100);
 
         expect(utxoList.isNotEmpty, isTrue);
         expect(utxoList.length, mockWalletStatus.utxoList.length);
@@ -88,8 +88,8 @@ void main() async {
       });
 
       test('타임스탬프 내림차순일 경우 UTXO를 내림차순으로 정렬하여 반환한다.', () {
-        List<UTXO> utxoList =
-            mockWallet.getUtxoList(order: UtxoOrderEnum.byTimestampDesc);
+        List<UTXO> utxoList = mockWallet.getUtxoList(
+            order: UtxoOrderEnum.byTimestampDesc, count: 100);
 
         expect(utxoList.isNotEmpty, isTrue);
         expect(utxoList.length, mockWalletStatus.utxoList.length);
@@ -98,7 +98,7 @@ void main() async {
       });
 
       test('order 파라미터가 없을 경우 UTXO를 타임스탬프 내림차순으로 정렬하여 반환한다.', () {
-        List<UTXO> utxoList = mockWallet.getUtxoList();
+        List<UTXO> utxoList = mockWallet.getUtxoList(count: 100);
 
         expect(utxoList.isNotEmpty, isTrue);
         expect(utxoList.length, mockWalletStatus.utxoList.length);
