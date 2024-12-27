@@ -38,6 +38,8 @@ void main() async {
   await wallet.fetchOnChainData(nodeConnector);
   await otherWallet.fetchOnChainData(nodeConnector);
   await multiWallet.fetchOnChainData(nodeConnector);
+
+  multiWallet.saveStatus();
   group('SingleSignatureWallet 트랜잭션 생성', () {
     test('테스트 지갑 faucet 요청', () async {
       var response =
@@ -133,6 +135,21 @@ void main() async {
       expect(result.isSuccess, true);
     }, skip: true);
     // });
+
+    test('내 지갑에서 UTXO 여러 개로 분산하는 트랜잭션 생성', () async {
+      Transaction signedTx = await _generateSplitMultisignatureTransaction(
+        multiVault,
+        multiWallet,
+        1000,
+        10,
+      );
+
+      Result<String, CoconutError> result =
+          await nodeConnector.broadcast(signedTx.serialize());
+
+      expect(result.isSuccess, true);
+    }, skip: true);
+    // });
   });
 }
 
@@ -200,12 +217,87 @@ Future<Transaction> _generateSendMultisignatureTransaction(
     MultisignatureVault multiVault,
     MultisignatureWallet multiWallet,
     String address,
-    int i) async {
-  Transaction tx = Transaction.forPayment(address, i, 1, multiWallet);
+    int amount) async {
+  Transaction tx = Transaction.forPayment(address, amount, 1, multiWallet);
   PSBT unsignedPsbt = PSBT.fromTransaction(tx, multiWallet);
 
   PSBT signedPsbt = PSBT.parse(multiVault.keyStoreList[2].addSignatureToPsbt(
       multiVault.keyStoreList[1].addSignatureToPsbt(unsignedPsbt.serialize())));
 
   return signedPsbt.getSignedTransaction(multiWallet.addressType);
+}
+
+Future<Transaction> _generateSplitMultisignatureTransaction(
+    MultisignatureVault vault,
+    MultisignatureWallet wallet,
+    int amount,
+    int count) async {
+  List<UTXO> utxoList = wallet.getUtxoList();
+  List<UTXO> toUseUtxoList = [];
+  int totalInputAmount = 0;
+  List<TransactionInput> inputs = [];
+  List<TransactionOutput> outputs = [];
+
+  toUseUtxoList.add(utxoList.reduce((a, b) => a.amount > b.amount ? a : b));
+
+  List<UTXO> remainingUtxos =
+      utxoList.where((utxo) => utxo.amount == 548).toList();
+  remainingUtxos.sort((a, b) => b.amount.compareTo(a.amount));
+
+  for (int i = 0; i < remainingUtxos.length; i++) {
+    if (i > 30) break;
+    toUseUtxoList.add(remainingUtxos[i]);
+  }
+
+  for (UTXO utxo in toUseUtxoList) {
+    totalInputAmount += utxo.amount;
+    inputs.add(TransactionInput.forPayment(utxo.transactionHash, utxo.index));
+  }
+  String changeAddress = wallet.getChangeAddress().address;
+
+  for (int i = 0; i < count; i++) {
+    String receiveAddress = wallet
+        .getAddress(i + wallet.addressBook.usedReceive + 1, isChange: false);
+    TransactionOutput sendingOutput =
+        TransactionOutput.forPayment(amount + i, receiveAddress);
+    outputs.add(sendingOutput);
+  }
+
+  TransactionOutput changeOutput =
+      TransactionOutput.forPayment(0, changeAddress);
+
+  outputs.add(changeOutput);
+
+  Transaction tx = Transaction.withDefault(inputs, outputs, wallet.addressType,
+      version: 2, lockTime: 0);
+
+  double vByte = 0.0;
+  if (wallet.addressType == AddressType.p2wpkh) {
+    vByte = tx.estimateVirtualByte(wallet.addressType);
+  } else if (wallet.addressType == AddressType.p2wsh) {
+    vByte = tx.estimateVirtualByte(wallet.addressType,
+        requiredSignature: wallet.requiredSignature,
+        totalSigner: wallet.totalSigner);
+  } else {
+    throw Exception('Unsupported Address Type');
+  }
+  int fee = (vByte * 1).ceil();
+  int changeAmount = totalInputAmount - (amount * count) - fee - 1000;
+
+  if (changeAmount <= 0) {
+    for (TransactionOutput output in tx.outputs) {
+      if (output.scriptPubKey.getAddress() == changeAddress) {
+        tx.outputs.remove(output);
+        break;
+      }
+    }
+  } else {
+    changeOutput.setAmount(changeAmount);
+  }
+
+  PSBT unsignedPsbt = PSBT.fromTransaction(tx, wallet);
+  PSBT signedPsbt = PSBT.parse(vault.keyStoreList[2].addSignatureToPsbt(
+      vault.keyStoreList[1].addSignatureToPsbt(unsignedPsbt.serialize())));
+
+  return signedPsbt.getSignedTransaction(wallet.addressType);
 }
