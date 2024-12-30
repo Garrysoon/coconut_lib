@@ -5,18 +5,23 @@ import 'package:test/test.dart';
 import '../mock_generator.dart';
 
 void main() async {
-  Stopwatch stopwatch = Stopwatch()..start();
-  BitcoinNetwork.setNetwork(BitcoinNetwork.regtest);
-  WalletStatus mockWalletStatus =
-      await getMockWalletStatus(TestWalletType.forNormal, isMultisig: true);
+  late MultisignatureWallet mockWallet;
+  late WalletStatus mockWalletStatus;
 
-  print('walletStatus loaded: ${stopwatch.elapsedMilliseconds}');
+  setUpAll(() async {
+    Stopwatch stopwatch = Stopwatch()..start();
+    BitcoinNetwork.setNetwork(BitcoinNetwork.regtest);
+    mockWalletStatus =
+        await getMockWalletStatus(TestWalletType.forNormal, isMultisig: true);
 
-  MultisignatureWallet mockWallet =
-      getMockMultisignatureWallet(TestWalletType.forNormal);
-  mockWallet.walletStatus = mockWalletStatus;
-  mockWallet.addressBook.updateAddressBook();
-  print('wallet loaded: ${stopwatch.elapsedMilliseconds}');
+    // print('walletStatus loaded: ${stopwatch.elapsedMilliseconds}');
+
+    mockWallet = getMockMultisignatureWallet(TestWalletType.forNormal);
+    mockWallet.walletStatus = mockWalletStatus;
+    mockWallet.addressBook.updateAddressBook();
+    // print('wallet loaded: ${stopwatch.elapsedMilliseconds}');
+    stopwatch.stop();
+  });
   group('MultisignatureWallet', () {
     group('getUtxoList', () {
       test('파라미터가 없을 경우 5개의 UTXO를 반환한다.', () {

@@ -5,13 +5,16 @@ import 'package:test/test.dart';
 import '../mock_generator.dart';
 
 void main() async {
-  BitcoinNetwork.setNetwork(BitcoinNetwork.regtest);
-  WalletStatus mockWalletStatus =
-      await getMockWalletStatus(TestWalletType.forNormal);
-  SingleSignatureWallet mockWallet =
-      getMockSingleWallet(TestWalletType.forNormal);
-  mockWallet.walletStatus = mockWalletStatus;
-  mockWallet.addressBook.updateAddressBook();
+  late SingleSignatureWallet mockWallet;
+  late WalletStatus mockWalletStatus;
+
+  setUpAll(() async {
+    BitcoinNetwork.setNetwork(BitcoinNetwork.regtest);
+    mockWalletStatus = await getMockWalletStatus(TestWalletType.forNormal);
+    mockWallet = getMockSingleWallet(TestWalletType.forNormal);
+    mockWallet.walletStatus = mockWalletStatus;
+    mockWallet.addressBook.updateAddressBook();
+  });
 
   group('SingleSignatureWallet', () {
     group('getUtxoList', () {
