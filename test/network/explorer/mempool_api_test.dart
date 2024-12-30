@@ -1,4 +1,4 @@
-@Tags(['unit'])
+@Tags(['unit', 'network'])
 
 import 'dart:convert';
 

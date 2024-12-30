@@ -1,4 +1,4 @@
-@Tags(['unit'])
+@Tags(['unit', 'network'])
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
 

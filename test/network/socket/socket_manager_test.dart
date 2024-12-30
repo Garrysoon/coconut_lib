@@ -1,4 +1,4 @@
-@Tags(['unit'])
+@Tags(['unit', 'network'])
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -128,14 +128,16 @@ void main() {
 
     test('최대 연결 시도 횟수 초과 시 종료 상태로 변경되어야 함', () async {
       SocketManager socketManager = SocketManager(
-          factory: mockErrorSocketFactory, reconnectDelaySeconds: 0);
+          factory: mockErrorSocketFactory,
+          reconnectDelaySeconds: 0,
+          maxConnectionAttempts: 3);
 
       await socketManager.connect('localhost', 1234, ssl: false);
 
       await Future.delayed(Duration(seconds: 1));
 
       expect(socketManager.connectionStatus, SocketConnectionStatus.terminated);
-      verify(mockErrorSocketFactory.createSocket('localhost', 1234)).called(30);
+      verify(mockErrorSocketFactory.createSocket('localhost', 1234)).called(3);
     });
 
     test('재연결 시도 시 콜백 함수가 실행되어야 함', () async {

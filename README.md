@@ -138,45 +138,19 @@ dart pub run build_runner build
 ### Unit Test
 
 ```
-dart test -t "unit"
+dart test -t unit
 ```
 
 ### E2E Test
 
 ```
-dart test -t "e2e"
+dart test -t e2e
 ```
 
 ### Coverage
 
 ```
-dart test -t "unit" --coverage="coverage"
-```
-
-## Tests
-
-### Generate Mock Classes
-
-```
-dart pub run build_runner build
-```
-
-### Unit Test
-
-```
-dart test -t "unit"
-```
-
-### E2E Test
-
-```
-dart test -t "e2e"
-```
-
-### Coverage
-
-```
-dart test -t "unit" --coverage="coverage"
+dart test -t unit --coverage="coverage"
 ```
 
 ## Bip Support List
