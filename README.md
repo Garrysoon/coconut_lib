@@ -150,7 +150,7 @@ dart test -t e2e
 ### Coverage
 
 ```
-dart test -t unit --coverage="coverage"
+sh ./generate_unit_coverage.sh
 ```
 
 ## Bip Support List
