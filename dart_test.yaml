@@ -1,0 +1,14 @@
+# dart_test.yaml
+timeout: 30s
+tags:
+  unit:
+  e2e:
+platforms:
+  - vm
+reporter: expanded
+path:
+  - test/wallet
+  - test/network
+exclude:
+  - test/
+concurrency: 1

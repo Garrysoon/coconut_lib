@@ -127,6 +127,32 @@ void main() async {
 }
 ```
 
+## Tests
+
+### Generate Mock Classes
+
+```
+dart pub run build_runner build
+```
+
+### Unit Test
+
+```
+dart test -t unit
+```
+
+### E2E Test
+
+```
+dart test -t e2e
+```
+
+### Coverage
+
+```
+sh ./generate_unit_coverage.sh
+```
+
 ## Bip Support List
 
 - [BIP-11](https://github.com/bitcoin/bips/blob/master/bip-0011.mediawiki): M-of-N Standard Transactions
