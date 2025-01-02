@@ -1,24 +1,13 @@
 part of '../../../coconut_lib.dart';
 
 /// @nodoc
-class ElectrumApi extends Network {
+class ElectrumApi extends NodeClient {
   // static final ElectrumApi _instance = ElectrumApi._();
 
-  final Map<int, BlockTimestamp> _blockMap = {};
-
   ElectrumClient _client;
-  int _currentHeight = 0;
-  DateTime? _lastUpdatedAt;
-
-  @override
-  get connectionStatus => _client.connectionStatus;
 
   @override
   int get reqId => _client._idCounter;
-
-  @override
-  BlockTimestamp get block =>
-      _blockMap[_currentHeight] ?? BlockTimestamp(0, DateTime.now());
 
   ElectrumApi._() : _client = ElectrumClient();
 
@@ -153,48 +142,15 @@ class ElectrumApi extends Network {
   }
 
   @override
-  void fetchBlock() {
-    var now = DateTime.now();
-    if (_lastUpdatedAt != null) {
-      var lastUpdatedAt = _lastUpdatedAt!.add(Duration(seconds: 10));
-      if (now.isBefore(lastUpdatedAt)) {
-        return;
-      }
-    }
-    getCurrentBlock().then((block) {
-      _currentHeight = block.height;
-      _lastUpdatedAt = now;
-      _blockMap[_currentHeight] = BlockTimestamp(
-          _currentHeight,
-          DateTime.fromMillisecondsSinceEpoch(block.timestamp * 1000,
+  Future<Result<BlockTimestamp, CoconutError>> getBlock() async {
+    return _handleError(() async {
+      var result = await _client.getCurrentBlock();
+      var blockHeader = BlockHeader.parse(result.height, result.hex);
+      return BlockTimestamp(
+          blockHeader.height,
+          DateTime.fromMillisecondsSinceEpoch(blockHeader.timestamp * 1000,
               isUtc: true));
     });
-  }
-
-  @override
-  Future<BlockTimestamp> fetchBlockSync() async {
-    var now = DateTime.now();
-    if (_lastUpdatedAt != null) {
-      var lastUpdatedAt = _lastUpdatedAt!.add(Duration(seconds: 10));
-      if (now.isBefore(lastUpdatedAt)) {
-        return _blockMap[_currentHeight]!;
-      }
-    }
-    var blockEntity = await getCurrentBlock();
-    _currentHeight = blockEntity.height;
-    _lastUpdatedAt = now;
-    var block = BlockTimestamp(
-        _currentHeight,
-        DateTime.fromMillisecondsSinceEpoch(blockEntity.timestamp * 1000,
-            isUtc: true));
-    _blockMap[_currentHeight] = block;
-
-    return block;
-  }
-
-  Future<BlockHeader> getCurrentBlock() async {
-    var result = await _client.getCurrentBlock();
-    return BlockHeader.parse(result.height, result.hex);
   }
 
   /// utxo 조회는 balance 조회를 동시에 진행하여 0번 인덱스부터 조회하도록 고정

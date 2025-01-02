@@ -3,15 +3,15 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i5;
+import 'dart:async' as _i4;
 
-import 'package:coconut_lib/coconut_lib.dart' as _i2;
+import 'package:coconut_lib/coconut_lib.dart' as _i3;
 import 'package:coconut_lib/src/network/electrum/electrum_response_types.dart'
-    as _i7;
-import 'package:coconut_lib/src/utils/enum.dart' as _i4;
-import 'package:coconut_lib/src/utils/error.dart' as _i6;
-import 'package:coconut_lib/src/utils/result_type.dart' as _i3;
+    as _i6;
+import 'package:coconut_lib/src/utils/error.dart' as _i5;
+import 'package:coconut_lib/src/utils/result_type.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
+import 'package:mockito/src/dummies.dart' as _i7;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -26,9 +26,8 @@ import 'package:mockito/mockito.dart' as _i1;
 // ignore_for_file: camel_case_types
 // ignore_for_file: subtype_of_sealed_class
 
-class _FakeBlockTimestamp_0 extends _i1.SmartFake
-    implements _i2.BlockTimestamp {
-  _FakeBlockTimestamp_0(
+class _FakeResult_0<T, E> extends _i1.SmartFake implements _i2.Result<T, E> {
+  _FakeResult_0(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -37,8 +36,8 @@ class _FakeBlockTimestamp_0 extends _i1.SmartFake
         );
 }
 
-class _FakeResult_1<T, E> extends _i1.SmartFake implements _i3.Result<T, E> {
-  _FakeResult_1(
+class _FakeAddressBook_1 extends _i1.SmartFake implements _i3.AddressBook {
+  _FakeAddressBook_1(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -47,8 +46,28 @@ class _FakeResult_1<T, E> extends _i1.SmartFake implements _i3.Result<T, E> {
         );
 }
 
-class _FakeBlockHeader_2 extends _i1.SmartFake implements _i2.BlockHeader {
-  _FakeBlockHeader_2(
+class _FakeAddressType_2 extends _i1.SmartFake implements _i3.AddressType {
+  _FakeAddressType_2(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
+class _FakeAddress_3 extends _i1.SmartFake implements _i3.Address {
+  _FakeAddress_3(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
+class _FakeNodeClient_4 extends _i1.SmartFake implements _i3.NodeClient {
+  _FakeNodeClient_4(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -60,16 +79,10 @@ class _FakeBlockHeader_2 extends _i1.SmartFake implements _i2.BlockHeader {
 /// A class which mocks [ElectrumApi].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockElectrumApi extends _i1.Mock implements _i2.ElectrumApi {
+class MockElectrumApi extends _i1.Mock implements _i3.ElectrumApi {
   MockElectrumApi() {
     _i1.throwOnMissingStub(this);
   }
-
-  @override
-  _i4.SocketConnectionStatus get connectionStatus => (super.noSuchMethod(
-        Invocation.getter(#connectionStatus),
-        returnValue: _i4.SocketConnectionStatus.reconnecting,
-      ) as _i4.SocketConnectionStatus);
 
   @override
   int get reqId => (super.noSuchMethod(
@@ -78,135 +91,105 @@ class MockElectrumApi extends _i1.Mock implements _i2.ElectrumApi {
       ) as int);
 
   @override
-  _i2.BlockTimestamp get block => (super.noSuchMethod(
-        Invocation.getter(#block),
-        returnValue: _FakeBlockTimestamp_0(
-          this,
-          Invocation.getter(#block),
-        ),
-      ) as _i2.BlockTimestamp);
-
-  @override
   int get gapLimit => (super.noSuchMethod(
         Invocation.getter(#gapLimit),
         returnValue: 0,
       ) as int);
 
   @override
-  _i5.Future<_i3.Result<String, _i6.CoconutError>> broadcast(
+  _i4.Future<_i2.Result<String, _i5.CoconutError>> broadcast(
           String? rawTransaction) =>
       (super.noSuchMethod(
         Invocation.method(
           #broadcast,
           [rawTransaction],
         ),
-        returnValue: _i5.Future<_i3.Result<String, _i6.CoconutError>>.value(
-            _FakeResult_1<String, _i6.CoconutError>(
+        returnValue: _i4.Future<_i2.Result<String, _i5.CoconutError>>.value(
+            _FakeResult_0<String, _i5.CoconutError>(
           this,
           Invocation.method(
             #broadcast,
             [rawTransaction],
           ),
         )),
-      ) as _i5.Future<_i3.Result<String, _i6.CoconutError>>);
+      ) as _i4.Future<_i2.Result<String, _i5.CoconutError>>);
 
   @override
-  _i5.Future<_i3.Result<_i2.WalletStatus, _i6.CoconutError>> fullSync(
-          _i2.WalletBase? wallet) =>
+  _i4.Future<_i2.Result<_i3.WalletStatus, _i5.CoconutError>> fullSync(
+          _i3.WalletBase? wallet) =>
       (super.noSuchMethod(
         Invocation.method(
           #fullSync,
           [wallet],
         ),
         returnValue:
-            _i5.Future<_i3.Result<_i2.WalletStatus, _i6.CoconutError>>.value(
-                _FakeResult_1<_i2.WalletStatus, _i6.CoconutError>(
+            _i4.Future<_i2.Result<_i3.WalletStatus, _i5.CoconutError>>.value(
+                _FakeResult_0<_i3.WalletStatus, _i5.CoconutError>(
           this,
           Invocation.method(
             #fullSync,
             [wallet],
           ),
         )),
-      ) as _i5.Future<_i3.Result<_i2.WalletStatus, _i6.CoconutError>>);
+      ) as _i4.Future<_i2.Result<_i3.WalletStatus, _i5.CoconutError>>);
 
   @override
-  _i5.Future<_i3.Result<int, _i6.CoconutError>> getNetworkMinimumFeeRate() =>
+  _i4.Future<_i2.Result<int, _i5.CoconutError>> getNetworkMinimumFeeRate() =>
       (super.noSuchMethod(
         Invocation.method(
           #getNetworkMinimumFeeRate,
           [],
         ),
-        returnValue: _i5.Future<_i3.Result<int, _i6.CoconutError>>.value(
-            _FakeResult_1<int, _i6.CoconutError>(
+        returnValue: _i4.Future<_i2.Result<int, _i5.CoconutError>>.value(
+            _FakeResult_0<int, _i5.CoconutError>(
           this,
           Invocation.method(
             #getNetworkMinimumFeeRate,
             [],
           ),
         )),
-      ) as _i5.Future<_i3.Result<int, _i6.CoconutError>>);
+      ) as _i4.Future<_i2.Result<int, _i5.CoconutError>>);
 
   @override
-  void fetchBlock() => super.noSuchMethod(
+  _i4.Future<_i2.Result<_i3.BlockTimestamp, _i5.CoconutError>> getBlock() =>
+      (super.noSuchMethod(
         Invocation.method(
-          #fetchBlock,
+          #getBlock,
           [],
         ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  _i5.Future<_i2.BlockTimestamp> fetchBlockSync() => (super.noSuchMethod(
-        Invocation.method(
-          #fetchBlockSync,
-          [],
-        ),
-        returnValue: _i5.Future<_i2.BlockTimestamp>.value(_FakeBlockTimestamp_0(
+        returnValue:
+            _i4.Future<_i2.Result<_i3.BlockTimestamp, _i5.CoconutError>>.value(
+                _FakeResult_0<_i3.BlockTimestamp, _i5.CoconutError>(
           this,
           Invocation.method(
-            #fetchBlockSync,
+            #getBlock,
             [],
           ),
         )),
-      ) as _i5.Future<_i2.BlockTimestamp>);
+      ) as _i4.Future<_i2.Result<_i3.BlockTimestamp, _i5.CoconutError>>);
 
   @override
-  _i5.Future<_i2.BlockHeader> getCurrentBlock() => (super.noSuchMethod(
-        Invocation.method(
-          #getCurrentBlock,
-          [],
-        ),
-        returnValue: _i5.Future<_i2.BlockHeader>.value(_FakeBlockHeader_2(
-          this,
-          Invocation.method(
-            #getCurrentBlock,
-            [],
-          ),
-        )),
-      ) as _i5.Future<_i2.BlockHeader>);
-
-  @override
-  _i5.Future<_i3.Result<String, _i6.CoconutError>> getTransaction(
+  _i4.Future<_i2.Result<String, _i5.CoconutError>> getTransaction(
           String? txHash) =>
       (super.noSuchMethod(
         Invocation.method(
           #getTransaction,
           [txHash],
         ),
-        returnValue: _i5.Future<_i3.Result<String, _i6.CoconutError>>.value(
-            _FakeResult_1<String, _i6.CoconutError>(
+        returnValue: _i4.Future<_i2.Result<String, _i5.CoconutError>>.value(
+            _FakeResult_0<String, _i5.CoconutError>(
           this,
           Invocation.method(
             #getTransaction,
             [txHash],
           ),
         )),
-      ) as _i5.Future<_i3.Result<String, _i6.CoconutError>>);
+      ) as _i4.Future<_i2.Result<String, _i5.CoconutError>>);
 
   @override
-  _i5.Future<void> fetchTxHistory(
-    Set<_i7.GetHistoryRes>? txHistorySet,
-    _i2.WalletBase? wallet,
+  _i4.Future<void> fetchTxHistory(
+    Set<_i6.GetHistoryRes>? txHistorySet,
+    _i3.WalletBase? wallet,
     bool? isChange,
     Map<int, int>? maxGapMap,
     Set<int>? toFetchBlockHeightSet,
@@ -226,17 +209,318 @@ class MockElectrumApi extends _i1.Mock implements _i2.ElectrumApi {
           ],
           {#initialIndex: initialIndex},
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
 
   @override
-  _i5.Future<void> close() => (super.noSuchMethod(
+  _i4.Future<void> close() => (super.noSuchMethod(
         Invocation.method(
           #close,
           [],
         ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
+}
+
+/// A class which mocks [IsolateManager].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockIsolateManager extends _i1.Mock implements _i3.IsolateManager {
+  MockIsolateManager() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i4.Future<void> initialize(
+    _i3.NodeClientFactory? factory,
+    String? host,
+    int? port,
+    bool? ssl,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #initialize,
+          [
+            factory,
+            host,
+            port,
+            ssl,
+          ],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
+
+  @override
+  _i4.Future<_i2.Result<String, _i5.CoconutError>> broadcast(
+          String? rawTransaction) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #broadcast,
+          [rawTransaction],
+        ),
+        returnValue: _i4.Future<_i2.Result<String, _i5.CoconutError>>.value(
+            _FakeResult_0<String, _i5.CoconutError>(
+          this,
+          Invocation.method(
+            #broadcast,
+            [rawTransaction],
+          ),
+        )),
+      ) as _i4.Future<_i2.Result<String, _i5.CoconutError>>);
+
+  @override
+  _i4.Future<_i2.Result<_i3.WalletStatus, _i5.CoconutError>> fullSync(
+          _i3.WalletBase? wallet) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #fullSync,
+          [wallet],
+        ),
+        returnValue:
+            _i4.Future<_i2.Result<_i3.WalletStatus, _i5.CoconutError>>.value(
+                _FakeResult_0<_i3.WalletStatus, _i5.CoconutError>(
+          this,
+          Invocation.method(
+            #fullSync,
+            [wallet],
+          ),
+        )),
+      ) as _i4.Future<_i2.Result<_i3.WalletStatus, _i5.CoconutError>>);
+
+  @override
+  _i4.Future<_i2.Result<int, _i5.CoconutError>> getNetworkMinimumFeeRate() =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getNetworkMinimumFeeRate,
+          [],
+        ),
+        returnValue: _i4.Future<_i2.Result<int, _i5.CoconutError>>.value(
+            _FakeResult_0<int, _i5.CoconutError>(
+          this,
+          Invocation.method(
+            #getNetworkMinimumFeeRate,
+            [],
+          ),
+        )),
+      ) as _i4.Future<_i2.Result<int, _i5.CoconutError>>);
+
+  @override
+  _i4.Future<_i2.Result<_i3.BlockTimestamp, _i5.CoconutError>> getBlock() =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getBlock,
+          [],
+        ),
+        returnValue:
+            _i4.Future<_i2.Result<_i3.BlockTimestamp, _i5.CoconutError>>.value(
+                _FakeResult_0<_i3.BlockTimestamp, _i5.CoconutError>(
+          this,
+          Invocation.method(
+            #getBlock,
+            [],
+          ),
+        )),
+      ) as _i4.Future<_i2.Result<_i3.BlockTimestamp, _i5.CoconutError>>);
+
+  @override
+  _i4.Future<_i2.Result<String, _i5.CoconutError>> getTransaction(
+          String? txHash) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getTransaction,
+          [txHash],
+        ),
+        returnValue: _i4.Future<_i2.Result<String, _i5.CoconutError>>.value(
+            _FakeResult_0<String, _i5.CoconutError>(
+          this,
+          Invocation.method(
+            #getTransaction,
+            [txHash],
+          ),
+        )),
+      ) as _i4.Future<_i2.Result<String, _i5.CoconutError>>);
+
+  @override
+  void dispose() => super.noSuchMethod(
+        Invocation.method(
+          #dispose,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+}
+
+/// A class which mocks [WalletBase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockWalletBase extends _i1.Mock implements _i3.WalletBase {
+  MockWalletBase() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i3.AddressBook get addressBook => (super.noSuchMethod(
+        Invocation.getter(#addressBook),
+        returnValue: _FakeAddressBook_1(
+          this,
+          Invocation.getter(#addressBook),
+        ),
+      ) as _i3.AddressBook);
+
+  @override
+  set addressBook(_i3.AddressBook? _addressBook) => super.noSuchMethod(
+        Invocation.setter(
+          #addressBook,
+          _addressBook,
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  int get identifier => (super.noSuchMethod(
+        Invocation.getter(#identifier),
+        returnValue: 0,
+      ) as int);
+
+  @override
+  _i3.AddressType get addressType => (super.noSuchMethod(
+        Invocation.getter(#addressType),
+        returnValue: _FakeAddressType_2(
+          this,
+          Invocation.getter(#addressType),
+        ),
+      ) as _i3.AddressType);
+
+  @override
+  String get derivationPath => (super.noSuchMethod(
+        Invocation.getter(#derivationPath),
+        returnValue: _i7.dummyValue<String>(
+          this,
+          Invocation.getter(#derivationPath),
+        ),
+      ) as String);
+
+  @override
+  int get accountIndex => (super.noSuchMethod(
+        Invocation.getter(#accountIndex),
+        returnValue: 0,
+      ) as int);
+
+  @override
+  String get descriptor => (super.noSuchMethod(
+        Invocation.getter(#descriptor),
+        returnValue: _i7.dummyValue<String>(
+          this,
+          Invocation.getter(#descriptor),
+        ),
+      ) as String);
+
+  @override
+  String getAddress(
+    int? addressIndex, {
+    bool? isChange = false,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getAddress,
+          [addressIndex],
+          {#isChange: isChange},
+        ),
+        returnValue: _i7.dummyValue<String>(
+          this,
+          Invocation.method(
+            #getAddress,
+            [addressIndex],
+            {#isChange: isChange},
+          ),
+        ),
+      ) as String);
+
+  @override
+  _i3.Address getReceiveAddress() => (super.noSuchMethod(
+        Invocation.method(
+          #getReceiveAddress,
+          [],
+        ),
+        returnValue: _FakeAddress_3(
+          this,
+          Invocation.method(
+            #getReceiveAddress,
+            [],
+          ),
+        ),
+      ) as _i3.Address);
+
+  @override
+  _i3.Address getChangeAddress() => (super.noSuchMethod(
+        Invocation.method(
+          #getChangeAddress,
+          [],
+        ),
+        returnValue: _FakeAddress_3(
+          this,
+          Invocation.method(
+            #getChangeAddress,
+            [],
+          ),
+        ),
+      ) as _i3.Address);
+
+  @override
+  List<_i3.Address> getAddressList(
+    int? cursor,
+    int? count,
+    bool? isChange,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getAddressList,
+          [
+            cursor,
+            count,
+            isChange,
+          ],
+        ),
+        returnValue: <_i3.Address>[],
+      ) as List<_i3.Address>);
+}
+
+/// A class which mocks [NodeClientFactory].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockNodeClientFactory extends _i1.Mock implements _i3.NodeClientFactory {
+  MockNodeClientFactory() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i4.Future<_i3.NodeClient> create(
+    String? host,
+    int? port, {
+    bool? ssl = true,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #create,
+          [
+            host,
+            port,
+          ],
+          {#ssl: ssl},
+        ),
+        returnValue: _i4.Future<_i3.NodeClient>.value(_FakeNodeClient_4(
+          this,
+          Invocation.method(
+            #create,
+            [
+              host,
+              port,
+            ],
+            {#ssl: ssl},
+          ),
+        )),
+      ) as _i4.Future<_i3.NodeClient>);
 }
