@@ -51,18 +51,7 @@ class AddressBook {
   int get gapLimit => _gapLimit;
 
   /// @nodoc
-  AddressBook(this._wallet) {
-    int maxReceiveIndex = _gapLimit;
-    int maxChangeIndex = _gapLimit;
-
-    for (int i = 0; i < maxReceiveIndex; i++) {
-      receiveList.add(_generateAddress(i, false));
-    }
-
-    for (int j = 0; j < maxChangeIndex; j++) {
-      changeList.add(_generateAddress(j, true));
-    }
-  }
+  AddressBook(this._wallet);
 
   /// get derivation path of the address
   String getDerivationPath(String address) {

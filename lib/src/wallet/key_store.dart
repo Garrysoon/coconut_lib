@@ -4,6 +4,8 @@ part of '../../coconut_lib.dart';
 class KeyStore {
   String _masterFingerprint;
   HDWallet _hdWallet;
+  HDWallet _hdWalletReceive;
+  HDWallet _hdWalletChange;
   ExtendedPublicKey _extendedPublicKey;
   Seed? _seed;
   AddressType _addressType;
@@ -14,7 +16,8 @@ class KeyStore {
   String get masterFingerprint => _masterFingerprint;
 
   /// @nodoc
-  HDWallet get hdWallet => _hdWallet;
+  HDWallet hdWallet(bool isChange) =>
+      isChange ? _hdWalletChange : _hdWalletReceive;
 
   /// The extended public key of the key store.
   ExtendedPublicKey get extendedPublicKey => _extendedPublicKey;
@@ -33,7 +36,9 @@ class KeyStore {
   /// @nodoc
   KeyStore(this._addressType, this._masterFingerprint, this._hdWallet,
       this._extendedPublicKey,
-      [this._seed]);
+      [this._seed])
+      : _hdWalletReceive = _hdWallet.derive(0),
+        _hdWalletChange = _hdWallet.derive(1);
 
   /// Create a key store from a seed.
   factory KeyStore.fromSeed(Seed seed, AddressType addressType,
@@ -97,9 +102,7 @@ class KeyStore {
   /// Get the private key of the key store using index.
   String getPrivateKey(int index, {bool isChange = false}) {
     if (!hasSeed) throw Exception('No private key in this key store');
-    int changeIndex = 0;
-    if (isChange) changeIndex = 1;
-    HDWallet child = _hdWallet.derive(changeIndex).derive(index);
+    HDWallet child = hdWallet(isChange).derive(index);
     //print("priv : " + Converter.bytesToHex(child.privateKey!.toList()));
     return child.getMasterPrivateKey();
   }
@@ -108,9 +111,7 @@ class KeyStore {
   String sign(String message, int addressIndex,
       {bool isChange = false, bool isDer = true}) {
     if (!hasSeed) throw Exception('No private key in this key store');
-    int changeIndex = 0;
-    if (isChange) changeIndex = 1;
-    HDWallet child = _hdWallet.derive(changeIndex).derive(addressIndex);
+    HDWallet child = hdWallet(isChange).derive(addressIndex);
     Uint8List signature = child.sign(Uint8List.fromList(HEX.decode(message)));
     String sig;
     if (isDer) {
@@ -223,10 +224,7 @@ class KeyStore {
 
   /// Get the public key of the key store using index.
   String getPublicKey(int addressIndex, {bool isChange = false}) {
-    int changeIndex = 0;
-    if (isChange) changeIndex = 1;
-    HDWallet child =
-        _hdWallet.derive(changeIndex).derive(addressIndex).neutered();
+    HDWallet child = hdWallet(isChange).derive(addressIndex).neutered();
     return HEX.encode((child.publicKey).toList());
   }
 
@@ -235,20 +233,17 @@ class KeyStore {
     List<String> pathList = path.split('/');
     int index = int.parse(pathList.last);
     int changeIndex = int.parse(pathList[pathList.length - 2]);
-    HDWallet child = _hdWallet.derive(changeIndex).derive(index).neutered();
+    HDWallet child = hdWallet(changeIndex == 1).derive(index).neutered();
     return HEX.encode((child.publicKey).toList());
   }
 
   /// Validate the signatured from this key store.
   bool validateSignature(String signature, String message, int addressIndex,
       {bool isChange = false, bool isDer = true}) {
-    int changeIndex = 0;
-    if (isChange) changeIndex = 1;
-
     Uint8List sig = Converter.hexToBytes(signature);
     Uint8List msg = Converter.hexToBytes(message);
 
-    HDWallet child = hdWallet.derive(changeIndex).derive(addressIndex);
+    HDWallet child = hdWallet(isChange).derive(addressIndex);
 
     if (isDer) {
       //DER decoding
