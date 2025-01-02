@@ -131,25 +131,35 @@ void main() async {
 
 ### Generate Mock Classes
 
-```
+```sh
 dart pub run build_runner build
 ```
 
 ### Unit Test
 
-```
+```sh
 dart test -t unit
 ```
 
 ### E2E Test
 
-```
+```sh
 dart test -t e2e
 ```
 
 ### Coverage
 
+The following tools are required to generate test coverage (for MacOS):
+
+```sh
+dart pub global activate coverage
+
+brew install lcov
 ```
+
+To generate test coverage, run the following command:
+
+```sh
 sh ./generate_unit_coverage.sh
 ```
 
