@@ -3,18 +3,27 @@ part of '../../../coconut_lib.dart';
 class NodeConnector {
   final IsolateManager _isolateManager;
   Completer<void>? _syncCompleter;
-  String _host;
-  int _port;
-  bool _ssl;
+  final String _host;
+  final int _port;
+  final bool _ssl;
   bool _isConnected = false;
   final Map<int, BlockTimestamp> _blockMap = {};
   int _currentHeight = 0;
   DateTime? _lastUpdatedAt;
-  BlockTimestamp get block =>
-      _blockMap[_currentHeight] ?? BlockTimestamp(0, DateTime.now());
 
   bool get isSyncing => _syncCompleter != null;
   bool get isConnected => _isConnected;
+  DateTime? get lastUpdatedAt => _lastUpdatedAt;
+  String get host => _host;
+  int get port => _port;
+  bool get ssl => _ssl;
+  BlockTimestamp get currentBlock {
+    var block = _blockMap[_currentHeight]!;
+
+    fetchBlockSync().then((_) {});
+
+    return block;
+  }
 
   NodeConnector._(this._isolateManager, this._host, this._port, this._ssl);
 
@@ -52,14 +61,6 @@ class NodeConnector {
 
     connector._isConnected = true;
     return connector;
-  }
-
-  BlockTimestamp get currentBlock {
-    var block = _blockMap[_currentHeight]!;
-
-    fetchBlockSync().then((_) {});
-
-    return block;
   }
 
   Future<Result<String, CoconutError>> broadcast(String rawTransaction) async {
