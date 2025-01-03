@@ -96,4 +96,16 @@ class UTXO {
     return UTXO(json['transactionHash'], json['index'], json['amount'],
         json['derivationPath'], json['timestamp'], json['blockHeight']);
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is UTXO &&
+        other._transactionHash == _transactionHash &&
+        other._index == _index;
+  }
+
+  @override
+  int get hashCode => _transactionHash.hashCode ^ _index.hashCode;
 }
