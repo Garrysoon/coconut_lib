@@ -136,10 +136,9 @@ class AddressType {
       return 'bc';
     } else if (network == BitcoinNetwork.testnet) {
       return 'tb';
-    } else if (network == BitcoinNetwork.regtest) {
+    } else {
       return 'bcrt';
     }
-    throw Exception('Invalid network');
   }
 
   /// @nodoc

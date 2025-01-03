@@ -63,7 +63,6 @@ main() async {
 
     test('bsms coordinator test', () {
       BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
-      // print(multisignatureVault.getCoordinatorBsms());
       MultisignatureVault vault = MultisignatureVault.fromCoordinatorBsms(
           multisignatureVault.getCoordinatorBsms());
       expect(vault.keyStoreList[0].masterFingerprint,
