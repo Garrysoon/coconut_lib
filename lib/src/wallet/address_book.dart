@@ -18,16 +18,9 @@ class AddressBook {
         try {
           walletFeature = _wallet as WalletFeature;
         } catch (e) {
-          print("Vault does not have wallet status");
+          throw Exception("Vault does not have wallet status");
         }
         return walletFeature.walletStatus;
-
-        // if (_wallet is SingleSignatureWallet) {
-        //   return _wallet.walletStatus;
-        // } else if (_wallet is MultisignatureWallet) {
-        //   return _wallet.walletStatus;
-        // }
-        // return null;
       }();
 
   late final List<Address> _receiveList = [];
@@ -97,21 +90,6 @@ class AddressBook {
       return changeBook[address]!;
     }
     throw Exception('Address not found');
-  }
-
-  /// @nodoc
-  void addAddressList(List<Address> addressList, bool isChange) {
-    for (Address address in addressList) {
-      if (isChange) {
-        if (!changeBook.containsKey(address.address)) {
-          changeBook[address.address] = address;
-        }
-      } else {
-        if (!receiveBook.containsKey(address.address)) {
-          receiveBook[address.address] = address;
-        }
-      }
-    }
   }
 
   /// get the address object from index
