@@ -22,6 +22,7 @@ enum IsolateMessageType {
 }
 
 abstract class IsolateManager {
+  bool get isInitialized;
   Future<void> initialize(
       NodeClientFactory factory, String host, int port, bool ssl);
   Future<Result<String, CoconutError>> broadcast(String rawTransaction);
@@ -164,4 +165,7 @@ class DefaultIsolateManager implements IsolateManager {
       print('Error in isolate ReceivePort: $error');
     });
   }
+
+  @override
+  bool get isInitialized => (_sendPort != null && _isolate != null);
 }
