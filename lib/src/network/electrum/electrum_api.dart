@@ -423,7 +423,8 @@ class ElectrumApi extends NodeClient {
     await Future.wait(futures);
   }
 
-  Future<void> close() async {
+  @override
+  Future<void> dispose() async {
     await _client.close();
   }
 }

@@ -42,6 +42,15 @@ class DefaultIsolateManager implements IsolateManager {
     _isolateReady = Completer<void>();
   }
 
+  Future<Result<T, CoconutError>> _handleResult<T>(
+      Result<dynamic, CoconutError> result) {
+    if (result.value is T) {
+      return Future.value(result as Result<T, CoconutError>);
+    }
+    return Future.value(Result.failure(
+        CoconutError(ErrorCodeEnum.unknownError, 'Unknown response type')));
+  }
+
   @override
   Future<void> initialize(
       NodeClientFactory factory, String host, int port, bool ssl) async {
@@ -67,51 +76,32 @@ class DefaultIsolateManager implements IsolateManager {
 
   @override
   Future<Result<String, CoconutError>> broadcast(String rawTransaction) async {
-    var result = await _send(IsolateMessageType.broadcast, rawTransaction);
-
-    if (result.value is String) {
-      return result as Result<String, CoconutError>;
-    }
-
-    return result as Result<String, CoconutError>;
+    return _handleResult<String>(
+        await _send(IsolateMessageType.broadcast, rawTransaction));
   }
 
   @override
   Future<Result<WalletStatus, CoconutError>> fullSync(WalletBase wallet) async {
-    var result = await _send(IsolateMessageType.fullSync, wallet);
-
-    if (result.value is WalletStatus) {
-      return result as Result<WalletStatus, CoconutError>;
-    }
-
-    return Result.failure(
-        CoconutError(ErrorCodeEnum.unknownError, 'Unknown response type'));
-  }
-
-  @override
-  Future<Result<BlockTimestamp, CoconutError>> getBlock() async {
-    var result = await _send(IsolateMessageType.getBlock, null);
-
-    if (result.value is BlockTimestamp) {
-      return result as Result<BlockTimestamp, CoconutError>;
-    }
-
-    return Result.failure(
-        CoconutError(ErrorCodeEnum.unknownError, 'Unknown response type'));
+    return _handleResult<WalletStatus>(
+        await _send(IsolateMessageType.fullSync, wallet));
   }
 
   @override
   Future<Result<int, CoconutError>> getNetworkMinimumFeeRate() async {
-    var result = await _send(IsolateMessageType.getNetworkMinimumFeeRate, null);
+    return _handleResult<int>(
+        await _send(IsolateMessageType.getNetworkMinimumFeeRate, null));
+  }
 
-    return result as Result<int, CoconutError>;
+  @override
+  Future<Result<BlockTimestamp, CoconutError>> getBlock() async {
+    return _handleResult<BlockTimestamp>(
+        await _send(IsolateMessageType.getBlock, null));
   }
 
   @override
   Future<Result<String, CoconutError>> getTransaction(String txHash) async {
-    var result = await _send(IsolateMessageType.getTransaction, txHash);
-
-    return result as Result<String, CoconutError>;
+    return _handleResult<String>(
+        await _send(IsolateMessageType.getTransaction, txHash));
   }
 
   @override
@@ -130,7 +120,6 @@ class DefaultIsolateManager implements IsolateManager {
             await data._factory.create(data._host, data._port, ssl: data._ssl);
         IsolateMessageType messageType = message[0];
         SendPort replyPort = message[1];
-
         try {
           switch (messageType) {
             case IsolateMessageType.broadcast:
@@ -157,6 +146,7 @@ class DefaultIsolateManager implements IsolateManager {
               replyPort.send(transactionResult);
               break;
           }
+          nodeClient.dispose();
         } catch (e) {
           print('Error in isolate processing: $e');
           replyPort.send(Result.failure(CoconutError(

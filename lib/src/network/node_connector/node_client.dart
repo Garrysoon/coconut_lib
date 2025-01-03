@@ -14,6 +14,8 @@ abstract class NodeClient {
   Future<Result<BlockTimestamp, CoconutError>> getBlock();
 
   Future<Result<String, CoconutError>> getTransaction(String txHash);
+
+  void dispose();
 }
 
 /// Factory for creating NodeClient instances
