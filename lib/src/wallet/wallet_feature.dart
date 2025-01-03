@@ -24,6 +24,10 @@ abstract class WalletFeature {
   /// Generate PSBT for sending all bitcoin in the wallet.
   Future<String> generatePsbtWithMaximum(String receiverAddress, int feeRate);
 
+  /// Generate PSBT for sending all bitcoin in the wallet.
+  Future<String> generatePsbtWithUtxoList(String receiverAddress,
+      int sendingAmount, List<UTXO> utxoList, int feeRate);
+
   /// Get a estimate fee for sending bitcoin.
   Future<int> estimateFee(
       String receiverAddress, int sendingAmount, int feeRate);

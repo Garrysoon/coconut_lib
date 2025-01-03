@@ -121,6 +121,16 @@ class MultisignatureWallet extends MultisignatureWalletBase
   }
 
   @override
+  Future<String> generatePsbtWithUtxoList(String receiverAddress,
+      int sendingAmount, List<UTXO> utxoList, int feeRate) async {
+    PSBT psbt = await Future(() => PSBT.fromTransaction(
+        Transaction.fromUtxoList(
+            utxoList, receiverAddress, sendingAmount, feeRate, this),
+        this));
+    return psbt.serialize();
+  }
+
+  @override
   Future<int> estimateFee(
       String receiverAddress, int sendingAmount, int feeRate) async {
     PSBT psbt = await Future(() => PSBT.fromTransaction(
