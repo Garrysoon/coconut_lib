@@ -96,8 +96,7 @@ class SocketManager {
 
   void _onDone() {
     print('Connection closed.');
-    _connectionStatus = SocketConnectionStatus.reconnecting;
-    _scheduleReconnect(_host, _port, ssl: _ssl);
+    _connectionStatus = SocketConnectionStatus.terminated;
   }
 
   void _onError(error) {
