@@ -91,6 +91,10 @@ class NodeConnector {
     return _isolateManager.getNetworkMinimumFeeRate();
   }
 
+  Future<Result<String, CoconutError>> getTransaction(String txHash) async {
+    return _isolateManager.getTransaction(txHash);
+  }
+
   void stopFetching() {
     if (_syncCompleter != null && !_syncCompleter!.isCompleted) {
       _syncCompleter?.completeError(CoconutError(
