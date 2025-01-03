@@ -41,12 +41,6 @@ class Address {
     }
   }
 
-  /// @nodoc
-  @override
-  String toString() {
-    return 'Address: $address, Derivation Path: $derivationPath, Amount: $amount, Used: $isUsed';
-  }
-
   /// Set the amount of the address.
   void setAmount(int amount) {
     _amount = amount;
