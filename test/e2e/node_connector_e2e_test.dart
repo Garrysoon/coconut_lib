@@ -8,8 +8,13 @@ Future<void> main() async {
   group('NodeConnector', () {
     late NodeConnector nodeConnector;
     setUpAll(() async {
-      nodeConnector = await NodeConnector.connectSync(
-          'regtest-electrum.coconut.onl', 60401);
+      try {
+        nodeConnector = await NodeConnector.connectSync(
+            'regtest-electrum.coconut.onl', 60401);
+      } catch (e) {
+        print('NodeConnector error: $e');
+        rethrow;
+      }
     });
 
     test('getBlock', () async {
@@ -23,7 +28,7 @@ Future<void> main() async {
     test('getNetworkMinimumFeeRate', () async {
       var result = await nodeConnector.getNetworkMinimumFeeRate();
 
-      print('getNetworkMinimumFeeRate: ${result.value}');
+      print('getNetworkMinimumFeeRate: ${result.value} ${result.error}');
 
       expect(result, isNotNull);
     });
@@ -40,15 +45,7 @@ Future<void> main() async {
     test('broadcast', () async {
       var result = await nodeConnector.broadcast('0');
 
-      print('broadcast: ${result.value}');
-
-      expect(result, isNotNull);
-    });
-
-    test('fetchBlockSync', () async {
-      var result = await nodeConnector.fetchBlockSync();
-
-      print('fetchBlockSync: ${result.height} / ${result.timestamp}');
+      print('broadcast: ${result.error?.message}');
 
       expect(result, isNotNull);
     });

@@ -42,13 +42,24 @@ class DefaultIsolateManager implements IsolateManager {
     _isolateReady = Completer<void>();
   }
 
-  Future<Result<T, CoconutError>> _handleResult<T>(
-      Result<dynamic, CoconutError> result) {
-    if (result.value is T) {
-      return Future.value(result as Result<T, CoconutError>);
+  Future<Result<T, CoconutError>> _send<T>(
+      IsolateMessageType messageType, message) async {
+    if (_sendPort == null) {
+      throw Exception('Isolate not initialized');
     }
-    return Future.value(Result.failure(
-        CoconutError(ErrorCodeEnum.unknownError, 'Unknown response type')));
+
+    final responsePort = ReceivePort();
+    _sendPort!.send([messageType, responsePort.sendPort, message]);
+
+    var result = await responsePort.first;
+    responsePort.close();
+
+    if (result is Result<T, CoconutError>) {
+      return result;
+    }
+
+    return Result.failure(
+        CoconutError(ErrorCodeEnum.unknownError, 'Unknown response type'));
   }
 
   @override
@@ -64,44 +75,38 @@ class DefaultIsolateManager implements IsolateManager {
           _isolateReady.complete();
         }
       }, onError: (error) {
-        print('Error in ReceivePort: $error');
         throw error;
       });
       await _isolateReady.future;
     } catch (e) {
-      print('Initialization error: $e');
-      _isolateReady.completeError(e);
+      _isolateReady.completeError(CoconutError(
+          ErrorCodeEnum.unknownError, 'Isolate initialization error: $e'));
     }
   }
 
   @override
   Future<Result<String, CoconutError>> broadcast(String rawTransaction) async {
-    return _handleResult<String>(
-        await _send(IsolateMessageType.broadcast, rawTransaction));
+    return await _send<String>(IsolateMessageType.broadcast, rawTransaction);
   }
 
   @override
   Future<Result<WalletStatus, CoconutError>> fullSync(WalletBase wallet) async {
-    return _handleResult<WalletStatus>(
-        await _send(IsolateMessageType.fullSync, wallet));
+    return await _send<WalletStatus>(IsolateMessageType.fullSync, wallet);
   }
 
   @override
   Future<Result<int, CoconutError>> getNetworkMinimumFeeRate() async {
-    return _handleResult<int>(
-        await _send(IsolateMessageType.getNetworkMinimumFeeRate, null));
+    return await _send<int>(IsolateMessageType.getNetworkMinimumFeeRate, null);
   }
 
   @override
   Future<Result<BlockTimestamp, CoconutError>> getBlock() async {
-    return _handleResult<BlockTimestamp>(
-        await _send(IsolateMessageType.getBlock, null));
+    return await _send<BlockTimestamp>(IsolateMessageType.getBlock, null);
   }
 
   @override
   Future<Result<String, CoconutError>> getTransaction(String txHash) async {
-    return _handleResult<String>(
-        await _send(IsolateMessageType.getTransaction, txHash));
+    return await _send<String>(IsolateMessageType.getTransaction, txHash);
   }
 
   @override
@@ -118,8 +123,10 @@ class DefaultIsolateManager implements IsolateManager {
       if (message is List && message.length == 3) {
         final nodeClient =
             await data._factory.create(data._host, data._port, ssl: data._ssl);
+
         IsolateMessageType messageType = message[0];
         SendPort replyPort = message[1];
+
         try {
           switch (messageType) {
             case IsolateMessageType.broadcast:
@@ -156,25 +163,5 @@ class DefaultIsolateManager implements IsolateManager {
     }, onError: (error) {
       print('Error in isolate ReceivePort: $error');
     });
-  }
-
-  Future<Result<dynamic, CoconutError>> _send(
-      IsolateMessageType messageType, message) async {
-    if (_sendPort == null) {
-      throw Exception('Isolate not initialized');
-    }
-
-    final responsePort = ReceivePort();
-    _sendPort!.send([messageType, responsePort.sendPort, message]);
-
-    var result = await responsePort.first;
-    responsePort.close();
-
-    if (result is Result<dynamic, CoconutError>) {
-      return result;
-    }
-
-    return Result.failure(
-        CoconutError(ErrorCodeEnum.unknownError, 'Unknown response type'));
   }
 }

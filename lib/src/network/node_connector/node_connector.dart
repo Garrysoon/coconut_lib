@@ -6,42 +6,26 @@ class NodeConnector {
   final String _host;
   final int _port;
   final bool _ssl;
-  bool _isConnected = false;
+  SocketConnectionStatus _connectionStatus = SocketConnectionStatus.connecting;
   final Map<int, BlockTimestamp> _blockMap = {};
   int _currentHeight = 0;
-  DateTime? _lastUpdatedAt;
+  DateTime? _lastBlockUpdatedAt;
 
   bool get isSyncing => _syncCompleter != null;
-  bool get isConnected => _isConnected;
-  DateTime? get lastUpdatedAt => _lastUpdatedAt;
+  SocketConnectionStatus get connectionStatus => _connectionStatus;
+  DateTime? get lastBlockUpdatedAt => _lastBlockUpdatedAt;
   String get host => _host;
   int get port => _port;
   bool get ssl => _ssl;
   BlockTimestamp get currentBlock {
     var block = _blockMap[_currentHeight]!;
 
-    fetchBlockSync().then((_) {});
+    _fetchBlockSync();
 
     return block;
   }
 
   NodeConnector._(this._isolateManager, this._host, this._port, this._ssl);
-
-  Future<BlockTimestamp> fetchBlockSync() async {
-    var now = DateTime.now();
-    if (_lastUpdatedAt != null) {
-      var lastUpdatedAt = _lastUpdatedAt!.add(Duration(seconds: 10));
-      if (now.isBefore(lastUpdatedAt)) {
-        return _blockMap[_currentHeight]!;
-      }
-    }
-    var block = (await _isolateManager.getBlock()).value!;
-    _currentHeight = block.height;
-    _lastUpdatedAt = now;
-    _blockMap[_currentHeight] = block;
-
-    return block;
-  }
 
   /// Creates a new NodeConnector instance with custom NodeClientFactory
   static Future<NodeConnector> connectSync(
@@ -57,9 +41,9 @@ class NodeConnector {
     await manager.initialize(factory, host, port, ssl);
 
     final connector = NodeConnector._(manager, host, port, ssl);
-    await connector.fetchBlockSync();
+    await connector._fetchBlockSync();
 
-    connector._isConnected = true;
+    connector._connectionStatus = SocketConnectionStatus.connected;
     return connector;
   }
 
@@ -75,7 +59,7 @@ class NodeConnector {
     _syncCompleter = Completer<void>();
 
     try {
-      if (!_isConnected) {
+      if (_connectionStatus != SocketConnectionStatus.connected) {
         return Result.failure(CoconutError(ErrorCodeEnum.electrumRpcError,
             'The RPC server is not connected.'));
       }
@@ -106,5 +90,34 @@ class NodeConnector {
   void dispose() {
     _syncCompleter = null;
     _isolateManager.dispose();
+  }
+
+  Future<BlockTimestamp> _fetchBlockSync() async {
+    if (_isShouldFetchBlock()) {
+      var result = await _isolateManager.getBlock();
+      if (result.isFailure) {
+        throw result.error!;
+      }
+
+      var block = result.value!;
+      _currentHeight = block.height;
+      _blockMap[_currentHeight] = block;
+      return block;
+    }
+
+    return _blockMap[_currentHeight]!;
+  }
+
+  bool _isShouldFetchBlock() {
+    var now = DateTime.now();
+    if (_connectionStatus == SocketConnectionStatus.connected &&
+        _lastBlockUpdatedAt != null) {
+      var lastUpdatedAt = _lastBlockUpdatedAt!.add(Duration(seconds: 10));
+      if (now.isBefore(lastUpdatedAt)) {
+        return false;
+      }
+    }
+    _lastBlockUpdatedAt = now;
+    return true;
   }
 }
