@@ -200,7 +200,7 @@ class Transaction {
       print("Vault cannot generate sweep transaction");
     }
 
-    List<UTXO> utxoList = walletFeature.getUtxoList();
+    List<UTXO> utxoList = walletFeature.walletStatus!.utxoList;
 
     List<TransactionInput> inputs = [];
     List<TransactionOutput> outputs = [];
