@@ -26,8 +26,13 @@ class ElectrumApi extends NodeClient {
   }
 
   static Future<ElectrumApi> connectSync(String host, int port,
-      {bool ssl = true}) async {
+      {bool ssl = true, ElectrumClient? client}) async {
     var instance = ElectrumApi._();
+
+    if (client != null) {
+      instance._client = client;
+    }
+
     await instance._client.connect(host, port, ssl: ssl);
 
     return instance;
@@ -201,12 +206,6 @@ class ElectrumApi extends NodeClient {
         for (var unspent in unspentList) {
           var transactionEntity = txEntityList.firstWhere(
               (txEntity) => txEntity.transactionHash == unspent.txHash);
-          // var utxo = UTXO.fromApiResponse(
-          //     walletId: walletId,
-          //     res: unspent,
-          //     txString: transactionEntity.serialize(),
-          //     derivationPath: derivationPath,
-          //     timestamp: transactionEntity.timestamp ?? 0);
           var utxo = UTXO(unspent.txHash, unspent.txPos, unspent.value,
               derivationPath, transactionEntity.timestamp, unspent.height);
 

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:coconut_lib/coconut_lib.dart';
+import 'package:coconut_lib/src/network/electrum/electrum_response_types.dart';
 
 enum TestWalletType {
   /// Regtest, 트랜잭션과 UTXO가 수십개 포함된 싱글 시그 지갑
@@ -80,4 +81,19 @@ MultisignatureWallet getMockMultisignatureWallet(TestWalletType type) {
       MultisignatureWallet.fromDescriptor(vault.descriptor);
 
   return wallet;
+}
+
+Transaction getMockTransaction(String scriptPubKey, int amount) {
+  var address = AddressType.p2wpkh.getAddress(scriptPubKey);
+
+  return Transaction.withDefault(
+      [], [TransactionOutput.forPayment(amount, address)], AddressType.p2wpkh);
+}
+
+BlockHeaderSubscribe getMockBlockHeaderSubscribe({int height = 1000}) {
+  // TODO: height 에 따라 다른 블록 헤더 생성
+  return BlockHeaderSubscribe(
+      height: height,
+      hex:
+          '000000202a25b55e70596e07b52b0fba74fbe464e2e6677deb1cd8bd47670a7b6e8b027be601172e5dc38d15db848dcc66f5c75369765ea86d9c2f03dbbc35b46c218e6eec699d66ffff7f2001000000');
 }
