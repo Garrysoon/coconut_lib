@@ -816,7 +816,8 @@ class Transaction {
   }
 
   /// Add utxo to the transaction.
-  void addInputWithUtxo(UTXO newUtxo, int feeRate, WalletBase wallet) {
+  void addInputWithUtxo(UTXO newUtxo, int feeRate, WalletBase wallet,
+      {int? requiredSignature, int? totalSinger}) {
     for (TransactionInput input in inputs) {
       if (input.transactionHash == newUtxo.transactionHash &&
           input.index == newUtxo.index) {
@@ -846,7 +847,8 @@ class Transaction {
       outputs.add(changeOutput);
     }
 
-    int fee = estimateFee(feeRate, wallet.addressType);
+    int fee = estimateFee(feeRate, wallet.addressType,
+        requiredSignature: requiredSignature, totalSinger: totalSinger);
     int changeAmount =
         totalInputAmount - getSendingAmount(wallet.addressBook) - fee;
     if (changeAmount < 0) {
