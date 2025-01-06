@@ -22,7 +22,7 @@ class Transaction {
   List<UTXO> get utxoList => _utxoList;
   int get totalInputAmount {
     int total = 0;
-    for (UTXO utxo in _utxoList!) {
+    for (UTXO utxo in _utxoList) {
       total += utxo.amount;
     }
     return total;
@@ -831,7 +831,7 @@ class Transaction {
     TransactionInput input =
         TransactionInput.forPayment(newUtxo.transactionHash, newUtxo.index);
     inputs.add(input);
-    _utxoList!.add(newUtxo);
+    _utxoList.add(newUtxo);
     String changeAddress = wallet.getChangeAddress().address;
     TransactionOutput? changeOutput;
     for (TransactionOutput output in outputs) {
@@ -856,7 +856,8 @@ class Transaction {
   }
 
   /// Remove utxo from the transaction.
-  void removeInputWithUtxo(UTXO utxoToRemove, int feeRate, WalletBase wallet) {
+  void removeInputWithUtxo(UTXO utxoToRemove, int feeRate, WalletBase wallet,
+      {int? requiredSignature, int? totalSinger}) {
     if (!_utxoList.contains(utxoToRemove)) {
       throw Exception('UTXO not found in the UTXO list');
     }
@@ -890,8 +891,9 @@ class Transaction {
         break;
       }
     }
-    _utxoList!.remove(utxoToRemove);
-    int fee = estimateFee(feeRate, wallet.addressType);
+    _utxoList.remove(utxoToRemove);
+    int fee = estimateFee(feeRate, wallet.addressType,
+        requiredSignature: requiredSignature, totalSinger: totalSinger);
     int changeAmount =
         totalInputAmount - getSendingAmount(wallet.addressBook) - fee;
 
