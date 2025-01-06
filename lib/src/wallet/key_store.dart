@@ -15,8 +15,10 @@ class KeyStore {
   /// The fingerprint of the key store.
   String get masterFingerprint => _masterFingerprint;
 
+  HDWallet get hdWallet => _hdWallet;
+
   /// @nodoc
-  HDWallet hdWallet(bool isChange) =>
+  HDWallet getChildHdWallet(bool isChange) =>
       isChange ? _hdWalletChange : _hdWalletReceive;
 
   /// The extended public key of the key store.
@@ -102,7 +104,7 @@ class KeyStore {
   /// Get the private key of the key store using index.
   String getPrivateKey(int index, {bool isChange = false}) {
     if (!hasSeed) throw Exception('No private key in this key store');
-    HDWallet child = hdWallet(isChange).derive(index);
+    HDWallet child = getChildHdWallet(isChange).derive(index);
     //print("priv : " + Converter.bytesToHex(child.privateKey!.toList()));
     return child.getMasterPrivateKey();
   }
@@ -111,7 +113,7 @@ class KeyStore {
   String sign(String message, int addressIndex,
       {bool isChange = false, bool isDer = true}) {
     if (!hasSeed) throw Exception('No private key in this key store');
-    HDWallet child = hdWallet(isChange).derive(addressIndex);
+    HDWallet child = getChildHdWallet(isChange).derive(addressIndex);
     Uint8List signature = child.sign(Uint8List.fromList(HEX.decode(message)));
     String sig;
     if (isDer) {
@@ -224,7 +226,7 @@ class KeyStore {
 
   /// Get the public key of the key store using index.
   String getPublicKey(int addressIndex, {bool isChange = false}) {
-    HDWallet child = hdWallet(isChange).derive(addressIndex).neutered();
+    HDWallet child = getChildHdWallet(isChange).derive(addressIndex).neutered();
     return HEX.encode((child.publicKey).toList());
   }
 
@@ -233,7 +235,8 @@ class KeyStore {
     List<String> pathList = path.split('/');
     int index = int.parse(pathList.last);
     int changeIndex = int.parse(pathList[pathList.length - 2]);
-    HDWallet child = hdWallet(changeIndex == 1).derive(index).neutered();
+    HDWallet child =
+        getChildHdWallet(changeIndex == 1).derive(index).neutered();
     return HEX.encode((child.publicKey).toList());
   }
 
@@ -243,7 +246,7 @@ class KeyStore {
     Uint8List sig = Converter.hexToBytes(signature);
     Uint8List msg = Converter.hexToBytes(message);
 
-    HDWallet child = hdWallet(isChange).derive(addressIndex);
+    HDWallet child = getChildHdWallet(isChange).derive(addressIndex);
 
     if (isDer) {
       //DER decoding
