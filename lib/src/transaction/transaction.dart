@@ -153,7 +153,10 @@ class Transaction {
     }
 
     List<UTXO> utxoList = _selectOptimalUtxo(
-        walletFeature.getUtxoList(), amount, feeRate, wallet.addressType);
+        walletFeature.walletStatus!.utxoList,
+        amount,
+        feeRate,
+        wallet.addressType);
 
     return Transaction.fromUtxoList(utxoList, address, amount, feeRate, wallet,
         version: version, lockTime: lockTime);
