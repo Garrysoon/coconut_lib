@@ -12,14 +12,14 @@ class Transaction {
   late int? _timestamp = 0;
   late int? _height = 0;
   late List<Transaction>? _perviousTransactionList = [];
-  late List<UTXO>? _utxoList = [];
+  late List<UTXO> _utxoList = [];
   late String? _memo = '';
 
   int get timestamp => _timestamp!;
   int get height => _height!;
   List<Transaction> get perviousTransactionList => _perviousTransactionList!;
-  List<UTXO> get utxoList => _utxoList!;
   String get memo => _memo!;
+  List<UTXO> get utxoList => _utxoList;
   int get totalInputAmount {
     int total = 0;
     for (UTXO utxo in _utxoList!) {
@@ -248,6 +248,7 @@ class Transaction {
     // Transaction tx = Transaction.forMaximumSending(
     //     inputs, address, inputAmount, wallet.addressType, feeRate);
     // print(tx.serialize());
+    tx._utxoList = utxoList;
     return tx;
   }
 
@@ -823,7 +824,7 @@ class Transaction {
       }
     }
 
-    if (utxoList.contains(newUtxo)) {
+    if (_utxoList.contains(newUtxo)) {
       throw Exception('UTXO already exists in UTXO list');
     }
 
@@ -848,12 +849,15 @@ class Transaction {
     int fee = estimateFee(feeRate, wallet.addressType);
     int changeAmount =
         totalInputAmount - getSendingAmount(wallet.addressBook) - fee;
+    if (changeAmount < 0) {
+      changeAmount = 0;
+    }
     changeOutput.setAmount(changeAmount);
   }
 
   /// Remove utxo from the transaction.
   void removeInputWithUtxo(UTXO utxoToRemove, int feeRate, WalletBase wallet) {
-    if (!utxoList.contains(utxoToRemove)) {
+    if (!_utxoList.contains(utxoToRemove)) {
       throw Exception('UTXO not found in the UTXO list');
     }
 
