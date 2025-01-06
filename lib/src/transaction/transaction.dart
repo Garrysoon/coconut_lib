@@ -902,8 +902,10 @@ class Transaction {
     }
   }
 
-  void updateFeeRate(int feeRate, WalletBase wallet) {
-    int fee = estimateFee(feeRate, wallet.addressType);
+  void updateFeeRate(int feeRate, WalletBase wallet,
+      {int? requiredSignature, int? totalSinger}) {
+    int fee = estimateFee(feeRate, wallet.addressType,
+        requiredSignature: requiredSignature, totalSinger: totalSinger);
     String changeAddress = wallet.getChangeAddress().address;
     TransactionOutput changeOutput =
         TransactionOutput.forPayment(0, changeAddress);
