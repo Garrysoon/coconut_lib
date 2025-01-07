@@ -47,6 +47,8 @@ void main() {
 
       expect(mainnet1 == mainnet2, isTrue);
       expect(mainnet1 == testnet, isFalse);
+      expect(mainnet1.hashCode, equals(mainnet2.hashCode));
+      expect(mainnet1.hashCode, isNot(equals(testnet.hashCode)));
     });
 
     test('values가 모든 네트워크를 포함해야 함', () {

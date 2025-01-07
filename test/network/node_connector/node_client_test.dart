@@ -7,7 +7,7 @@ void main() {
   group('ElectrumNodeClientFactory', () {
     test('create', () async {
       var factory = ElectrumNodeClientFactory();
-      var client = await factory.create('localhost', 50001);
+      var client = await factory.create('localhost', 50001, ssl: false);
 
       expect(client, isA<NodeClient>());
     });

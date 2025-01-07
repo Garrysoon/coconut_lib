@@ -79,7 +79,6 @@ class SocketManager {
       _socket!.listen(_onData,
           onError: _onError, onDone: _onDone, cancelOnError: true);
     } catch (e) {
-      print('error: $e');
       _connectionStatus = SocketConnectionStatus.reconnecting;
       _scheduleReconnect(host, port, ssl: ssl);
     }
@@ -87,7 +86,7 @@ class SocketManager {
 
   Future<void> disconnect() async {
     await _socket?.close();
-    _connectionStatus = SocketConnectionStatus.reconnecting;
+    _connectionStatus = SocketConnectionStatus.terminated;
   }
 
   void _onData(Uint8List data) {
@@ -100,14 +99,13 @@ class SocketManager {
   }
 
   void _onError(error) {
-    print('Connection error: $error');
     _connectionStatus = SocketConnectionStatus.reconnecting;
     _scheduleReconnect(_host, _port, ssl: _ssl);
   }
 
   Future<void> send(String data) async {
-    if (_connectionStatus == SocketConnectionStatus.reconnecting) {
-      await connect(_host, _port, ssl: _ssl);
+    if (_connectionStatus != SocketConnectionStatus.connected) {
+      throw SocketException('Socket is not connected');
     }
     try {
       _socket!.writeln(data);
@@ -153,12 +151,8 @@ class SocketManager {
         var jsonString = bufferString.substring(0, i).trim();
 
         if (jsonString.isNotEmpty) {
-          try {
-            var jsonObject = json.decode(jsonString);
-            _processJsonObject(jsonObject);
-          } catch (e) {
-            print('Failed to parse JSON: $jsonString');
-          }
+          var jsonObject = json.decode(jsonString);
+          _processJsonObject(jsonObject);
         }
 
         bufferString = bufferString.substring(i).trim();
