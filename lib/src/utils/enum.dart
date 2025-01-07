@@ -26,6 +26,8 @@ enum SocketConnectionStatus { reconnecting, connecting, connected, terminated }
 
 enum ErrorCodeEnum {
   invalidParameter('INVALID_PARAMETER'),
+  isolateInitializeError('ISOLATE_CREATION_ERROR'),
+  communicationError('COMMUNICATION_ERROR'),
   electrumRpcError('ELECTRUM_RPC_ERROR'),
   electrumApiError('ELECTRUM_API_ERROR'),
   exceededFee('EXCEEDED_FEE'),

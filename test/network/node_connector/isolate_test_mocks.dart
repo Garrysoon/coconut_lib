@@ -14,7 +14,18 @@ class TestNodeClient implements NodeClient {
 
   @override
   Future<Result<WalletStatus, CoconutError>> fullSync(WalletBase wallet) async {
-    throw UnimplementedError();
+    return Result.success(WalletStatus(
+      transactionList: [],
+      utxoList: [],
+      balance: Balance(0, 0),
+      blockHeaderMap: {},
+      receiveAddressBalanceMap: {},
+      changeAddressBalanceMap: {},
+      receiveUsedIndexList: [],
+      changeUsedIndexList: [],
+      receiveMaxGap: 0,
+      changeMaxGap: 0,
+    ));
   }
 
   @override
@@ -37,9 +48,23 @@ class TestNodeClient implements NodeClient {
   void dispose() {}
 }
 
+class ThrowErrorNodeClient extends TestNodeClient {
+  @override
+  Future<Result<String, CoconutError>> broadcast(String rawTransaction) async {
+    return Result.failure(CoconutError(ErrorCodeEnum.unknownError, 'Error'));
+  }
+}
+
 class TestNodeClientFactory implements NodeClientFactory {
   @override
   Future<NodeClient> create(String host, int port, {bool ssl = false}) async {
     return TestNodeClient();
+  }
+}
+
+class TestNodeClientFactoryWithThrowError extends TestNodeClientFactory {
+  @override
+  Future<NodeClient> create(String host, int port, {bool ssl = false}) async {
+    return ThrowErrorNodeClient();
   }
 }

@@ -10,7 +10,16 @@ class IsolateConnectorData {
   SendPort get sendPort => _sendPort;
 
   IsolateConnectorData(
-      this._sendPort, this._factory, this._host, this._port, this._ssl);
+      this._sendPort, this._factory, this._host, this._port, this._ssl) {
+    if (_host.isEmpty) {
+      throw CoconutError(
+          ErrorCodeEnum.invalidParameter, 'Host cannot be empty');
+    }
+    if (_port <= 0 || _port > 65535) {
+      throw CoconutError(
+          ErrorCodeEnum.invalidParameter, 'Port must be between 1 and 65535');
+    }
+  }
 }
 
 enum IsolateMessageType {
@@ -55,34 +64,38 @@ class DefaultIsolateManager implements IsolateManager {
     var result = await responsePort.first;
     responsePort.close();
 
-    if (result is Result<T, CoconutError>) {
-      return result;
-    }
-
-    return Result.failure(
-        CoconutError(ErrorCodeEnum.unknownError, 'Unknown response type'));
+    return result;
   }
 
   @override
   Future<void> initialize(
       NodeClientFactory factory, String host, int port, bool ssl) async {
+    late final IsolateConnectorData data;
     try {
-      var data =
+      data =
           IsolateConnectorData(_receivePort.sendPort, factory, host, port, ssl);
-      _isolate = await Isolate.spawn<IsolateConnectorData>(_isolateEntry, data);
-      _receivePort.listen((message) {
+    } catch (e) {
+      throw CoconutError(
+          ErrorCodeEnum.invalidParameter, 'Failed to create isolate data: $e');
+    }
+
+    _isolate = await Isolate.spawn<IsolateConnectorData>(_isolateEntry, data);
+
+    _receivePort.listen(
+      (message) {
         if (message is SendPort) {
           _sendPort = message;
           _isolateReady.complete();
         }
-      }, onError: (error) {
-        throw error;
-      });
-      await _isolateReady.future;
-    } catch (e) {
-      _isolateReady.completeError(CoconutError(
-          ErrorCodeEnum.unknownError, 'Isolate initialization error: $e'));
-    }
+      },
+      onError: (error) {
+        _isolateReady.completeError(CoconutError(
+            ErrorCodeEnum.unknownError, 'Receive port error: $error'));
+      },
+      cancelOnError: true,
+    );
+
+    await _isolateReady.future;
   }
 
   @override
