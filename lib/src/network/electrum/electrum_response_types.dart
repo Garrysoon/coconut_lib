@@ -7,15 +7,6 @@ class ElectrumResponse<T> {
   String? jsonrpc;
   T result;
 
-  factory ElectrumResponse.fromJson(dynamic json, Function parse) {
-    ElectrumResponse<T> response = ElectrumResponse(
-        result: parse(json['result']),
-        jsonrpc: json['jsonrpc'],
-        id: json['id']);
-
-    return response;
-  }
-
   ElectrumResponse({required this.result, this.jsonrpc, this.id});
 }
 
@@ -46,8 +37,6 @@ class ServerFeaturesRes {
     this.pruning,
   });
 
-  Map<String, dynamic> toJson() => _$ServerFeaturesResToJson(this);
-
   factory ServerFeaturesRes.fromJson(Map<String, dynamic> json) =>
       _$ServerFeaturesResFromJson(json);
 }
@@ -61,8 +50,6 @@ class HostsPort {
 
   HostsPort({this.sslPort, this.tcpPort});
 
-  Map<String, dynamic> toJson() => _$HostsPortToJson(this);
-
   factory HostsPort.fromJson(Map<String, dynamic> json) =>
       _$HostsPortFromJson(json);
 }
@@ -75,21 +62,16 @@ class GetHistoryRes {
 
   GetHistoryRes({required this.height, required this.txHash});
 
-  Map<String, dynamic> toJson() => _$GetHistoryResToJson(this);
-
   factory GetHistoryRes.fromJson(Map<String, dynamic> json) =>
       _$GetHistoryResFromJson(json);
 
   @override
-  bool operator ==(Object other) {
-    if (other is GetHistoryRes) {
-      return txHash == other.txHash;
-    }
-    return false;
+  bool operator ==(covariant GetHistoryRes other) {
+    return txHash == other.txHash && height == other.height;
   }
 
   @override
-  int get hashCode => txHash.hashCode ^ height.hashCode;
+  int get hashCode => Object.hash(txHash, height);
 }
 
 @JsonSerializable()
@@ -101,8 +83,6 @@ class GetMempoolRes {
 
   GetMempoolRes(
       {required this.height, required this.txHash, required this.fee});
-
-  Map<String, dynamic> toJson() => _$GetMempoolResToJson(this);
 
   factory GetMempoolRes.fromJson(Map<String, dynamic> json) =>
       _$GetMempoolResFromJson(json);
@@ -126,29 +106,6 @@ class ListUnspentRes {
 
   factory ListUnspentRes.fromJson(Map<String, dynamic> json) =>
       _$ListUnspentResFromJson(json);
-  Map<String, dynamic> toJson() => _$ListUnspentResToJson(this);
-}
-
-@JsonSerializable()
-class GetHeadersRes {
-  int max;
-  int count;
-
-  List<int> rawHeaders;
-  List<String> headers;
-
-  GetHeadersRes({
-    required this.max,
-    required this.count,
-    required this.rawHeaders,
-    this.headers = const [],
-  });
-
-  Map<String, dynamic> toJson() => _$GetHeadersResToJson(this);
-
-  factory GetHeadersRes.fromJson(Map<String, dynamic> json) {
-    return _$GetHeadersResFromJson(json);
-  }
 }
 
 @JsonSerializable()
@@ -161,58 +118,8 @@ class GetBalanceRes {
     required this.unconfirmed,
   });
 
-  Map<String, dynamic> toJson() => _$GetBalanceResToJson(this);
-
   factory GetBalanceRes.fromJson(Map<String, dynamic> json) {
     return _$GetBalanceResFromJson(json);
-  }
-}
-
-@JsonSerializable()
-class HeaderNotification {
-  int height;
-  String header;
-
-  HeaderNotification({
-    required this.height,
-    required this.header,
-  });
-
-  Map<String, dynamic> toJson() => _$HeaderNotificationToJson(this);
-
-  factory HeaderNotification.fromJson(Map<String, dynamic> json) {
-    return _$HeaderNotificationFromJson(json);
-  }
-}
-
-@JsonSerializable()
-class RawHeaderNotification {
-  int height;
-  List<int> header;
-
-  RawHeaderNotification({
-    required this.height,
-    required this.header,
-  });
-
-  Map<String, dynamic> toJson() => _$RawHeaderNotificationToJson(this);
-
-  factory RawHeaderNotification.fromJson(Map<String, dynamic> json) {
-    return _$RawHeaderNotificationFromJson(json);
-  }
-}
-
-@JsonSerializable()
-class ScriptNotification {
-  String scripthash;
-  String status;
-
-  ScriptNotification({required this.scripthash, required this.status});
-
-  Map<String, dynamic> toJson() => _$ScriptNotificationToJson(this);
-
-  factory ScriptNotification.fromJson(Map<String, dynamic> json) {
-    return _$ScriptNotificationFromJson(json);
   }
 }
 
@@ -222,8 +129,6 @@ class BlockHeaderSubscribe {
   String hex;
 
   BlockHeaderSubscribe({required this.height, required this.hex});
-
-  Map<String, dynamic> toJson() => _$BlockHeaderSubscribeToJson(this);
 
   factory BlockHeaderSubscribe.fromJson(Map<String, dynamic> json) {
     return _$BlockHeaderSubscribeFromJson(json);

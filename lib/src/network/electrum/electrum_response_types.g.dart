@@ -82,27 +82,6 @@ Map<String, dynamic> _$ListUnspentResToJson(ListUnspentRes instance) =>
       'value': instance.value,
     };
 
-GetHeadersRes _$GetHeadersResFromJson(Map<String, dynamic> json) =>
-    GetHeadersRes(
-      max: (json['max'] as num).toInt(),
-      count: (json['count'] as num).toInt(),
-      rawHeaders: (json['rawHeaders'] as List<dynamic>)
-          .map((e) => (e as num).toInt())
-          .toList(),
-      headers: (json['headers'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          const [],
-    );
-
-Map<String, dynamic> _$GetHeadersResToJson(GetHeadersRes instance) =>
-    <String, dynamic>{
-      'max': instance.max,
-      'count': instance.count,
-      'rawHeaders': instance.rawHeaders,
-      'headers': instance.headers,
-    };
-
 GetBalanceRes _$GetBalanceResFromJson(Map<String, dynamic> json) =>
     GetBalanceRes(
       confirmed: (json['confirmed'] as num).toInt(),
@@ -113,46 +92,6 @@ Map<String, dynamic> _$GetBalanceResToJson(GetBalanceRes instance) =>
     <String, dynamic>{
       'confirmed': instance.confirmed,
       'unconfirmed': instance.unconfirmed,
-    };
-
-HeaderNotification _$HeaderNotificationFromJson(Map<String, dynamic> json) =>
-    HeaderNotification(
-      height: (json['height'] as num).toInt(),
-      header: json['header'] as String,
-    );
-
-Map<String, dynamic> _$HeaderNotificationToJson(HeaderNotification instance) =>
-    <String, dynamic>{
-      'height': instance.height,
-      'header': instance.header,
-    };
-
-RawHeaderNotification _$RawHeaderNotificationFromJson(
-        Map<String, dynamic> json) =>
-    RawHeaderNotification(
-      height: (json['height'] as num).toInt(),
-      header: (json['header'] as List<dynamic>)
-          .map((e) => (e as num).toInt())
-          .toList(),
-    );
-
-Map<String, dynamic> _$RawHeaderNotificationToJson(
-        RawHeaderNotification instance) =>
-    <String, dynamic>{
-      'height': instance.height,
-      'header': instance.header,
-    };
-
-ScriptNotification _$ScriptNotificationFromJson(Map<String, dynamic> json) =>
-    ScriptNotification(
-      scripthash: json['scripthash'] as String,
-      status: json['status'] as String,
-    );
-
-Map<String, dynamic> _$ScriptNotificationToJson(ScriptNotification instance) =>
-    <String, dynamic>{
-      'scripthash': instance.scripthash,
-      'status': instance.status,
     };
 
 BlockHeaderSubscribe _$BlockHeaderSubscribeFromJson(

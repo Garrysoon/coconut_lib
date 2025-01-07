@@ -5,14 +5,6 @@ abstract class _ElectrumRequest {
   dynamic get params;
 }
 
-class CustomReq extends _ElectrumRequest {
-  @override
-  String method;
-  @override
-  dynamic params;
-  CustomReq(this.method, this.params);
-}
-
 // server.ping
 class _PingReq extends _ElectrumRequest {
   @override
