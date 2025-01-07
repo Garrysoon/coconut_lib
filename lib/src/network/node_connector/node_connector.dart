@@ -88,6 +88,7 @@ class NodeConnector {
   }
 
   void dispose() {
+    _connectionStatus = SocketConnectionStatus.terminated;
     _syncCompleter = null;
     _isolateManager.dispose();
   }

@@ -15,7 +15,7 @@ void main() async {
     late NodeConnector nodeConnector;
     late MockWalletBase mockWallet;
 
-    setUpAll(() async {
+    setUp(() async {
       mockElectrumApi = MockElectrumApi();
       mockIsolateManager = MockIsolateManager();
       mockFactory = MockNodeClientFactory();
@@ -52,14 +52,28 @@ void main() async {
     });
 
     group('create', () {
+      test('should create NodeConnector with default isolateManager', () async {
+        await expectLater(
+          NodeConnector.connectSync('localhost', 50001),
+          throwsA(
+            isA<CoconutError>()
+                .having((error) => error.errorCode, 'errorCode',
+                    ErrorCodeEnum.electrumApiError)
+                .having((error) => error.message, 'message',
+                    'Can not connect to the server. Please connect and try again.'),
+          ),
+        );
+      });
+
       test('should create NodeConnector with custom isolateManager', () async {
         // Arrange
+        final now = DateTime.now();
         final factory = MockNodeClientFactory();
         when(factory.create('localhost', 50001, ssl: true))
             .thenAnswer((_) async => mockElectrumApi);
         final manager = MockIsolateManager();
-        when(manager.getBlock()).thenAnswer(
-            (_) async => Result.success(BlockTimestamp(0, DateTime.now())));
+        when(manager.getBlock())
+            .thenAnswer((_) async => Result.success(BlockTimestamp(0, now)));
 
         // Act
         final connector = await NodeConnector.connectSync(
@@ -72,6 +86,15 @@ void main() async {
         // Assert
         verify(manager.initialize(factory, 'localhost', 50001, true)).called(1);
         expect(connector, isA<NodeConnector>());
+        expect(connector.host, 'localhost');
+        expect(connector.port, 50001);
+        expect(connector.ssl, true);
+        expect(connector.connectionStatus, SocketConnectionStatus.connected);
+
+        // 0.1초 이내로 차이가 나면 통과
+        expect(
+            connector.lastBlockUpdatedAt!.difference(now).inMilliseconds.abs(),
+            lessThan(100));
       });
     });
 
@@ -93,6 +116,14 @@ void main() async {
               ErrorCodeEnum.alreadySyncing,
             ),
       );
+    });
+
+    test('fetch should return error when not connected', () async {
+      nodeConnector.dispose();
+      final result = await nodeConnector.fetch(mockWallet);
+
+      expect(result.isFailure, true);
+      expect(result.error?.errorCode, ErrorCodeEnum.electrumRpcError);
     });
 
     test('fetch should delegate to isolateManager when connected', () async {
@@ -119,8 +150,7 @@ void main() async {
       // Assert
       expect(result.isSuccess, true);
       expect(result.value, expectedStatus);
-      verify(mockIsolateManager.fullSync(mockWallet))
-          .called(2); // 1 for connectSync, 1 for fetch
+      verify(mockIsolateManager.fullSync(mockWallet)).called(1);
     });
 
     test('stopFetching should dispose resources', () async {
@@ -151,6 +181,15 @@ void main() async {
       expect(await nodeConnector.getNetworkMinimumFeeRate(),
           isA<Result<int, CoconutError>>());
       verify(mockIsolateManager.getNetworkMinimumFeeRate()).called(1);
+    });
+
+    test('should return getTransaction', () async {
+      when(mockIsolateManager.getTransaction('txHash'))
+          .thenAnswer((_) async => Result.success('tx'));
+      expect(await nodeConnector.getTransaction('txHash'),
+          isA<Result<String, CoconutError>>());
+
+      verify(mockIsolateManager.getTransaction('txHash')).called(1);
     });
   });
 }
