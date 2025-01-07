@@ -7,6 +7,8 @@ class ElectrumClient {
   SocketManager _socketManager;
   Timer? _pingTimer;
 
+  int get reqId => _idCounter;
+
   SocketConnectionStatus get connectionStatus =>
       _socketManager.connectionStatus;
 
@@ -15,30 +17,12 @@ class ElectrumClient {
   factory ElectrumClient({SocketManager? socketManager}) {
     ElectrumClient instance = ElectrumClient._();
     instance._socketManager = socketManager ?? SocketManager();
-    instance._socketManager.onReconnect = instance._startPing;
 
     return instance;
   }
 
   Future<void> connect(String host, int port, {bool ssl = true}) async {
     await _socketManager.connect(host, port, ssl: ssl);
-
-    _startPing();
-  }
-
-  void _startPing() {
-    _pingTimer?.cancel(); // 기존 타이머가 있다면 취소
-    _pingTimer = Timer.periodic(Duration(seconds: 10), (timer) async {
-      if (connectionStatus != SocketConnectionStatus.connected) {
-        timer.cancel();
-      } else if (connectionStatus == SocketConnectionStatus.connected) {
-        try {
-          await ping();
-        } catch (e) {
-          print('Ping error: $e');
-        }
-      }
-    });
   }
 
   String _scriptToReversedHash(String script) {

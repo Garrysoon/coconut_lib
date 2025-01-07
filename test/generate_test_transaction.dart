@@ -118,6 +118,31 @@ void main() async {
     }, skip: true);
     // });
 
+    test('상대방 주소로 RBF 트랜잭션 생성', () async {
+      List<Transaction> txs = await _generateSendFullRbfTransaction(
+        vault,
+        wallet,
+        otherWallet.addressBook
+            .getAddress(otherWallet.addressBook.usedReceive + 1, false)
+            .address,
+        otherWallet.addressBook
+            .getAddress(otherWallet.addressBook.usedReceive + 2, false)
+            .address,
+        30000,
+      );
+
+      for (Transaction tx in txs) {
+        Result<String, CoconutError> result =
+            await nodeConnector.broadcast(tx.serialize());
+
+        print('txid: ${result.value}');
+
+        await Future.delayed(const Duration(seconds: 10));
+
+        expect(result.isSuccess, true);
+      }
+    });
+
     test('상대방 지갑에서 전액 회수하기', () async {
       if (otherWallet.getBalance() == 0) {
         throw Exception('Other wallet balance is 0');
@@ -179,7 +204,8 @@ Future<String> _requestFaucet(String address, int satsAmount) async {
 }
 
 Future<Transaction> _generateSendTransaction(VaultFeature vault,
-    WalletBase wallet, String receiveAddress, int satsAmount) async {
+    WalletBase wallet, String receiveAddress, int satsAmount,
+    {int feeRate = 1}) async {
   if (satsAmount >= 100000000) {
     satsAmount = 100000000;
   } else if (satsAmount <= 21000) {
@@ -187,7 +213,7 @@ Future<Transaction> _generateSendTransaction(VaultFeature vault,
   }
 
   Transaction tx =
-      Transaction.forPayment(receiveAddress, satsAmount, 1, wallet);
+      Transaction.forPayment(receiveAddress, satsAmount, feeRate, wallet);
   PSBT unsignedPsbt = PSBT.fromTransaction(tx, wallet);
 
   String signedPsbtString = vault.addSignatureToPsbt(unsignedPsbt.serialize());
@@ -197,6 +223,23 @@ Future<Transaction> _generateSendTransaction(VaultFeature vault,
 
   return signedPsbt
       .getSignedTransaction(wallet.addressType); // transaction object
+}
+
+Future<List<Transaction>> _generateSendFullRbfTransaction(
+    SingleSignatureVault vault,
+    SingleSignatureWallet wallet,
+    String prevAddress,
+    String newAddress,
+    int amount) async {
+  Transaction prevTransaction = await _generateSendTransaction(
+      vault, wallet, prevAddress, (amount * 0.9).ceil(),
+      feeRate: 1);
+
+  Transaction newTransaction = await _generateSendTransaction(
+      vault, wallet, newAddress, amount,
+      feeRate: 2);
+
+  return [prevTransaction, newTransaction];
 }
 
 Future<Transaction> _generateSweepTransaction(SingleSignatureVault vault,
