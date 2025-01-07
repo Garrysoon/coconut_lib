@@ -27,11 +27,13 @@ enum SocketConnectionStatus { reconnecting, connecting, connected, terminated }
 enum ErrorCodeEnum {
   invalidParameter('INVALID_PARAMETER'),
   electrumRpcError('ELECTRUM_RPC_ERROR'),
+  electrumApiError('ELECTRUM_API_ERROR'),
   exceededFee('EXCEEDED_FEE'),
   unknownError('UNKNOWN_ERROR'),
   alreadySyncing('ALREADY_SYNCING'),
   notFound('NOT_FOUND'),
-  networkDisconnected('NETWORK_DISCONNECTED');
+  networkDisconnected('NETWORK_DISCONNECTED'),
+  unsupportedAddressType('UNSUPPORTED_ADDRESS_TYPE');
 
   const ErrorCodeEnum(this.displayCode);
 

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:coconut_lib/src/network/electrum/electrum_response_types.dart';
+import 'package:coconut_lib/src/utils/hash.dart';
 
 enum TestWalletType {
   /// Regtest, 트랜잭션과 UTXO가 수십개 포함된 싱글 시그 지갑
@@ -12,21 +13,23 @@ enum TestWalletType {
 }
 
 SingleSignatureVault getMockSingleVault(TestWalletType type,
-    {String passphrase = ''}) {
+    {String passphrase = '', AddressType? addressType}) {
   SingleSignatureVault? vault;
   if (type == TestWalletType.forNormal) {
     vault = SingleSignatureVault.fromMnemonic(
         'machine crack daughter fish credit glare raven fever tunnel delay fish record',
-        AddressType.p2wpkh,
+        addressType ?? AddressType.p2wpkh,
         passphrase: passphrase);
   } else if (type == TestWalletType.random) {
-    vault = SingleSignatureVault.random(AddressType.p2wpkh);
+    vault = SingleSignatureVault.random(addressType ?? AddressType.p2wpkh);
   }
   return vault!;
 }
 
-SingleSignatureWallet getMockSingleWallet(TestWalletType type) {
-  SingleSignatureVault vault = getMockSingleVault(type);
+SingleSignatureWallet getMockSingleWallet(TestWalletType type,
+    {AddressType? addressType}) {
+  SingleSignatureVault vault =
+      getMockSingleVault(type, addressType: addressType);
   SingleSignatureWallet wallet =
       SingleSignatureWallet.fromDescriptor(vault.descriptor);
   return wallet;
@@ -83,11 +86,33 @@ MultisignatureWallet getMockMultisignatureWallet(TestWalletType type) {
   return wallet;
 }
 
-Transaction getMockTransaction(String scriptPubKey, int amount) {
-  var address = AddressType.p2wpkh.getAddress(scriptPubKey);
+Transaction getMockTransaction(String scriptPubKey, int amount,
+    {bool isCoinbase = false, AddressType? addressType}) {
+  addressType ??= AddressType.p2wpkh;
 
-  return Transaction.withDefault(
-      [], [TransactionOutput.forPayment(amount, address)], AddressType.p2wpkh);
+  late String address;
+  if (addressType == AddressType.p2wpkh) {
+    address = addressType.getAddress(scriptPubKey);
+  } else if (addressType == AddressType.p2wsh) {
+    address = addressType.getMultisignatureAddress([scriptPubKey], 1);
+  }
+
+  List<TransactionInput> inputs = [];
+
+  if (isCoinbase) {
+    inputs.add(TransactionInput.forPayment(
+        '0000000000000000000000000000000000000000000000000000000000000000',
+        4294967295));
+  } else {
+    inputs.add(
+        TransactionInput.forPayment(Hash.sha256('$scriptPubKey$amount'), 0));
+  }
+
+  List<TransactionOutput> outputs = [
+    TransactionOutput.forPayment(amount, address),
+  ];
+
+  return Transaction.withDefault(inputs, outputs, addressType);
 }
 
 BlockHeaderSubscribe getMockBlockHeaderSubscribe({int height = 1000}) {

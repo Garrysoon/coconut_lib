@@ -233,6 +233,12 @@ class MockIsolateManager extends _i1.Mock implements _i3.IsolateManager {
   }
 
   @override
+  bool get isInitialized => (super.noSuchMethod(
+        Invocation.getter(#isInitialized),
+        returnValue: false,
+      ) as bool);
+
+  @override
   _i4.Future<void> initialize(
     _i3.NodeClientFactory? factory,
     String? host,

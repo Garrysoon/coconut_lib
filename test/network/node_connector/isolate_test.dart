@@ -3,7 +3,7 @@
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
 
-import 'isolate_test.mocks.dart';
+import 'isolate_test_mocks.dart';
 
 /// Mockito를 이용해 생성한 클래스는 Isolate 처리가 불가능하여 [TestNodeClient], [TestNodeClientFactory]를 사용하여 단위 테스트를 수행합니다.
 void main() {

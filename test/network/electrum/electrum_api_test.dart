@@ -53,9 +53,16 @@ void main() async {
       verify(mockClient.connect(any, any, ssl: false)).called(1);
     });
 
+    test('getReqId', () async {
+      when(client.reqId).thenReturn(1);
+
+      expect(electrumApi.reqId, 1);
+    });
+
     test('broadcast successful', () async {
       when(client.broadcast(any)).thenAnswer((_) async => 'transaction_id');
       var result = await electrumApi.broadcast('raw_transaction');
+
       expect(result.isSuccess, true);
       expect(result.value, 'transaction_id');
     });
@@ -66,60 +73,294 @@ void main() async {
       expect(result.isFailure, true);
     });
 
-    test('fullSync successful', () async {
-      var result = await electrumApi.fullSync(wallet);
-
-      expect(result.isSuccess, true);
-    });
-
-    test('fullSync successful with some data', () async {
-      int historyCount = 5;
-      int unspentCount = historyCount;
-      Map<String, Transaction> transactionMap = {};
-
-      when(client.getHistory(any)).thenAnswer((_) async {
-        if (historyCount > 0) {
-          historyCount--;
-          var transaction = getMockTransaction(_.positionalArguments[0], 1000);
-          transactionMap[transaction.transactionHash] = transaction;
-          return [
-            GetHistoryRes(txHash: transaction.transactionHash, height: 123),
-          ];
-        }
-        return [];
-      });
-      when(client.getUnspentList(any)).thenAnswer((_) async {
-        if (unspentCount > 0) {
-          unspentCount--;
-          var transaction = getMockTransaction(_.positionalArguments[0], 1000);
-          return [
-            ListUnspentRes(
-                txHash: transaction.transactionHash,
-                txPos: 0,
-                value: 1000,
-                height: 123),
-          ];
-        }
-        return [];
-      });
-      when(client.getTransaction(any)).thenAnswer((_) async =>
-          transactionMap[_.positionalArguments[0]]?.serialize() ?? '');
-      when(client.getBlockHeader(any))
-          .thenAnswer((_) async => getMockBlockHeaderSubscribe().hex);
-
-      var result = await electrumApi.fullSync(wallet);
-
-      expect(result.isSuccess, true);
-      expect(result.value?.receiveMaxGap, 24);
-      expect(result.value?.utxoList.length, 5);
-      expect(result.value?.transactionList.length, 5);
-    });
-
-    test('fullSync failure', () async {
-      when(client.getHistory(any)).thenThrow(Exception('Sync Error'));
-      var result = await electrumApi.fullSync(wallet);
+    test('broadcast failure with fee exceeds', () async {
+      Map<String, dynamic> error = {
+        'message': 'Fee exceeds',
+      };
+      when(client.broadcast(any)).thenThrow(error);
+      var result = await electrumApi.broadcast('invalid_transaction');
       expect(result.isFailure, true);
-      expect(result.error!.errorCode, ErrorCodeEnum.unknownError);
+      expect(result.error!.errorCode, ErrorCodeEnum.exceededFee);
+    });
+
+    group('fullSync', () {
+      test('successful', () async {
+        var result = await electrumApi.fullSync(wallet);
+
+        expect(result.isSuccess, true);
+      });
+
+      test('fullSync successful with some data', () async {
+        int historyCount = 5;
+        int unspentCount = historyCount;
+        Map<String, Transaction> transactionMap = {};
+        Map<String, Transaction> inputTransactionMap = {};
+        when(client.getHistory(any)).thenAnswer((_) async {
+          if (historyCount > 0) {
+            historyCount--;
+            var transaction =
+                getMockTransaction(_.positionalArguments[0], 1000);
+            transactionMap[transaction.transactionHash] = transaction;
+
+            for (var input in transaction.inputs) {
+              inputTransactionMap[input.transactionHash] =
+                  getMockTransaction(_.positionalArguments[0], 1500);
+            }
+
+            return [
+              GetHistoryRes(txHash: transaction.transactionHash, height: 123),
+            ];
+          }
+          return [];
+        });
+        when(client.getUnspentList(any)).thenAnswer((_) async {
+          if (unspentCount > 0) {
+            unspentCount--;
+            var transaction =
+                getMockTransaction(_.positionalArguments[0], 1000);
+            return [
+              ListUnspentRes(
+                  txHash: transaction.transactionHash,
+                  txPos: 0,
+                  value: 1000,
+                  height: 123),
+            ];
+          }
+          return [];
+        });
+        when(client.getTransaction(any)).thenAnswer((_) async {
+          String txHash = _.positionalArguments[0];
+
+          if (inputTransactionMap.containsKey(txHash)) {
+            return inputTransactionMap[txHash]!.serialize();
+          } else if (transactionMap.containsKey(txHash)) {
+            return transactionMap[txHash]!.serialize();
+          }
+
+          throw Exception('Transaction not found: $txHash');
+        });
+        when(client.getBlockHeader(any))
+            .thenAnswer((_) async => getMockBlockHeaderSubscribe().hex);
+
+        var result = await electrumApi.fullSync(wallet);
+
+        expect(result.isSuccess, true);
+        expect(result.value?.receiveMaxGap, 25);
+        expect(result.value?.utxoList.length, 5);
+        expect(result.value?.transactionList.length, 5);
+        expect(result.value?.balance.confirmed, 5000);
+        expect(result.value?.balance.unconfirmed, 0);
+      });
+
+      test('fullSync successful with multisignature wallet', () async {
+        int historyCount = 5;
+        int unspentCount = historyCount;
+        Map<String, Transaction> transactionMap = {};
+        Map<String, Transaction> inputTransactionMap = {};
+        MultisignatureWallet multisignatureWallet =
+            getMockMultisignatureWallet(TestWalletType.forNormal);
+        when(client.getHistory(any)).thenAnswer((_) async {
+          if (historyCount > 0) {
+            historyCount--;
+
+            var transaction = getMockTransaction(_.positionalArguments[0], 1000,
+                addressType: multisignatureWallet.addressType);
+            transactionMap[transaction.transactionHash] = transaction;
+
+            for (var input in transaction.inputs) {
+              inputTransactionMap[input.transactionHash] = getMockTransaction(
+                  _.positionalArguments[0], 1500,
+                  addressType: multisignatureWallet.addressType);
+            }
+
+            return [
+              GetHistoryRes(txHash: transaction.transactionHash, height: 123),
+            ];
+          }
+          return [];
+        });
+        when(client.getUnspentList(any)).thenAnswer((_) async {
+          if (unspentCount > 0) {
+            unspentCount--;
+            var transaction = getMockTransaction(_.positionalArguments[0], 1000,
+                addressType: multisignatureWallet.addressType);
+            return [
+              ListUnspentRes(
+                  txHash: transaction.transactionHash,
+                  txPos: 0,
+                  value: 1000,
+                  height: 123),
+            ];
+          }
+          return [];
+        });
+        when(client.getTransaction(any)).thenAnswer((_) async {
+          String txHash = _.positionalArguments[0];
+
+          if (inputTransactionMap.containsKey(txHash)) {
+            return inputTransactionMap[txHash]!.serialize();
+          } else if (transactionMap.containsKey(txHash)) {
+            return transactionMap[txHash]!.serialize();
+          }
+
+          throw Exception('Transaction not found: $txHash');
+        });
+        when(client.getBlockHeader(any))
+            .thenAnswer((_) async => getMockBlockHeaderSubscribe().hex);
+
+        var result = await electrumApi.fullSync(multisignatureWallet);
+
+        expect(result.isSuccess, true);
+        expect(result.value?.receiveMaxGap, 25);
+        expect(result.value?.utxoList.length, 5);
+        expect(result.value?.transactionList.length, 5);
+        expect(result.value?.balance.confirmed, 5000);
+        expect(result.value?.balance.unconfirmed, 0);
+      });
+
+      test('fullSync successful with coinbase tx', () async {
+        int historyCount = 1;
+        int unspentCount = historyCount;
+        Map<String, Transaction> transactionMap = {};
+
+        when(client.getHistory(any)).thenAnswer((_) async {
+          if (historyCount > 0) {
+            historyCount--;
+            var transaction = getMockTransaction(_.positionalArguments[0], 1000,
+                isCoinbase: true);
+            transactionMap[transaction.transactionHash] = transaction;
+
+            return [
+              GetHistoryRes(txHash: transaction.transactionHash, height: 1000),
+            ];
+          }
+          return [];
+        });
+        when(client.getUnspentList(any)).thenAnswer((_) async {
+          if (unspentCount > 0) {
+            unspentCount--;
+            var transaction = getMockTransaction(_.positionalArguments[0], 1000,
+                isCoinbase: true);
+            return [
+              ListUnspentRes(
+                  txHash: transaction.transactionHash,
+                  txPos: 0,
+                  value: 1000,
+                  height: 1000),
+            ];
+          }
+          return [];
+        });
+        when(client.getTransaction(any)).thenAnswer((_) async {
+          String txHash = _.positionalArguments[0];
+
+          if (transactionMap.containsKey(txHash)) {
+            return transactionMap[txHash]!.serialize();
+          }
+
+          throw Exception('Transaction not found: $txHash');
+        });
+        when(client.getBlockHeader(any))
+            .thenAnswer((_) async => getMockBlockHeaderSubscribe().hex);
+
+        var result = await electrumApi.fullSync(wallet);
+
+        expect(result.isSuccess, true);
+        expect(result.value?.receiveMaxGap, 21);
+        expect(result.value?.utxoList.length, 1);
+        expect(result.value?.transactionList.length, 1);
+        expect(result.value?.balance.confirmed, 1000);
+        expect(result.value?.balance.unconfirmed, 0);
+      });
+
+      test('fullSync successful with unconfirmed data', () async {
+        int historyCount = 5;
+        int unspentCount = historyCount;
+        Map<String, Transaction> transactionMap = {};
+        Map<String, Transaction> inputTransactionMap = {};
+
+        when(client.getHistory(any)).thenAnswer((_) async {
+          if (historyCount > 0) {
+            historyCount--;
+            var transaction = getMockTransaction(_.positionalArguments[0], 0);
+            transactionMap[transaction.transactionHash] = transaction;
+
+            for (var input in transaction.inputs) {
+              inputTransactionMap[input.transactionHash] =
+                  getMockTransaction(_.positionalArguments[0], 1500);
+            }
+            return [
+              GetHistoryRes(txHash: transaction.transactionHash, height: 0),
+            ];
+          }
+          return [];
+        });
+        when(client.getUnspentList(any)).thenAnswer((_) async {
+          if (unspentCount > 0) {
+            unspentCount--;
+            var transaction = getMockTransaction(_.positionalArguments[0], 0);
+            return [
+              ListUnspentRes(
+                  txHash: transaction.transactionHash,
+                  txPos: 0,
+                  value: 1000,
+                  height: 0),
+            ];
+          }
+          return [];
+        });
+        when(client.getTransaction(any)).thenAnswer((_) async {
+          String txHash = _.positionalArguments[0];
+
+          if (inputTransactionMap.containsKey(txHash)) {
+            return inputTransactionMap[txHash]!.serialize();
+          } else if (transactionMap.containsKey(txHash)) {
+            return transactionMap[txHash]!.serialize();
+          }
+
+          throw Exception('Transaction not found: $txHash');
+        });
+        when(client.getBlockHeader(any))
+            .thenAnswer((_) async => getMockBlockHeaderSubscribe().hex);
+
+        var result = await electrumApi.fullSync(wallet);
+
+        expect(result.isSuccess, true);
+        expect(result.value?.receiveMaxGap, 25);
+        expect(result.value?.utxoList.length, 5);
+        expect(result.value?.transactionList.length, 5);
+        expect(result.value?.balance.confirmed, 0);
+        expect(result.value?.balance.unconfirmed, 5000);
+      });
+
+      test('fullSync failure', () async {
+        when(client.getHistory(any)).thenThrow(Exception('Sync Error'));
+        var result = await electrumApi.fullSync(wallet);
+        expect(result.isFailure, true);
+        expect(result.error!.errorCode, ErrorCodeEnum.unknownError);
+      });
+
+      test('fullSync failure with unsupported address type', () async {
+        int historyCount = 1;
+        SingleSignatureWallet wallet = getMockSingleWallet(
+            TestWalletType.forNormal,
+            addressType: AddressType.p2pkh);
+
+        when(client.getHistory(any)).thenAnswer((_) async {
+          if (historyCount > 0) {
+            historyCount--;
+            var transaction = getMockTransaction(_.positionalArguments[0], 0);
+
+            return [
+              GetHistoryRes(txHash: transaction.transactionHash, height: 0),
+            ];
+          }
+          return [];
+        });
+        var result = await electrumApi.fullSync(wallet);
+        expect(result.isFailure, true);
+        expect(result.error!.errorCode, ErrorCodeEnum.unsupportedAddressType);
+      });
     });
 
     test('getNetworkMinimumFeeRate no-mempool-tx', () async {
@@ -163,7 +404,30 @@ void main() async {
       expect(result.isSuccess, true);
       expect(result.value?.height, 1000);
     });
-  });
 
-  group('ElectrumApi fetch', () {});
+    test('dispose', () async {
+      await electrumApi.dispose();
+
+      verify(client.close()).called(1);
+    });
+
+    test('etc api error', () async {
+      when(client.getTransaction(any)).thenThrow('RPC ERROR');
+      var result = await electrumApi.getTransaction('invalid_tx_hash');
+      expect(result.isFailure, true);
+      expect(result.error!.errorCode, ErrorCodeEnum.electrumApiError);
+    });
+
+    test('rpc unknown error', () async {
+      Map<String, dynamic> error = {
+        'message': 'Unknown Error',
+      };
+
+      when(client.getTransaction(any)).thenThrow(error);
+      var result = await electrumApi.getTransaction('invalid_tx_hash');
+
+      expect(result.isFailure, true);
+      expect(result.error!.errorCode, ErrorCodeEnum.electrumRpcError);
+    });
+  });
 }

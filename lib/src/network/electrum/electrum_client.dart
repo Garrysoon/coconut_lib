@@ -7,6 +7,8 @@ class ElectrumClient {
   SocketManager _socketManager;
   Timer? _pingTimer;
 
+  int get reqId => _idCounter;
+
   SocketConnectionStatus get connectionStatus =>
       _socketManager.connectionStatus;
 

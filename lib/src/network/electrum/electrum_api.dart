@@ -7,7 +7,7 @@ class ElectrumApi extends NodeClient {
   ElectrumClient _client;
 
   @override
-  int get reqId => _client._idCounter;
+  int get reqId => _client.reqId;
 
   ElectrumApi._() : _client = ElectrumClient();
 
@@ -259,9 +259,6 @@ class ElectrumApi extends NodeClient {
         var txEntity = Transaction.fromOnChainData(
             txString, timestamp, blockHeight, [], '');
 
-        // var txEntity = TransactionEntity.from(wallet.identifier, txString, [],
-        //     height: blockHeight, timestamp: timestamp);
-
         fetchedTxEntityMap[txHistory.txHash] = txEntity;
       });
 
@@ -273,11 +270,7 @@ class ElectrumApi extends NodeClient {
   }
 
   bool _isCoinbaseTransaction(Transaction tx) {
-    if (tx.inputs.isEmpty) {
-      return false;
-    }
-
-    if (tx.inputs.length > 1) {
+    if (tx.inputs.length != 1) {
       return false;
     }
 
@@ -286,7 +279,7 @@ class ElectrumApi extends NodeClient {
       return false;
     }
 
-    return Converter.decToHex(tx.inputs[0].index) == 'ffffffff';
+    return tx.inputs[0].index == 4294967295; // 0xffffffff
   }
 
   Future<void> _fetchTxInputsTxString(
@@ -336,12 +329,8 @@ class ElectrumApi extends NodeClient {
           script = ScriptPublicKey.p2wpkh(address).serialize();
         } else if (wallet.addressType == AddressType.p2wsh) {
           script = ScriptPublicKey.p2wsh(address).serialize();
-        } else if (wallet.addressType == AddressType.p2pkh) {
-          script = ScriptPublicKey.p2pkh(address).serialize();
-        } else if (wallet.addressType == AddressType.p2sh) {
-          script = ScriptPublicKey.p2sh(address).serialize();
         } else {
-          throw Exception('Unsupported address type');
+          throw 'Unsupported address type: ${wallet.addressType.scriptType}';
         }
 
         var scriptWithoutSize = script.substring(2);
@@ -355,7 +344,7 @@ class ElectrumApi extends NodeClient {
                 .map((history) => history.height));
             usedIndexList[mapIndex]!.add(callBackIndex);
             txHistorySet.addAll(historyList);
-            int newGap = i + gapLimit;
+            int newGap = i + gapLimit + 1;
             if (gapIndex < newGap) {
               gapIndex = newGap;
             }
@@ -385,7 +374,9 @@ class ElectrumApi extends NodeClient {
       print(e);
       print(stackTrace);
       CoconutError coconutError;
+
       if (e is Map<String, dynamic>) {
+        // Map<String, dynamic> 타입: Electrum 에서 발생한 오류
         if ((e['message'] as String).contains('Fee exceeds')) {
           coconutError = CoconutError(
               ErrorCodeEnum.exceededFee, '수수료가 너무 높습니다. 수수료를 낮춰서 다시 시도해 주세요.');
@@ -394,7 +385,13 @@ class ElectrumApi extends NodeClient {
               CoconutError(ErrorCodeEnum.electrumRpcError, '오류가 발생했습니다.');
         }
       } else if (e is String) {
-        coconutError = CoconutError(ErrorCodeEnum.electrumRpcError, e);
+        // String 타입: 라이브러리에서 발생한 오류
+        if (e.contains('Unsupported address type')) {
+          coconutError = CoconutError(
+              ErrorCodeEnum.unsupportedAddressType, '지원하지 않는 주소 타입입니다.');
+        } else {
+          coconutError = CoconutError(ErrorCodeEnum.electrumApiError, e);
+        }
       } else {
         coconutError = CoconutError.unknown(error: e);
       }

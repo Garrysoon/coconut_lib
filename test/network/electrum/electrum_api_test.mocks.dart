@@ -66,6 +66,12 @@ class MockElectrumClient extends _i1.Mock implements _i3.ElectrumClient {
   }
 
   @override
+  int get reqId => (super.noSuchMethod(
+        Invocation.getter(#reqId),
+        returnValue: 0,
+      ) as int);
+
+  @override
   _i4.SocketConnectionStatus get connectionStatus => (super.noSuchMethod(
         Invocation.getter(#connectionStatus),
         returnValue: _i4.SocketConnectionStatus.reconnecting,
