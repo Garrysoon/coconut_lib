@@ -33,7 +33,7 @@ void main() async {
       'regtest-electrum.coconut.onl', 60401,
       ssl: true);
 
-  await wallet.fetchOnChainData(nodeConnector);
+  // await wallet.fetchOnChainData(nodeConnector);
   await otherWallet.fetchOnChainData(nodeConnector);
   await multiWallet.fetchOnChainData(nodeConnector);
 
@@ -113,13 +113,35 @@ void main() async {
   });
 
   group('MultiSignatureWallet 트랜잭션 생성', () {
+    test('지갑 정보 출력, 현재 Status 저장', () {
+      print('[Multisig Wallet Status]');
+      print(
+          'Balance: (Confirmed: ${multiWallet.walletStatus?.balance.confirmed}, Unconfirmed: ${multiWallet.walletStatus?.balance.unconfirmed})');
+      print(
+          'Transfer List: length: ${multiWallet.getTransferList(count: 1000).length}');
+      for (Transfer transfer in multiWallet.getTransferList(count: 1000)) {
+        print(
+            'Transfer: [${transfer.transferType}] - ${transfer.transactionHash} - ${transfer.amount}');
+      }
+
+      print('[UTXO List]');
+      print(
+          'UTXO List: length: ${multiWallet.getUtxoList(count: 1000).length}');
+      for (UTXO utxo in multiWallet.getUtxoList(count: 1000)) {
+        print(
+            'UTXO: ${utxo.transactionHash}:${utxo.index} - ${utxo.derivationPath} - ${utxo.amount} - ${utxo.blockHeight}');
+      }
+
+      multiWallet.saveStatus();
+    });
+
     test('테스트 지갑 faucet 요청', () async {
       var response = await _requestFaucet(
           multiWallet.getReceiveAddress().address, 100000000);
 
       expect(response.contains('txHash'), true);
-      // }, skip: true);
-    });
+    }, skip: true);
+    // });
 
     test('상대방 주소로 트랜잭션 생성', () async {
       var balance = multiWallet.getBalance();
@@ -140,8 +162,8 @@ void main() async {
           await nodeConnector.broadcast(signedTx.serialize());
 
       expect(result.isSuccess, true);
-      // }, skip: true);
-    });
+    }, skip: true);
+    // });
 
     test('상대방 지갑에서 전액 회수하기', () async {
       if (otherWallet.getBalance() == 0) {
@@ -165,8 +187,8 @@ void main() async {
       Transaction signedTx = await _generateSplitMultisignatureTransaction(
         multiVault,
         multiWallet,
-        1000,
-        10,
+        123456,
+        4,
       );
 
       Result<String, CoconutError> result =

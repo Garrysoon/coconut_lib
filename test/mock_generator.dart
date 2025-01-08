@@ -61,9 +61,9 @@ Future<WalletStatus> getMockWalletStatus(TestWalletType type,
 }
 
 MultisignatureVault getMockMultisignatureVault(TestWalletType type) {
-  final vault1 = getMockSingleVault(type, passphrase: '1');
-  final vault2 = getMockSingleVault(type, passphrase: '2');
-  final vault3 = getMockSingleVault(type, passphrase: '3');
+  final vault1 = getMockSingleVault(type, passphrase: 'A');
+  final vault2 = getMockSingleVault(type, passphrase: 'B');
+  final vault3 = getMockSingleVault(type, passphrase: 'C');
 
   KeyStore keyStore1 =
       KeyStore.fromSeed(vault1.keyStore.seed, AddressType.p2wsh);
