@@ -10,8 +10,6 @@ import 'package:test/test.dart';
 
 import 'mock_generator.dart';
 
-DotEnv _testEnv = DotEnv()..load(['.env.test']);
-
 /// 아래 테스트 코드는 실제 Regtest 네트워크에 트랜잭션을 제출합니다.
 /// 필요한 케이스만 skip을 해제하여 사용합니다.
 
@@ -86,37 +84,6 @@ void main() async {
       expect(result.isSuccess, true);
     }, skip: true);
     // });
-  });
-
-  group('MultiSignatureWallet 트랜잭션 생성', () {
-    test('테스트 지갑 faucet 요청', () async {
-      var response = await _requestFaucet(
-          multiWallet.getReceiveAddress().address, 100000000);
-
-      expect(response.contains('txHash'), true);
-    }, skip: true);
-    // });
-
-    test('상대방 주소로 트랜잭션 생성', () async {
-      var balance = multiWallet.getBalance();
-      if (balance < 100000000) {
-        throw Exception(
-            'Wallet balance is less than 100000000, balance: $balance');
-      }
-
-      Transaction signedTx = await _generateSendMultisignatureTransaction(
-        multiVault,
-        multiWallet,
-        otherWallet.getReceiveAddress().address,
-        Random().nextInt(99000) + 1000,
-      );
-
-      Result<String, CoconutError> result =
-          await nodeConnector.broadcast(signedTx.serialize());
-
-      expect(result.isSuccess, true);
-    }, skip: true);
-    // });
 
     test('상대방 주소로 RBF 트랜잭션 생성', () async {
       List<Transaction> txs = await _generateSendFullRbfTransaction(
@@ -141,6 +108,39 @@ void main() async {
 
         expect(result.isSuccess, true);
       }
+    }, skip: true);
+    // });
+  });
+
+  group('MultiSignatureWallet 트랜잭션 생성', () {
+    test('테스트 지갑 faucet 요청', () async {
+      var response = await _requestFaucet(
+          multiWallet.getReceiveAddress().address, 100000000);
+
+      expect(response.contains('txHash'), true);
+      // }, skip: true);
+    });
+
+    test('상대방 주소로 트랜잭션 생성', () async {
+      var balance = multiWallet.getBalance();
+      print('balance: $balance');
+      if (balance < 100000000) {
+        throw Exception(
+            'Wallet balance is less than 100000000, balance: $balance');
+      }
+
+      Transaction signedTx = await _generateSendMultisignatureTransaction(
+        multiVault,
+        multiWallet,
+        otherWallet.getReceiveAddress().address,
+        Random().nextInt(99000) + 1000,
+      );
+
+      Result<String, CoconutError> result =
+          await nodeConnector.broadcast(signedTx.serialize());
+
+      expect(result.isSuccess, true);
+      // }, skip: true);
     });
 
     test('상대방 지갑에서 전액 회수하기', () async {
@@ -185,11 +185,12 @@ Future<String> _requestFaucet(String address, int satsAmount) async {
     satsAmount = 21000;
   }
 
+  DotEnv testEnv = DotEnv()..load(['.env.test']);
   double amount = double.parse(
       (satsAmount / 100000000).toStringAsFixed(8).replaceAll(',', ''));
-  String host = _testEnv.getOrElse(
+  String host = testEnv.getOrElse(
       'REGTEST_API_HOST', () => throw Exception('REGTEST_API_HOST is not set'));
-  String path = _testEnv.getOrElse('REGTEST_API_PATH_FAUCET_REQUEST',
+  String path = testEnv.getOrElse('REGTEST_API_PATH_FAUCET_REQUEST',
       () => throw Exception('REGTEST_API_PATH_FAUCET_REQUEST is not set'));
 
   var body = json.encode({
