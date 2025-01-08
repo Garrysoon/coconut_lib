@@ -11,4 +11,3 @@ path:
   - test/network
 exclude:
   - test/
-concurrency: 1
