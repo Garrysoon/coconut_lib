@@ -61,4 +61,20 @@ class TransactionOutput {
   String getAddress() {
     return _scriptPubKey.getAddress();
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true; // Check if they are the same instance
+    }
+    if (other is! TransactionOutput) {
+      return false; // Ensure the object is of the same type
+    }
+    return amount == other.amount &&
+        scriptPubKey.serialize() ==
+            other.scriptPubKey.serialize(); // Compare properties
+  }
+
+  @override
+  int get hashCode => amount.hashCode ^ scriptPubKey.hashCode;
 }
