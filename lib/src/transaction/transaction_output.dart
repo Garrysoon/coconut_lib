@@ -23,7 +23,7 @@ class TransactionOutput {
     _amount = Converter.intToLittleEndianBytes(amount, 8);
   }
 
-  factory TransactionOutput.forSending(int amount, String address) {
+  factory TransactionOutput.forPayment(int amount, String address) {
     Uint8List amountBytes = Converter.intToLittleEndianBytes(amount, 8);
     if (address.startsWith('1') ||
         address.startsWith('m') ||

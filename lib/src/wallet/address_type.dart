@@ -11,7 +11,7 @@ class AddressType {
   /// The prefix of the address.
   final String prefix;
 
-  /// The script type of the address. (P2PKH, P2WPKH, P2WSH-in-P2SH, P2SH, P2WSH)
+  /// The script type of the address. (P2PKH, P2WPKH, P2WPKH-in-P2SH, P2SH, P2WSH)
   final String scriptType;
 
   /// Check if the address type is segwit.
@@ -102,8 +102,7 @@ class AddressType {
         return type;
       }
     }
-    throw Exception(
-        "AddressType : only 'legacy' and 'nativeSegwit' supported.");
+    throw Exception("Not supported address type.");
   }
 
   /// @nodoc
@@ -137,10 +136,9 @@ class AddressType {
       return 'bc';
     } else if (network == BitcoinNetwork.testnet) {
       return 'tb';
-    } else if (network == BitcoinNetwork.regtest) {
+    } else {
       return 'bcrt';
     }
-    throw Exception('Invalid network');
   }
 
   /// @nodoc

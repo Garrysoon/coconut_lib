@@ -76,11 +76,9 @@ void main() async {
 
   // PSBT unsignedPSBT = PSBT.forSending(
   //     "bcrt1qjc4p02r0782v5326j3njeeucesly7pnrwnaqft", 4000, 3, watchOnlyWallet);
-  PSBT unsignedPSBT = PSBT.forSending(
-      "bcrt1qkn8haxetu7gmku4q5lums0yv8f84ze4z6sgjgxq6kw0z5qrfrfkqpgl75y",
-      100000,
-      1,
-      watchOnlyWallet);
+  Transaction tx = Transaction.forPayment(
+      "bcrt1qjc4p02r0782v5326j3njeeucesly7pnrwnaqft", 4000, 3, watchOnlyWallet);
+  PSBT unsignedPSBT = PSBT.fromTransaction(tx, watchOnlyWallet);
 
   print("Unsigned PSBT: ${unsignedPSBT.serialize()}");
 
@@ -103,6 +101,7 @@ void main() async {
 
   print("Transaction: ${signedTx.serialize()}");
 
+  // ignore: dead_code
   if (send) {
     Result result =
         await nodeConnector.broadcast(signedTx.serialize()); // broadcast

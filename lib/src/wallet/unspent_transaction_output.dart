@@ -19,10 +19,10 @@ class UTXO {
     this._blockHeight,
   );
 
-  /// Get the previous transaction hash of this UTXO.
+  /// Get the transaction hash of this UTXO.
   String get transactionHash => _transactionHash;
 
-  /// Get the index of the previous transaction.
+  /// Get the index of the transaction output.
   int get index => _index;
 
   /// Get the amount of the UTXO.
@@ -45,14 +45,39 @@ class UTXO {
   }
 
   static void sortUTXO(List<UTXO> utxos, UtxoOrderEnum order) {
-    switch (order) {
-      case UtxoOrderEnum.byAmountDesc:
-        utxos.sort((a, b) => b.amount.compareTo(a.amount));
-        break;
-      case UtxoOrderEnum.byTimestampDesc:
-        utxos.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-        break;
+    int getLastIndex(String path) => int.parse(path.split('/').last);
+
+    int compareUTXOs(UTXO a, UTXO b, bool isAscending, bool byAmount) {
+      int primaryCompare = byAmount
+          ? (isAscending ? a.amount : b.amount)
+              .compareTo(isAscending ? b.amount : a.amount)
+          : (isAscending ? a.timestamp : b.timestamp)
+              .compareTo(isAscending ? b.timestamp : a.timestamp);
+
+      if (primaryCompare != 0) return primaryCompare;
+
+      int secondaryCompare = byAmount
+          ? b.timestamp.compareTo(a.timestamp)
+          : b.amount.compareTo(a.amount);
+
+      if (secondaryCompare != 0) return secondaryCompare;
+
+      return getLastIndex(a.derivationPath)
+          .compareTo(getLastIndex(b.derivationPath));
     }
+
+    utxos.sort((a, b) {
+      switch (order) {
+        case UtxoOrderEnum.byAmountDesc:
+          return compareUTXOs(a, b, false, true);
+        case UtxoOrderEnum.byAmountAsc:
+          return compareUTXOs(a, b, true, true);
+        case UtxoOrderEnum.byTimestampDesc:
+          return compareUTXOs(a, b, false, false);
+        case UtxoOrderEnum.byTimestampAsc:
+          return compareUTXOs(a, b, true, false);
+      }
+    });
   }
 
   String toJson() {
@@ -71,4 +96,16 @@ class UTXO {
     return UTXO(json['transactionHash'], json['index'], json['amount'],
         json['derivationPath'], json['timestamp'], json['blockHeight']);
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is UTXO &&
+        other._transactionHash == _transactionHash &&
+        other._index == _index;
+  }
+
+  @override
+  int get hashCode => _transactionHash.hashCode ^ _index.hashCode;
 }

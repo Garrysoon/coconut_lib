@@ -74,7 +74,7 @@ class TransactionInput {
   }
 
   /// Create a transaction input for sending.
-  factory TransactionInput.forSending(String transactionHash, int index,
+  factory TransactionInput.forPayment(String transactionHash, int index,
       {int sequence = 0xffffffff}) {
     return TransactionInput(
         Uint8List.fromList(

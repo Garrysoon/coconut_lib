@@ -12,7 +12,10 @@ abstract class WalletFeature {
   List<Transfer> getTransferList({int cursor = 0, int count = 5});
 
   /// Get the list of unspent transaction outputs of the wallet.
-  List<UTXO> getUtxoList({UtxoOrderEnum order = UtxoOrderEnum.byTimestampDesc});
+  List<UTXO> getUtxoList(
+      {UtxoOrderEnum order = UtxoOrderEnum.byTimestampDesc,
+      int cursor = 0,
+      int count = 5});
 
   /// Generate PSBT for sending bitcoin.
   Future<String> generatePsbt(
@@ -20,6 +23,10 @@ abstract class WalletFeature {
 
   /// Generate PSBT for sending all bitcoin in the wallet.
   Future<String> generatePsbtWithMaximum(String receiverAddress, int feeRate);
+
+  /// Generate PSBT for sending all bitcoin in the wallet.
+  Future<String> generatePsbtWithUtxoList(String receiverAddress,
+      int sendingAmount, List<UTXO> utxoList, int feeRate);
 
   /// Get a estimate fee for sending bitcoin.
   Future<int> estimateFee(

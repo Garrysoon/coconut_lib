@@ -65,7 +65,7 @@ class WitnessScript extends Script {
   }
 
   static WitnessScript p2wsh(
-      int requiredSignature, int totalSignature, List<Uint8List> publicKeys) {
+      int requiredSignature, int totalSigner, List<Uint8List> publicKeys) {
     List<dynamic> cmds = [];
 
     publicKeys.sort((a, b) {
@@ -82,7 +82,7 @@ class WitnessScript extends Script {
     for (var publicKey in publicKeys) {
       cmds.add(publicKey);
     }
-    cmds.add(ScriptOperationCode.getHex('OP_${totalSignature.toString()}'));
+    cmds.add(ScriptOperationCode.getHex('OP_${totalSigner.toString()}'));
     cmds.add(ScriptOperationCode.getHex('OP_CHECKMULTISIG'));
     return WitnessScript(cmds);
   }

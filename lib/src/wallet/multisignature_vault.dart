@@ -43,7 +43,7 @@ class MultisignatureVault extends MultisignatureWalletBase
     BSMS bsms = BSMS.parseCoordinator(coordinator);
     List<KeyStore> keyStores = [];
     Descriptor descriptor = bsms.coordinator!.descriptor;
-    for (int i = 0; i < descriptor.totalSignature; i++) {
+    for (int i = 0; i < descriptor.totalSigner; i++) {
       ExtendedPublicKey extendedPublicKey =
           ExtendedPublicKey.parse(descriptor.getPublicKey(i));
       HDWallet hdWallet = HDWallet.fromPublicKey(
@@ -78,6 +78,7 @@ class MultisignatureVault extends MultisignatureWalletBase
     String signedPsbt = psbt;
 
     for (KeyStore keyStore in keyStoreList) {
+      if (!keyStore.hasSeed) continue;
       if (keyStore.canSignToPsbt(signedPsbt)) {
         signedPsbt = keyStore.addSignatureToPsbt(signedPsbt);
       }

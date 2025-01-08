@@ -1,24 +1,13 @@
 part of '../../../coconut_lib.dart';
 
 /// @nodoc
-class ElectrumApi extends Network {
+class ElectrumApi extends NodeClient {
   // static final ElectrumApi _instance = ElectrumApi._();
 
-  final Map<int, BlockTimestamp> _blockMap = {};
-
   ElectrumClient _client;
-  int _currentHeight = 0;
-  DateTime? _lastUpdatedAt;
 
   @override
-  get connectionStatus => _client.connectionStatus;
-
-  @override
-  int get reqId => _client._idCounter;
-
-  @override
-  BlockTimestamp get block =>
-      _blockMap[_currentHeight] ?? BlockTimestamp(0, DateTime.now());
+  int get reqId => _client.reqId;
 
   ElectrumApi._() : _client = ElectrumClient();
 
@@ -37,8 +26,13 @@ class ElectrumApi extends Network {
   }
 
   static Future<ElectrumApi> connectSync(String host, int port,
-      {bool ssl = true}) async {
+      {bool ssl = true, ElectrumClient? client}) async {
     var instance = ElectrumApi._();
+
+    if (client != null) {
+      instance._client = client;
+    }
+
     await instance._client.connect(host, port, ssl: ssl);
 
     return instance;
@@ -153,48 +147,15 @@ class ElectrumApi extends Network {
   }
 
   @override
-  void fetchBlock() {
-    var now = DateTime.now();
-    if (_lastUpdatedAt != null) {
-      var lastUpdatedAt = _lastUpdatedAt!.add(Duration(seconds: 10));
-      if (now.isBefore(lastUpdatedAt)) {
-        return;
-      }
-    }
-    getCurrentBlock().then((block) {
-      _currentHeight = block.height;
-      _lastUpdatedAt = now;
-      _blockMap[_currentHeight] = BlockTimestamp(
-          _currentHeight,
-          DateTime.fromMillisecondsSinceEpoch(block.timestamp * 1000,
+  Future<Result<BlockTimestamp, CoconutError>> getBlock() async {
+    return _handleError(() async {
+      var result = await _client.getCurrentBlock();
+      var blockHeader = BlockHeader.parse(result.height, result.hex);
+      return BlockTimestamp(
+          blockHeader.height,
+          DateTime.fromMillisecondsSinceEpoch(blockHeader.timestamp * 1000,
               isUtc: true));
     });
-  }
-
-  @override
-  Future<BlockTimestamp> fetchBlockSync() async {
-    var now = DateTime.now();
-    if (_lastUpdatedAt != null) {
-      var lastUpdatedAt = _lastUpdatedAt!.add(Duration(seconds: 10));
-      if (now.isBefore(lastUpdatedAt)) {
-        return _blockMap[_currentHeight]!;
-      }
-    }
-    var blockEntity = await getCurrentBlock();
-    _currentHeight = blockEntity.height;
-    _lastUpdatedAt = now;
-    var block = BlockTimestamp(
-        _currentHeight,
-        DateTime.fromMillisecondsSinceEpoch(blockEntity.timestamp * 1000,
-            isUtc: true));
-    _blockMap[_currentHeight] = block;
-
-    return block;
-  }
-
-  Future<BlockHeader> getCurrentBlock() async {
-    var result = await _client.getCurrentBlock();
-    return BlockHeader.parse(result.height, result.hex);
   }
 
   /// utxo 조회는 balance 조회를 동시에 진행하여 0번 인덱스부터 조회하도록 고정
@@ -245,12 +206,6 @@ class ElectrumApi extends Network {
         for (var unspent in unspentList) {
           var transactionEntity = txEntityList.firstWhere(
               (txEntity) => txEntity.transactionHash == unspent.txHash);
-          // var utxo = UTXO.fromApiResponse(
-          //     walletId: walletId,
-          //     res: unspent,
-          //     txString: transactionEntity.serialize(),
-          //     derivationPath: derivationPath,
-          //     timestamp: transactionEntity.timestamp ?? 0);
           var utxo = UTXO(unspent.txHash, unspent.txPos, unspent.value,
               derivationPath, transactionEntity.timestamp, unspent.height);
 
@@ -304,9 +259,6 @@ class ElectrumApi extends Network {
         var txEntity = Transaction.fromOnChainData(
             txString, timestamp, blockHeight, [], '');
 
-        // var txEntity = TransactionEntity.from(wallet.identifier, txString, [],
-        //     height: blockHeight, timestamp: timestamp);
-
         fetchedTxEntityMap[txHistory.txHash] = txEntity;
       });
 
@@ -318,11 +270,7 @@ class ElectrumApi extends Network {
   }
 
   bool _isCoinbaseTransaction(Transaction tx) {
-    if (tx.inputs.isEmpty) {
-      return false;
-    }
-
-    if (tx.inputs.length > 1) {
+    if (tx.inputs.length != 1) {
       return false;
     }
 
@@ -331,7 +279,7 @@ class ElectrumApi extends Network {
       return false;
     }
 
-    return Converter.decToHex(tx.inputs[0].index) == 'ffffffff';
+    return tx.inputs[0].index == 4294967295; // 0xffffffff
   }
 
   Future<void> _fetchTxInputsTxString(
@@ -381,12 +329,8 @@ class ElectrumApi extends Network {
           script = ScriptPublicKey.p2wpkh(address).serialize();
         } else if (wallet.addressType == AddressType.p2wsh) {
           script = ScriptPublicKey.p2wsh(address).serialize();
-        } else if (wallet.addressType == AddressType.p2pkh) {
-          script = ScriptPublicKey.p2pkh(address).serialize();
-        } else if (wallet.addressType == AddressType.p2sh) {
-          script = ScriptPublicKey.p2sh(address).serialize();
         } else {
-          throw Exception('Unsupported address type');
+          throw 'Unsupported address type: ${wallet.addressType.scriptType}';
         }
 
         var scriptWithoutSize = script.substring(2);
@@ -400,7 +344,7 @@ class ElectrumApi extends Network {
                 .map((history) => history.height));
             usedIndexList[mapIndex]!.add(callBackIndex);
             txHistorySet.addAll(historyList);
-            int newGap = i + gapLimit;
+            int newGap = i + gapLimit + 1;
             if (gapIndex < newGap) {
               gapIndex = newGap;
             }
@@ -430,7 +374,9 @@ class ElectrumApi extends Network {
       print(e);
       print(stackTrace);
       CoconutError coconutError;
+
       if (e is Map<String, dynamic>) {
+        // Map<String, dynamic> 타입: Electrum 에서 발생한 오류
         if ((e['message'] as String).contains('Fee exceeds')) {
           coconutError = CoconutError(
               ErrorCodeEnum.exceededFee, '수수료가 너무 높습니다. 수수료를 낮춰서 다시 시도해 주세요.');
@@ -439,7 +385,13 @@ class ElectrumApi extends Network {
               CoconutError(ErrorCodeEnum.electrumRpcError, '오류가 발생했습니다.');
         }
       } else if (e is String) {
-        coconutError = CoconutError(ErrorCodeEnum.electrumRpcError, e);
+        // String 타입: 라이브러리에서 발생한 오류
+        if (e.contains('Unsupported address type')) {
+          coconutError = CoconutError(
+              ErrorCodeEnum.unsupportedAddressType, '지원하지 않는 주소 타입입니다.');
+        } else {
+          coconutError = CoconutError(ErrorCodeEnum.electrumApiError, e);
+        }
       } else {
         coconutError = CoconutError.unknown(error: e);
       }
@@ -467,7 +419,8 @@ class ElectrumApi extends Network {
     await Future.wait(futures);
   }
 
-  Future<void> close() async {
+  @override
+  Future<void> dispose() async {
     await _client.close();
   }
 }

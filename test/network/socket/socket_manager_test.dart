@@ -1,4 +1,4 @@
-@Tags(['unit'])
+@Tags(['unit', 'network'])
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -28,28 +28,30 @@ void main() {
       mockSocket = MockSocket();
       mockSocketFactory = MockSocketFactory();
       mockErrorSocketFactory = MockSocketFactory();
-      socketManager = SocketManager(factory: mockSocketFactory);
       mockCallback = MockCallback();
-      when(mockSocketFactory.createSocket('localhost', 1234))
-          .thenAnswer((e) async => mockSocket);
-      when(mockErrorSocketFactory.createSocket('localhost', 1234))
-          .thenThrow(Error());
+
       when(mockSocket.listen(any,
               onError: anyNamed('onError'),
               onDone: anyNamed('onDone'),
               cancelOnError: anyNamed('cancelOnError')))
           .thenAnswer((invocation) =>
               StreamController<Uint8List>().stream.listen(null));
+      when(mockSocket.close()).thenAnswer((_) async {});
+      when(mockSocketFactory.createSocket('localhost', 1234))
+          .thenAnswer((e) async => mockSocket);
+      socketManager = SocketManager(factory: mockSocketFactory);
+      when(mockErrorSocketFactory.createSocket('localhost', 1234))
+          .thenThrow(Error());
     });
 
-    test('should connect to server successfully', () async {
+    test('서버에 성공적으로 연결되어야 함', () async {
       await socketManager.connect('localhost', 1234, ssl: false);
 
       expect(socketManager.connectionStatus, SocketConnectionStatus.connected);
       verify(mockSocketFactory.createSocket('localhost', 1234)).called(1);
     });
 
-    test('should handle socket data', () async {
+    test('메시지를 보내고 응답 데이터를 처리해야 함', () async {
       when(mockSocket.listen(any,
               onError: anyNamed('onError'),
               onDone: anyNamed('onDone'),
@@ -76,7 +78,17 @@ void main() {
       expect(result['message'], equals('pong'));
     });
 
-    test('should handle fragmented JSON data', () async {
+    test('메시지를 보낼 때 연결이 끊어지면 다시 연결을 시도해야 함', () async {
+      MockSocketFactory mockSocketFactory = MockSocketFactory();
+      when(mockSocketFactory.createSocket('localhost', 1234))
+          .thenAnswer((e) async => mockSocket);
+      SocketManager socketManager = SocketManager(factory: mockSocketFactory);
+
+      expect(() => socketManager.send('{"id": 1, "message": "ping"}'),
+          throwsA(isA<SocketException>()));
+    });
+
+    test('분할된 JSON 데이터를 처리해야 함', () async {
       // Simulate fragmented JSON data reception
       when(mockSocket.listen(any,
               onError: anyNamed('onError'),
@@ -91,7 +103,7 @@ void main() {
         // Send the first part
         onData(Uint8List.fromList(part1));
         // Send the second part after a slight delay
-        Future.delayed(Duration(milliseconds: 50), () {
+        Future.delayed(Duration(milliseconds: 1), () {
           onData(Uint8List.fromList(part2));
         });
 
@@ -113,7 +125,7 @@ void main() {
       expect(result['result']['test'], isA<List>());
     });
 
-    test('should handle connection error', () async {
+    test('연결 오류를 처리해야 함', () async {
       when(mockSocket.listen(any,
               onError: anyNamed('onError'),
               onDone: anyNamed('onDone'),
@@ -126,21 +138,21 @@ void main() {
           socketManager.connectionStatus, SocketConnectionStatus.reconnecting);
     });
 
-    test('should change to terminated state after maximum connection attempts',
-        () async {
+    test('최대 연결 시도 횟수 초과 시 종료 상태로 변경되어야 함', () async {
       SocketManager socketManager = SocketManager(
-          factory: mockErrorSocketFactory, reconnectDelaySeconds: 0);
+          factory: mockErrorSocketFactory,
+          reconnectDelaySeconds: 0,
+          maxConnectionAttempts: 3);
 
       await socketManager.connect('localhost', 1234, ssl: false);
 
-      await Future.delayed(Duration(seconds: 1));
+      await Future.delayed(Duration(milliseconds: 1));
 
       expect(socketManager.connectionStatus, SocketConnectionStatus.terminated);
-      verify(mockErrorSocketFactory.createSocket('localhost', 1234)).called(30);
+      verify(mockErrorSocketFactory.createSocket('localhost', 1234)).called(3);
     });
 
-    test('should execute the callback function when attempting to reconnect',
-        () async {
+    test('재연결 시도 시 콜백 함수가 실행되어야 함', () async {
       SocketManager socketManager = SocketManager(
           factory: mockErrorSocketFactory,
           reconnectDelaySeconds: 0,
@@ -150,13 +162,12 @@ void main() {
 
       await socketManager.connect('localhost', 1234, ssl: false);
 
-      await Future.delayed(Duration(seconds: 1));
+      await Future.delayed(Duration(milliseconds: 1));
 
       verify(mockCallback.call()).called(1);
     });
 
-    test('should change the state to `connecting` when attempting to connect',
-        () async {
+    test('연결 시도 시 상태가 `connecting`으로 변경되어야 함', () async {
       MockSocketFactory mockSocketFactory = MockSocketFactory();
       when(mockSocketFactory.createSocket('localhost', 1234))
           .thenAnswer((e) async {
@@ -170,6 +181,57 @@ void main() {
       await Future.delayed(Duration(milliseconds: 50));
 
       expect(socketManager.connectionStatus, SocketConnectionStatus.connecting);
+    });
+
+    test('소켓 연결을 종료해야 함', () async {
+      await socketManager.connect('localhost', 1234, ssl: false);
+      await socketManager.disconnect();
+
+      expect(socketManager.connectionStatus, SocketConnectionStatus.terminated);
+      verify(mockSocket.close()).called(1);
+    });
+
+    // ... existing code ...
+
+    test('onDone 이벤트 발생 시 연결 상태가 terminated로 변경되어야 함', () async {
+      late void Function() onDone;
+
+      when(mockSocket.listen(any,
+              onError: anyNamed('onError'),
+              onDone: anyNamed('onDone'),
+              cancelOnError: anyNamed('cancelOnError')))
+          .thenAnswer((invocation) {
+        onDone = invocation.namedArguments[#onDone] as void Function();
+        return StreamController<Uint8List>().stream.listen(null);
+      });
+
+      await socketManager.connect('localhost', 1234, ssl: false);
+      expect(socketManager.connectionStatus, SocketConnectionStatus.connected);
+
+      onDone();
+
+      expect(socketManager.connectionStatus, SocketConnectionStatus.terminated);
+    });
+
+    test('onError 이벤트 발생 시 재연결을 시도해야 함', () async {
+      late void Function(dynamic) onError;
+
+      when(mockSocket.listen(any,
+              onError: anyNamed('onError'),
+              onDone: anyNamed('onDone'),
+              cancelOnError: anyNamed('cancelOnError')))
+          .thenAnswer((invocation) {
+        onError = invocation.namedArguments[#onError] as void Function(dynamic);
+        return StreamController<Uint8List>().stream.listen(null);
+      });
+
+      await socketManager.connect('localhost', 1234, ssl: false);
+      expect(socketManager.connectionStatus, SocketConnectionStatus.connected);
+
+      onError('테스트 에러');
+
+      expect(
+          socketManager.connectionStatus, SocketConnectionStatus.reconnecting);
     });
   });
 
@@ -192,7 +254,7 @@ void main() {
               StreamController<Uint8List>().stream.listen(null));
     });
 
-    test('should connect to ssl server successfully', () async {
+    test('SSL 서버에 성공적으로 연결되어야 함', () async {
       await socketManager.connect('localhost', 1234, ssl: true);
 
       expect(socketManager.connectionStatus, SocketConnectionStatus.connected);

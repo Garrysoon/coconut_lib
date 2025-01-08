@@ -63,9 +63,12 @@ class SingleSignatureWallet extends SingleSignatureWalletBase
 
   @override
   List<UTXO> getUtxoList(
-      {UtxoOrderEnum order = UtxoOrderEnum.byTimestampDesc}) {
+      {UtxoOrderEnum order = UtxoOrderEnum.byTimestampDesc,
+      int cursor = 0,
+      int count = 5}) {
     UTXO.sortUTXO(walletStatus!.utxoList, order);
-    return walletStatus!.utxoList;
+
+    return walletStatus!.utxoList.skip(cursor).take(count).toList();
   }
 
   @override
@@ -81,32 +84,44 @@ class SingleSignatureWallet extends SingleSignatureWalletBase
   @override
   Future<String> generatePsbt(
       String receiverAddress, int sendingAmount, int feeRate) async {
-    PSBT psbt = await Future(
-        () => PSBT.forSending(receiverAddress, sendingAmount, feeRate, this));
+    PSBT psbt = await Future(() => PSBT.fromTransaction(
+        Transaction.forPayment(receiverAddress, sendingAmount, feeRate, this),
+        this));
     return psbt.serialize();
   }
 
   @override
   Future<String> generatePsbtWithMaximum(
       String receiverAddress, int feeRate) async {
-    PSBT psbt = await Future(
-        () => PSBT.forMaximumSending(receiverAddress, feeRate, this));
+    PSBT psbt = await Future(() => PSBT.fromTransaction(
+        Transaction.forSweep(receiverAddress, feeRate, this), this));
+    return psbt.serialize();
+  }
+
+  @override
+  Future<String> generatePsbtWithUtxoList(String receiverAddress,
+      int sendingAmount, List<UTXO> utxoList, int feeRate) async {
+    PSBT psbt = await Future(() => PSBT.fromTransaction(
+        Transaction.fromUtxoList(
+            utxoList, receiverAddress, sendingAmount, feeRate, this),
+        this));
     return psbt.serialize();
   }
 
   @override
   Future<int> estimateFee(
       String receiverAddress, int sendingAmount, int feeRate) async {
-    PSBT psbt = await Future(
-        () => PSBT.forSending(receiverAddress, sendingAmount, feeRate, this));
+    PSBT psbt = await Future(() => PSBT.fromTransaction(
+        Transaction.forPayment(receiverAddress, sendingAmount, feeRate, this),
+        this));
     return psbt.estimateFee(feeRate, addressType);
   }
 
   @override
   Future<int> estimateFeeWithMaximum(
       String receiverAddress, int feeRate) async {
-    PSBT psbt = await Future(
-        () => PSBT.forMaximumSending(receiverAddress, feeRate, this));
+    PSBT psbt = await Future(() => PSBT.fromTransaction(
+        Transaction.forSweep(receiverAddress, feeRate, this), this));
     return psbt.estimateFee(feeRate, addressType);
   }
 

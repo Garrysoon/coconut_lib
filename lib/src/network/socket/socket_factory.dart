@@ -17,8 +17,4 @@ class DefaultSocketFactory implements SocketFactory {
     var socket = SecureSocket.connect(host, port);
     return socket;
   }
-
-  void closeSocket(Socket socket) {
-    socket.close();
-  }
 }
