@@ -37,6 +37,22 @@ class TransactionOutput {
     throw Exception('AddressType not supported');
   }
 
+  bool isDustOutput(bool isSegwit, {int dustRelayFee = 3}) {
+    int outputScriptSize = Converter.hexToBytes(serialize()).length;
+    late int inputSize;
+    if (isSegwit) {
+      inputSize = (32 + 4 + 1 + (107 / 4).floor() + 4);
+    } else {
+      inputSize = (32 + 4 + 1 + 107 + 4);
+    }
+    int dustThreshold = dustRelayFee * (outputScriptSize + inputSize);
+
+    if (dustThreshold >= amount) {
+      return true;
+    }
+    return false;
+  }
+
   /// Parse the transaction output from the given output hex.
   factory TransactionOutput.parse(String output) {
     Uint8List bytes = Converter.hexToBytes(output);

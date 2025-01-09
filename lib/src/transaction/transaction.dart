@@ -126,18 +126,27 @@ class Transaction {
 
     // print("Fee : $fee");
     int changeAmount = totalInputAmount - amount - fee;
-    int dust = _getDustThreshold(wallet.addressType);
-
-    if (changeAmount <= dust) {
-      for (TransactionOutput output in tx.outputs) {
-        if (output.scriptPubKey.getAddress() == changeAddress) {
-          tx.outputs.remove(output);
-          break;
-        }
-      }
+    if (changeAmount < 0) {
+      tx.outputs.remove(changeOutput);
     } else {
       changeOutput.setAmount(changeAmount);
+
+      if (changeOutput.isDustOutput(wallet.addressType.isSegwit)) {
+        tx.outputs.remove(changeOutput);
+      }
     }
+    // int dust = _getDustThreshold(wallet.addressType);
+
+    // if (changeAmount <= dust) {
+    //   for (TransactionOutput output in tx.outputs) {
+    //     if (output.scriptPubKey.getAddress() == changeAddress) {
+    //       tx.outputs.remove(output);
+    //       break;
+    //     }
+    //   }
+    // } else {
+    //   changeOutput.setAmount(changeAmount);
+    // }
     tx._utxoList = utxoList;
     return tx;
   }
@@ -860,11 +869,21 @@ class Transaction {
         requiredSignature: requiredSignature, totalSinger: totalSinger);
     int changeAmount =
         totalInputAmount - getSendingAmount(wallet.addressBook) - fee;
-    if (changeAmount < _getDustThreshold(wallet.addressType)) {
+
+    if (changeAmount < 0) {
       outputs.remove(changeOutput);
     } else {
       changeOutput.setAmount(changeAmount);
+
+      if (changeOutput.isDustOutput(wallet.addressType.isSegwit)) {
+        outputs.remove(changeOutput);
+      }
     }
+    // if (changeAmount < _getDustThreshold(wallet.addressType)) {
+    //   outputs.remove(changeOutput);
+    // } else {
+    //   changeOutput.setAmount(changeAmount);
+    // }
   }
 
   /// Remove utxo from the transaction.
@@ -908,11 +927,14 @@ class Transaction {
         requiredSignature: requiredSignature, totalSinger: totalSinger);
     int changeAmount =
         totalInputAmount - getSendingAmount(wallet.addressBook) - fee;
-
-    if (changeAmount <= _getDustThreshold(wallet.addressType)) {
+    if (changeAmount < 0) {
       outputs.remove(changeOutput);
     } else {
       changeOutput.setAmount(changeAmount);
+
+      if (changeOutput.isDustOutput(wallet.addressType.isSegwit)) {
+        outputs.remove(changeOutput);
+      }
     }
   }
 
@@ -932,11 +954,14 @@ class Transaction {
     }
     int changeAmount =
         totalInputAmount - getSendingAmount(wallet.addressBook) - fee;
-
-    if (changeAmount <= _getDustThreshold(wallet.addressType)) {
+    if (changeAmount < 0) {
       outputs.remove(changeOutput);
     } else {
       changeOutput.setAmount(changeAmount);
+
+      if (changeOutput.isDustOutput(wallet.addressType.isSegwit)) {
+        outputs.remove(changeOutput);
+      }
     }
   }
 
@@ -964,7 +989,7 @@ class Transaction {
     if (addressType == AddressType.p2wpkh) {
       return 294;
     } else if (addressType == AddressType.p2wsh) {
-      return 354;
+      return 330;
     } else if (addressType == AddressType.p2pkh) {
       return 546;
     } else if (addressType == AddressType.p2sh) {

@@ -14,18 +14,6 @@ class ScriptPublicKey extends Script {
     return ScriptPublicKey(scriptByte);
   }
 
-  /// Generate P2WPKH script public key from given address.
-  static ScriptPublicKey p2wpkh(String address) {
-    var codec = Bech32Codec().decode(address);
-    codec.data.removeAt(0);
-    var data8Bits = Converter.convertBits(codec.data, 5, 8, pad: false);
-    //print("HERE : " + Converter.bytesToHex(data8Bits));
-    return ScriptPublicKey([
-      0x00,
-      Uint8List.fromList(data8Bits),
-    ]);
-  }
-
   /// Generate P2PKH script public key from given address.
   static ScriptPublicKey p2pkh(String address) {
     List<int> h160 = Base58.decode(address);
@@ -47,6 +35,18 @@ class ScriptPublicKey extends Script {
       0xa9,
       h160,
       0x87,
+    ]);
+  }
+
+  /// Generate P2WPKH script public key from given address.
+  static ScriptPublicKey p2wpkh(String address) {
+    var codec = Bech32Codec().decode(address);
+    codec.data.removeAt(0);
+    var data8Bits = Converter.convertBits(codec.data, 5, 8, pad: false);
+    //print("HERE : " + Converter.bytesToHex(data8Bits));
+    return ScriptPublicKey([
+      0x00,
+      Uint8List.fromList(data8Bits),
     ]);
   }
 
