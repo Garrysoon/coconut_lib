@@ -64,5 +64,26 @@ void main() {
       expect(fee.economyFee, 40);
       expect(fee.minimumFee, 20);
     });
+
+    test('getTransactionStatus가 올바른 형식의 응답을 반환해야 함', () async {
+      final mockResponse = {
+        'confirmed': true,
+        'block_height': 50019,
+        'block_hash':
+            '0d0dc7f07ddef31e99c52bdead507bc27dac271c13d02e1c875efbf86a5729f3',
+        'block_time': 1736297700,
+      };
+
+      when(mockClient.get(any)).thenAnswer((_) async {
+        return Response(json.encode(mockResponse), 200);
+      });
+
+      final status = await MempoolApi.getTransactionStatus('txid');
+
+      expect(status.confirmed, isA<bool>());
+      expect(status.blockHeight, isA<int>());
+      expect(status.blockHash, isA<String>());
+      expect(status.blockTime, isA<int>());
+    });
   });
 }

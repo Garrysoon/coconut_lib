@@ -25,4 +25,14 @@ class MempoolApi {
 
     return RecommendedFee.fromJson(jsonMap);
   }
+
+  static Future<MempoolTransactionStatus> getTransactionStatus(
+      String txid) async {
+    String urlString = '$host/api/v1/tx/$txid/status';
+    final url = Uri.parse(urlString);
+    final response = await client.get(url);
+
+    Map<String, dynamic> jsonMap = jsonDecode(response.body);
+    return MempoolTransactionStatus.fromJson(jsonMap);
+  }
 }

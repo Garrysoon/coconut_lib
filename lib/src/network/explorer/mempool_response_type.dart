@@ -30,3 +30,22 @@ class RecommendedFee {
     );
   }
 }
+
+class MempoolTransactionStatus {
+  final bool confirmed;
+  final int blockHeight;
+  final String blockHash;
+  final int blockTime;
+
+  MempoolTransactionStatus(
+      this.confirmed, this.blockHeight, this.blockHash, this.blockTime);
+
+  factory MempoolTransactionStatus.fromJson(Map<String, dynamic> json) {
+    return MempoolTransactionStatus(
+      json['confirmed'] as bool,
+      json['block_height'] as int,
+      json['block_hash'] as String,
+      json['block_time'] as int,
+    );
+  }
+}
