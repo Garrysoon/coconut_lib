@@ -6,8 +6,6 @@ import 'package:coconut_lib/src/utils/converter.dart';
 import 'package:coconut_lib/src/utils/hash.dart';
 import 'package:test/test.dart';
 
-import '../mock_generator.dart';
-
 void main() {
   late HDWallet hdWallet;
   setUpAll(() {
