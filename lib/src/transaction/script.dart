@@ -113,4 +113,16 @@ class Script {
 
     return serialized;
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true; // Check if they are the same instance
+    }
+    if (other is! Script) return false; // Ensure the object is of the same type
+    return _cmds == other._cmds; // Compare properties
+  }
+
+  @override
+  int get hashCode => _cmds.hashCode;
 }

@@ -126,17 +126,27 @@ class Transaction {
 
     // print("Fee : $fee");
     int changeAmount = totalInputAmount - amount - fee;
-
-    if (changeAmount <= 0) {
-      for (TransactionOutput output in tx.outputs) {
-        if (output.scriptPubKey.getAddress() == changeAddress) {
-          tx.outputs.remove(output);
-          break;
-        }
-      }
+    if (changeAmount < 0) {
+      tx.outputs.remove(changeOutput);
     } else {
       changeOutput.setAmount(changeAmount);
+
+      if (changeOutput.isDustOutput(wallet.addressType.isSegwit)) {
+        tx.outputs.remove(changeOutput);
+      }
     }
+    // int dust = _getDustThreshold(wallet.addressType);
+
+    // if (changeAmount <= dust) {
+    //   for (TransactionOutput output in tx.outputs) {
+    //     if (output.scriptPubKey.getAddress() == changeAddress) {
+    //       tx.outputs.remove(output);
+    //       break;
+    //     }
+    //   }
+    // } else {
+    //   changeOutput.setAmount(changeAmount);
+    // }
     tx._utxoList = utxoList;
     return tx;
   }
@@ -149,7 +159,7 @@ class Transaction {
     try {
       walletFeature = wallet as WalletFeature;
     } catch (e) {
-      print("Vault cannot call OptimalSending");
+      print("Vault cannot call payment");
     }
 
     List<UTXO> utxoList = _selectOptimalUtxo(
@@ -166,6 +176,7 @@ class Transaction {
       List<UTXO> utxos, int amount, int feeRate, AddressType addressType) {
     int baseVbyte = 72; //0 input, 2 output
     int vBytePerInput = 0;
+    int dust = _getDustThreshold(addressType);
     if (addressType.isSegwit) {
       vBytePerInput = 68; //segwit discount
     } else {
@@ -185,7 +196,7 @@ class Transaction {
       totalAmount += utxo.amount;
       totalVbyte += vBytePerInput;
       int fee = totalVbyte * feeRate;
-      if (totalAmount >= amount + fee) {
+      if (totalAmount >= amount + fee + dust) {
         return selectedUtxos;
       }
       finalFee = fee;
@@ -218,6 +229,10 @@ class Transaction {
 
     if (inputAmount == 0) {
       throw Exception('No balance to send');
+    }
+
+    if (inputAmount < _getDustThreshold(wallet.addressType)) {
+      throw Exception('Sending amount is under dust threshold.');
     }
 
     TransactionOutput sendingOutput = TransactionOutput.forPayment(0, address);
@@ -854,10 +869,21 @@ class Transaction {
         requiredSignature: requiredSignature, totalSinger: totalSinger);
     int changeAmount =
         totalInputAmount - getSendingAmount(wallet.addressBook) - fee;
+
     if (changeAmount < 0) {
-      changeAmount = 0;
+      outputs.remove(changeOutput);
+    } else {
+      changeOutput.setAmount(changeAmount);
+
+      if (changeOutput.isDustOutput(wallet.addressType.isSegwit)) {
+        outputs.remove(changeOutput);
+      }
     }
-    changeOutput.setAmount(changeAmount);
+    // if (changeAmount < _getDustThreshold(wallet.addressType)) {
+    //   outputs.remove(changeOutput);
+    // } else {
+    //   changeOutput.setAmount(changeAmount);
+    // }
   }
 
   /// Remove utxo from the transaction.
@@ -901,11 +927,14 @@ class Transaction {
         requiredSignature: requiredSignature, totalSinger: totalSinger);
     int changeAmount =
         totalInputAmount - getSendingAmount(wallet.addressBook) - fee;
-
-    if (changeAmount <= 0) {
-      changeOutput.setAmount(0);
+    if (changeAmount < 0) {
+      outputs.remove(changeOutput);
     } else {
       changeOutput.setAmount(changeAmount);
+
+      if (changeOutput.isDustOutput(wallet.addressType.isSegwit)) {
+        outputs.remove(changeOutput);
+      }
     }
   }
 
@@ -925,11 +954,14 @@ class Transaction {
     }
     int changeAmount =
         totalInputAmount - getSendingAmount(wallet.addressBook) - fee;
-
-    if (changeAmount <= 0) {
-      changeOutput.setAmount(0);
+    if (changeAmount < 0) {
+      outputs.remove(changeOutput);
     } else {
       changeOutput.setAmount(changeAmount);
+
+      if (changeOutput.isDustOutput(wallet.addressType.isSegwit)) {
+        outputs.remove(changeOutput);
+      }
     }
   }
 
@@ -951,6 +983,22 @@ class Transaction {
       }
     }
     return sendingAmount;
+  }
+
+  static int _getDustThreshold(AddressType addressType) {
+    if (addressType == AddressType.p2wpkh) {
+      return 294;
+    } else if (addressType == AddressType.p2wsh) {
+      return 330;
+    } else if (addressType == AddressType.p2pkh) {
+      return 546;
+    } else if (addressType == AddressType.p2sh) {
+      return 888;
+    } else if (addressType == AddressType.p2wpkhInP2sh) {
+      return 273;
+    } else {
+      throw Exception('Unsupported Address Type');
+    }
   }
 
   String toJson() {

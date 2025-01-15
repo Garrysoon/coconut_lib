@@ -86,7 +86,7 @@ class HDWallet {
   /// get master private WIF format
   String getMasterPrivateKey() {
     if (privateKey == null) {
-      throw ArgumentError("HDWallet : Missing private key");
+      throw Exception("HDWallet : Missing private key");
     }
     return wif.encode(
         wif.WIF(version: 0x80, privateKey: privateKey!, compressed: true));
@@ -99,7 +99,7 @@ class HDWallet {
     Uint8List data = Uint8List(37);
     if (isHardened) {
       if (isNeutered()) {
-        throw ArgumentError("Missing private key for hardened child key");
+        throw Exception("Missing private key for hardened child key");
       }
       data[0] = 0x00;
       data.setRange(1, 33, privateKey!);
@@ -140,12 +140,12 @@ class HDWallet {
   HDWallet derivePath(String path) {
     final regex = RegExp(r"^(m\/)?(\d+'?\/)*\d+'?$");
     if (!regex.hasMatch(path)) {
-      throw Exception("Wallet Base : Invalid Path");
+      throw Exception("Invalid Path");
     }
     List<String> splitPath = path.split("/");
     if (splitPath[0] == "m") {
       if (parentFingerprint.buffer.asByteData().getUint32(0) != 0) {
-        throw Exception("Wallet Base : Expected master, got child");
+        throw Exception("Expected master, got child");
       }
       splitPath = splitPath.sublist(1);
     }
@@ -182,7 +182,7 @@ class HDWallet {
   /// @nodoc
   factory HDWallet.fromPrivateKey(Uint8List privateKey, Uint8List chainCode) {
     if (privateKey.length != 32) {
-      throw ArgumentError(
+      throw Exception(
           "Expected property privateKey of type Buffer(Length: 32)");
     }
     if (!ecc.isPrivate(privateKey)) {
@@ -196,10 +196,10 @@ class HDWallet {
     Uint8List seedBytes = Uint8List.fromList(HEX.decode(seed));
 
     if (seedBytes.length < 16) {
-      throw ArgumentError("WalletBase : Seed should be at least 128 bits");
+      throw Exception("Seed should be at least 128 bits");
     }
     if (seedBytes.length > 64) {
-      throw ArgumentError("WalletBase : Seed should be at most 512 bits");
+      throw Exception(" Seed should be at most 512 bits");
     }
     final I = Hash.hmacSha512FromList(utf8.encode("Bitcoin seed"), seedBytes);
     final privateKey = I.sublist(0, 32);

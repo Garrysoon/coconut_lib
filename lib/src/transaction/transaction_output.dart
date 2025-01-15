@@ -37,6 +37,22 @@ class TransactionOutput {
     throw Exception('AddressType not supported');
   }
 
+  bool isDustOutput(bool isSegwit, {int dustRelayFee = 3}) {
+    int outputScriptSize = Converter.hexToBytes(serialize()).length;
+    late int inputSize;
+    if (isSegwit) {
+      inputSize = (32 + 4 + 1 + (107 / 4).floor() + 4);
+    } else {
+      inputSize = (32 + 4 + 1 + 107 + 4);
+    }
+    int dustThreshold = dustRelayFee * (outputScriptSize + inputSize);
+
+    if (dustThreshold >= amount) {
+      return true;
+    }
+    return false;
+  }
+
   /// Parse the transaction output from the given output hex.
   factory TransactionOutput.parse(String output) {
     Uint8List bytes = Converter.hexToBytes(output);
@@ -61,4 +77,20 @@ class TransactionOutput {
   String getAddress() {
     return _scriptPubKey.getAddress();
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) {
+      return true; // Check if they are the same instance
+    }
+    if (other is! TransactionOutput) {
+      return false; // Ensure the object is of the same type
+    }
+    return amount == other.amount &&
+        scriptPubKey.serialize() ==
+            other.scriptPubKey.serialize(); // Compare properties
+  }
+
+  @override
+  int get hashCode => amount.hashCode ^ scriptPubKey.hashCode;
 }
