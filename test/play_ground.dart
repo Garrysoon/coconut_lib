@@ -1,44 +1,65 @@
-// ignore_for_file: unused_import
-import 'dart:io';
+bool validateDerivationPath(String derivationPath) {
+  // Corrected regular expression to match a valid derivation path (e.g., m/44'/0'/0'/0/0)
+  final regex = RegExp(r"^m(\/(\d+'?))*");
 
-import 'package:coconut_lib/coconut_lib.dart';
-import 'package:coconut_lib/src/utils/converter.dart';
-import 'package:coconut_lib/src/utils/hash.dart';
+  // Check if the derivation path matches the regex
+  if (!regex.hasMatch(derivationPath)) {
+    return false;
+  }
 
-import 'mock_generator.dart';
+  // Split the path into components and validate each segment
+  final segments = derivationPath.split('/');
 
-void main() async {
-  /// >> In Vault
-  /// choose the Bitcoin Network
-  BitcoinNetwork.setNetwork(BitcoinNetwork.regtest);
+  // The first segment must always be 'm'
+  if (segments[0] != 'm') {
+    return false;
+  }
 
-  /// generate air-gapped vault
-  SingleSignatureVault mnemonicVault = SingleSignatureVault.fromMnemonic(
-      'dress obvious vendor case rookie bring goat sudden trend fun myth nest',
-      AddressType.p2wpkh);
+  // Validate the rest of the segments
+  for (int i = 1; i < segments.length; i++) {
+    final segment = segments[i];
 
-  // >> In Wallet
-  /// import expub to watch-only wallet with descriptor(BIP-0380)
-  SingleSignatureWallet watchOnlyWallet =
-      SingleSignatureWallet.fromDescriptor(mnemonicVault.descriptor);
+    // Ensure the segment is a number optionally followed by a "'"
+    if (!RegExp(r"^\d+'?").hasMatch(segment)) {
+      return false;
+    }
 
-  /// Obtain the bitcoin from faucet
-  print("address : ${watchOnlyWallet.getReceiveAddress()}");
+    // Ensure the number part is within a valid range (e.g., 0 to 2^31-1)
+    final numberPart = segment.replaceAll("'", "");
+    final number = int.tryParse(numberPart);
 
-  /// connect to the node and fetch transaction data
-  NodeConnector nodeConnector = await NodeConnector.connectSync(
-      'regtest-electrum.coconut.onl', 60401,
-      ssl: true);
+    if (number == null || number < 0 || number >= 0x80000000) {
+      return false;
+    }
+  }
 
-  /// fetch on chain data
-  await watchOnlyWallet.fetchOnChainData(nodeConnector);
+  return true;
+}
 
-  print(watchOnlyWallet.getBalance());
+void main() {
+  // Test cases
+  final validPaths = [
+    "m/44'/0'/0'/0/0",
+    "m/44'/60'/0'/0/0",
+    "m/0'/1/2'/2/1000000000",
+  ];
 
-  Transaction tx = Transaction.forPayment(
-      watchOnlyWallet.getAddress(5), 9999200, 1, watchOnlyWallet);
+  final invalidPaths = [
+    "n/44'/0'/0'/0/0", // Does not start with 'm'
+    "m/44'/0'/0", // Missing segment
+    "m/44'/0'/-1'", // Negative number
+    "m/44'/0'/0'/0/0/", // Trailing slash
+    "m/44'/0xG'/0'", // Invalid characters
+    "m/44'/0'/2147483648'" // Number out of range
+  ];
 
-  for (TransactionOutput output in tx.outputs) {
-    print(output.amount);
+  print("Valid paths:");
+  for (var path in validPaths) {
+    print("$path: ${validateDerivationPath(path)}");
+  }
+
+  print("\nInvalid paths:");
+  for (var path in invalidPaths) {
+    print("$path: ${validateDerivationPath(path)}");
   }
 }

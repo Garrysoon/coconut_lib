@@ -23,7 +23,7 @@ abstract class MultisignatureWalletBase extends WalletBase {
     }
 
     for (KeyStore keyStore in _keyStoreList) {
-      if (BitcoinNetwork.currentNetwork.isTestnet !=
+      if (NetworkType.currentNetwork.isTestnet !=
           AddressType.isTestnetVersion(keyStore.extendedPublicKey.version)) {
         throw Exception('Network type mismatch.');
       }
@@ -41,6 +41,17 @@ abstract class MultisignatureWalletBase extends WalletBase {
   String getAddress(int addressIndex, {bool isChange = false}) {
     List<String> pubkeys = _keyStoreList
         .map((e) => e.getPublicKey(addressIndex, isChange: isChange))
+        .toList();
+    return _addressType.getMultisignatureAddress(pubkeys, _requiredSignature);
+  }
+
+  @override
+  String getAddressWithDerivationPath(String derivationPath) {
+    if (!WalletUtility.validateDerivationPath(_derivationPath)) {
+      throw Exception("Invalid derivation path (e.g., m/44'/0'/0'/0/0)");
+    }
+    List<String> pubkeys = _keyStoreList
+        .map((e) => e.getPublicKeyWithDerivationPath(derivationPath))
         .toList();
     return _addressType.getMultisignatureAddress(pubkeys, _requiredSignature);
   }

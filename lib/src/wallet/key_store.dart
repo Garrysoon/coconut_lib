@@ -45,7 +45,7 @@ class KeyStore {
   /// Create a key store from a seed.
   factory KeyStore.fromSeed(Seed seed, AddressType addressType,
       {int accountIndex = 0}) {
-    bool isTestnet = BitcoinNetwork.currentNetwork.isTestnet;
+    bool isTestnet = NetworkType.currentNetwork.isTestnet;
     HDWallet rootWallet = HDWallet.fromRootSeed(seed.rootSeed);
     String fingerprint =
         Converter.bytesToHex(rootWallet.fingerprint).toUpperCase();

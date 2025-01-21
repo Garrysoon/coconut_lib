@@ -182,7 +182,7 @@ void main() {
 
   group('AddressType test', () {
     test('test get extended pubkey (nested segwit)', () {
-      BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
+      NetworkType.setNetworkType(NetworkType.mainnet);
       Seed seed = Seed.fromMnemonic(
           'chaos spread coconut advance rent suggest ten vast vanish bench demand ghost');
       SingleSignatureVault vault =
@@ -193,7 +193,7 @@ void main() {
     });
 
     test('get Address test (nested segwit)', () {
-      BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
+      NetworkType.setNetworkType(NetworkType.mainnet);
       Seed seed = Seed.fromMnemonic(
           'chaos spread coconut advance rent suggest ten vast vanish bench demand ghost');
       SingleSignatureVault vault =
@@ -207,17 +207,17 @@ void main() {
 
       String pubkey =
           "03a1af804ac108a8a51782198c2d034b28bf90c8803f5a53f76276fa69a4eae77f";
-      BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
+      NetworkType.setNetworkType(NetworkType.mainnet);
       expect(AddressType.getP2wpkhInP2shAddress(pubkey),
           '36NvZTcMsMowbt78wPzJaHHWaNiyR73Y4g');
 
-      BitcoinNetwork.setNetwork(BitcoinNetwork.testnet);
+      NetworkType.setNetworkType(NetworkType.testnet);
       expect(AddressType.getP2wpkhInP2shAddress(pubkey),
           '2Mww8dCYPUpKHofjgcXcBCEGmniw9CoaiD2');
     });
 
     test('get Address test (p2sh)', () {
-      BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
+      NetworkType.setNetworkType(NetworkType.mainnet);
       String pk1 =
           '02cf0000f4001acf8844e1ca1fa8bf08d7fbf20b08b97cdab19b47313e4c4e8b86';
       String pk2 =
@@ -228,7 +228,7 @@ void main() {
     });
 
     test('get Address test (p2wsh)', () {
-      BitcoinNetwork.setNetwork(BitcoinNetwork.testnet);
+      NetworkType.setNetworkType(NetworkType.testnet);
 
       String pk1 =
           '032fd3324dac6a4e774069f270a3cfa01c4aa63076e22722071fb8209f341eb2a1';
@@ -253,7 +253,7 @@ void main() {
     });
 
     test('Public key test', () {
-      BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
+      NetworkType.setNetworkType(NetworkType.mainnet);
       Seed seed = Seed.fromMnemonic(
           'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
       SingleSignatureWalletBase wb = SingleSignatureVault.fromSeed(
@@ -265,7 +265,7 @@ void main() {
     });
 
     test('Address test', () {
-      BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
+      NetworkType.setNetworkType(NetworkType.mainnet);
       Seed seed = Seed.fromMnemonic(
           'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
       SingleSignatureWalletBase wb = SingleSignatureVault.fromSeed(
@@ -277,16 +277,16 @@ void main() {
     });
 
     test('segwit address validator', () {
-      BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
+      NetworkType.setNetworkType(NetworkType.mainnet);
       String address = 'bc1qkfr6qzkvrnpvpd97p57r3krxl8qg6fz24nzjsa';
       expect(WalletUtility.validateAddress(address), true);
-      BitcoinNetwork.setNetwork(BitcoinNetwork.testnet);
+      NetworkType.setNetworkType(NetworkType.testnet);
       address = 'tb1q85ap5ppw3f4c604tgs6xekhsh0zeurq27939pr';
       expect(WalletUtility.validateAddress(address), true);
     });
 
     test('legacy address validator ', () {
-      BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
+      NetworkType.setNetworkType(NetworkType.mainnet);
       String address = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa';
       expect(WalletUtility.validateAddress(address), true);
       address = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa';
@@ -296,14 +296,14 @@ void main() {
     });
 
     test('taproot address validator', () {
-      BitcoinNetwork.setNetwork(BitcoinNetwork.testnet);
+      NetworkType.setNetworkType(NetworkType.testnet);
       String address =
           'tb1pqqn6xqqp695mm0qz55fgphty39zq93s2uuuf4sy9v86jpmc6j6vqgaw90f';
       expect(WalletUtility.validateAddress(address), true);
     });
 
     test('get derivation path test', () {
-      BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
+      NetworkType.setNetworkType(NetworkType.mainnet);
       Seed seed = Seed.fromMnemonic(
           'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
       SingleSignatureWalletBase wb = SingleSignatureVault.fromSeed(
@@ -328,7 +328,7 @@ void main() {
     });
 
     test('Descriptor test : legacy', () {
-      BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
+      NetworkType.setNetworkType(NetworkType.mainnet);
       Seed seed = Seed.fromMnemonic(
           'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
       SingleSignatureWalletBase wb = SingleSignatureVault.fromSeed(
@@ -355,7 +355,7 @@ void main() {
       expect(result, expected);
     });
     test('Test descriptor (from String)', () {
-      BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
+      NetworkType.setNetworkType(NetworkType.mainnet);
       String testDescriptor =
           "pkh([73C5DA0A/44'/0'/0']xpub6BosfCnifzxcFwrSzQiqu2DBVTshkCXacvNsWGYJVVhhawA7d4R5WSWGFNbi8Aw6ZRc1brxMyWMzG3DSSSSoekkudhUd9yLb6qx39T9nMdj/0/*)#malxwzcr";
       SingleSignatureWallet testWallet =
@@ -382,7 +382,7 @@ void main() {
     });
 
     test('address test', () async {
-      BitcoinNetwork.setNetwork(BitcoinNetwork.testnet);
+      NetworkType.setNetworkType(NetworkType.testnet);
       String testMnemonic =
           'machine crack daughter fish credit glare raven fever tunnel delay fish record';
       SingleSignatureVault testVault = SingleSignatureVault.fromSeed(
@@ -396,7 +396,7 @@ void main() {
 
   group('SingleSignatureVault test', () {
     test('Test importing mnemonic', () {
-      BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
+      NetworkType.setNetworkType(NetworkType.mainnet);
       String testMnemonic =
           'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
       SingleSignatureVault testVault = SingleSignatureVault.fromSeed(
@@ -411,7 +411,7 @@ void main() {
     });
 
     test('Test random seed generation', () {
-      BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
+      NetworkType.setNetworkType(NetworkType.mainnet);
       SingleSignatureVault testVault = SingleSignatureVault.fromSeed(
         Seed.random(mnemonicLength: 24, passphrase: 'abc123'),
         AddressType.p2wpkh,
@@ -470,7 +470,7 @@ void main() {
 
   group('ExtendedPublicKey test', () {
     test('Test serialization', () {
-      BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
+      NetworkType.setNetworkType(NetworkType.mainnet);
       Seed seed = Seed.fromMnemonic(
           'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
       SingleSignatureVault vault =

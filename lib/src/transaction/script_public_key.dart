@@ -63,10 +63,10 @@ class ScriptPublicKey extends Script {
 
   String _getSegwitHrp() {
     String hrp;
-    bool isTestnet = BitcoinNetwork.currentNetwork.isTestnet;
+    bool isTestnet = NetworkType.currentNetwork.isTestnet;
     if (!isTestnet) {
       hrp = 'bc';
-    } else if (BitcoinNetwork.currentNetwork == BitcoinNetwork.testnet) {
+    } else if (NetworkType.currentNetwork == NetworkType.testnet) {
       hrp = 'tb';
     } else {
       hrp = 'bcrt';
@@ -77,7 +77,7 @@ class ScriptPublicKey extends Script {
 
   /// Get the address from the script.
   String getAddress() {
-    bool isTestnet = BitcoinNetwork.currentNetwork.isTestnet;
+    bool isTestnet = NetworkType.currentNetwork.isTestnet;
     //todo: other address type
     if (isP2WPKH()) {
       String hrp = _getSegwitHrp();

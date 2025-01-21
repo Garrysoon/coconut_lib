@@ -11,18 +11,12 @@ void main() async {
     late SingleSignatureVault vault;
     late SingleSignatureWallet wallet;
     setUpAll(() async {
-      BitcoinNetwork.setNetwork(BitcoinNetwork.regtest);
+      NetworkType.setNetworkType(NetworkType.regtest);
       vault = SingleSignatureVault.fromMnemonic(
           'output opera coin bottom power cable abuse bitter maximum cost gift burger',
           AddressType.p2wpkh);
 
       wallet = SingleSignatureWallet.fromDescriptor(vault.descriptor);
-      NodeConnector nodeConnector = await NodeConnector.connectSync(
-          'regtest-electrum.coconut.onl', 60401,
-          ssl: true);
-
-      /// fetch on chain data
-      await wallet.fetchOnChainData(nodeConnector);
     });
 
     test('1 input, 2 outputs', () {
@@ -80,7 +74,7 @@ void main() async {
   group('P2WSH fee estimation', () {
     late MultisignatureWallet wallet;
     setUpAll(() async {
-      BitcoinNetwork.setNetwork(BitcoinNetwork.regtest);
+      NetworkType.setNetworkType(NetworkType.regtest);
       wallet = MultisignatureWallet.fromDescriptor(
           "wsh(sortedmulti(2,[AEF5B293/48'/1'/0'/2']Vpub5nPUGCe9LkKe84RidJpnT4PXxqFCMnp7MFBvksxDAvKGQMuBaCnrS72AXwoWM6JmvDfAdUoAiRPHwAFTP2RvE5kLgkcyMRjgHAqWVkEdWPb/<0;1>/*,[BAD41B33/48'/1'/0'/2']Vpub5mQcGAR1SLrnugDSZ8GNVCwgJZJfYgR9TMpJxoQw4mHnQm9FC7JXjuCZbnf9wjiLzsmnWKA3fQCZ68JqntXYwGBrNc8zRCEeUcHXu9Bs9ZY/<0;1>/*,[62A936C3/48'/1'/0'/2']Vpub5nJPDy5rAwoiBH3yiGuABQT8KXzfiq1YWexHeYs3RN2vui8Whp3JsqbWjiEqN5joJWMH7jsjp81CD8AZsaNGhd6DrdNUTneAEEBDaXt1N5d/<0;1>/*))#9kvgyuj4");
 

@@ -131,10 +131,10 @@ class AddressType {
   }
 
   static String _getSegwitHrp() {
-    BitcoinNetwork network = BitcoinNetwork.currentNetwork;
-    if (network == BitcoinNetwork.mainnet) {
+    NetworkType network = NetworkType.currentNetwork;
+    if (network == NetworkType.mainnet) {
       return 'bc';
-    } else if (network == BitcoinNetwork.testnet) {
+    } else if (network == NetworkType.testnet) {
       return 'tb';
     } else {
       return 'bcrt';
@@ -155,7 +155,7 @@ class AddressType {
 
   /// @nodoc
   static String getP2pkhAddress(String publicKey) {
-    bool isTestnet = BitcoinNetwork.currentNetwork.isTestnet;
+    bool isTestnet = NetworkType.currentNetwork.isTestnet;
     final ripemd160HashOfSha256 = Hash.sha160fromHex(publicKey);
     final extendedRipemd160Hash = Uint8List(ripemd160HashOfSha256.length + 1);
     if (isTestnet) {
@@ -184,7 +184,7 @@ class AddressType {
 
   /// @nodoc
   static String getP2wpkhInP2shAddress(String publicKey) {
-    bool isTestnet = BitcoinNetwork.currentNetwork.isTestnet;
+    bool isTestnet = NetworkType.currentNetwork.isTestnet;
     var push_20 = Uint8List.fromList([0x00, 0x14]);
     var scriptSig =
         Uint8List.fromList([...push_20, ...Hash.sha160fromHex(publicKey)]);
@@ -204,7 +204,7 @@ class AddressType {
   /// @nodoc
   static String getP2shAddress(
       List<String> publicKeys, int requiredSignatures) {
-    bool isTestnet = BitcoinNetwork.currentNetwork.isTestnet;
+    bool isTestnet = NetworkType.currentNetwork.isTestnet;
     publicKeys.sort();
     List<Uint8List> pubKeysBytes =
         publicKeys.map((key) => Converter.hexToBytes(key)).toList();

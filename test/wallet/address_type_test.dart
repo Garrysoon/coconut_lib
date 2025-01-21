@@ -45,38 +45,38 @@ void main() {
 
       group('getAddress', () {
         test('getP2pkhAddress', () {
-          BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
+          NetworkType.setNetworkType(NetworkType.mainnet);
           expect(
               AddressType.p2pkh.getAddress(
                   '038b5e44fc67861d87842e756b8249072a55a81b0daa0bd5d14919aa75c58e9daf'),
               '1HcmPiFd9zwYzPbmv3hcEhCajHcqgdLhSK');
-          BitcoinNetwork.setNetwork(BitcoinNetwork.testnet);
+          NetworkType.setNetworkType(NetworkType.testnet);
           expect(
               AddressType.p2pkh.getAddress(
                   '038b5e44fc67861d87842e756b8249072a55a81b0daa0bd5d14919aa75c58e9daf'),
               'mx8igmLby2NomW5Pdcfz4cQubHDYcmVmrA');
         });
         test('getP2wpkhAddress', () {
-          BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
+          NetworkType.setNetworkType(NetworkType.mainnet);
           expect(
               AddressType.p2wpkh.getAddress(
                   '0298029ebbc7640beb3a3e8885759d5a47e3f22d632ca58bb2815e6fcf72e0df07'),
               'bc1qxv635h49ewh5qagssy3xl8gpnr45d5hdqmd0aj');
-          BitcoinNetwork.setNetwork(BitcoinNetwork.testnet);
+          NetworkType.setNetworkType(NetworkType.testnet);
           expect(
               AddressType.p2wpkh.getAddress(
                   '0298029ebbc7640beb3a3e8885759d5a47e3f22d632ca58bb2815e6fcf72e0df07'),
               'tb1qxv635h49ewh5qagssy3xl8gpnr45d5hd2akuxp');
         });
         test('getP2wpkhInP2shAddress', () {
-          BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
+          NetworkType.setNetworkType(NetworkType.mainnet);
           expect(
               AddressType.p2wpkhInP2sh.getAddress(
                   '039b3b694b8fc5b5e07fb069c783cac754f5d38c3e08bed1960e31fdb1dda35c24'),
               '37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf');
         });
         test('getWrondAddress', () {
-          BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
+          NetworkType.setNetworkType(NetworkType.mainnet);
           expect(
               () => AddressType.p2wsh.getAddress(
                   '039b3b694b8fc5b5e07fb069c783cac754f5d38c3e08bed1960e31fdb1dda35c24'),
@@ -85,7 +85,7 @@ void main() {
       });
       group('getMultisignatureAddress', () {
         test('getP2shAddress', () {
-          BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
+          NetworkType.setNetworkType(NetworkType.mainnet);
 
           expect(
               AddressType.p2sh.getMultisignatureAddress([
@@ -96,7 +96,7 @@ void main() {
               '37Y7Ci36ZzwmxfUt6vrnz1RDrEFp7EtdRE');
         });
         test('getP2wshAddress', () {
-          BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
+          NetworkType.setNetworkType(NetworkType.mainnet);
           expect(
               AddressType.p2wsh.getMultisignatureAddress([
                 '02ecb68401036cf502e80e15e0876f1f62627e933c97b1d2d2ebedb9e5b88f562e',
@@ -107,7 +107,7 @@ void main() {
         });
 
         test('getWrongMultisigatureAddress', () {
-          BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
+          NetworkType.setNetworkType(NetworkType.mainnet);
           expect(
               () => AddressType.p2wpkh.getMultisignatureAddress([
                     '02ecb68401036cf502e80e15e0876f1f62627e933c97b1d2d2ebedb9e5b88f562e',

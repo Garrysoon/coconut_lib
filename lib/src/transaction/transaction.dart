@@ -7,18 +7,13 @@ class Transaction {
   List<TransactionOutput> _outputs;
   Uint8List _lockTime;
   bool _isSegwit;
+  late int? sendingAmount;
+  late String? receiveAddress;
+  late String? changeAddress;
 
   // Field for from Blockchain Ledger
-  late int? _timestamp = 0;
-  late int? _height = 0;
-  late List<Transaction>? _perviousTransactionList = [];
   late List<UTXO> _utxoList = [];
-  late String? _memo = '';
 
-  int get timestamp => _timestamp!;
-  int get height => _height!;
-  List<Transaction> get perviousTransactionList => _perviousTransactionList!;
-  String get memo => _memo!;
   List<UTXO> get utxoList => _utxoList;
   int get totalInputAmount {
     int total = 0;
@@ -82,8 +77,8 @@ class Transaction {
   }
 
   /// Create a transaction with UTXO List.
-  factory Transaction.fromUtxoList(List<UTXO> utxoList, String address,
-      int amount, int feeRate, WalletBase wallet,
+  factory Transaction.fromUtxoList(List<UTXO> utxoList, String receiveAddress,
+      String changeAddress, int amount, int feeRate, WalletBase wallet,
       {int version = 2, int lockTime = 0}) {
     int totalInputAmount = 0;
     List<TransactionInput> inputs = [];
@@ -93,10 +88,8 @@ class Transaction {
       inputs.add(TransactionInput.forPayment(utxo.transactionHash, utxo.index));
     }
 
-    String changeAddress = wallet.getChangeAddress().address;
-
     TransactionOutput sendingOutput =
-        TransactionOutput.forPayment(amount, address);
+        TransactionOutput.forPayment(amount, receiveAddress);
     TransactionOutput changeOutput =
         TransactionOutput.forPayment(0, changeAddress);
 
@@ -147,28 +140,22 @@ class Transaction {
     // } else {
     //   changeOutput.setAmount(changeAmount);
     // }
+    tx.sendingAmount = amount;
+    tx.receiveAddress = receiveAddress;
+    tx.changeAddress = changeAddress;
     tx._utxoList = utxoList;
     return tx;
   }
 
   /// Create a transaction for simple payment.
-  factory Transaction.forPayment(
-      String address, int amount, int feeRate, WalletBase wallet,
+  factory Transaction.forPayment(List<UTXO> utxoList, String receiveAddress,
+      String changeAddress, int amount, int feeRate, WalletBase wallet,
       {int version = 2, int lockTime = 0}) {
-    late WalletFeature walletFeature;
-    try {
-      walletFeature = wallet as WalletFeature;
-    } catch (e) {
-      print("Vault cannot call payment");
-    }
+    List<UTXO> selectedUtxoList =
+        _selectOptimalUtxo(utxoList, amount, feeRate, wallet.addressType);
 
-    List<UTXO> utxoList = _selectOptimalUtxo(
-        walletFeature.walletStatus!.utxoList,
-        amount,
-        feeRate,
-        wallet.addressType);
-
-    return Transaction.fromUtxoList(utxoList, address, amount, feeRate, wallet,
+    return Transaction.fromUtxoList(selectedUtxoList, receiveAddress,
+        changeAddress, amount, feeRate, wallet,
         version: version, lockTime: lockTime);
   }
 
@@ -189,9 +176,9 @@ class Transaction {
     int finalFee = 0;
     utxos.sort((a, b) => b.amount.compareTo(a.amount));
     for (UTXO utxo in utxos) {
-      if (utxo.blockHeight == 0) {
-        continue;
-      }
+      // if (utxo.blockHeight == 0) {
+      //   continue;
+      // }
       selectedUtxos.add(utxo);
       totalAmount += utxo.amount;
       totalVbyte += vBytePerInput;
@@ -205,24 +192,16 @@ class Transaction {
   }
 
   /// Create a transaction for sending all Bitcoin in the wallet.
-  factory Transaction.forSweep(String address, int feeRate, WalletBase wallet,
+  factory Transaction.forSweep(
+      List<UTXO> utxoList, String address, int feeRate, WalletBase wallet,
       {int version = 2, int lockTime = 0}) {
-    late WalletFeature walletFeature;
-    try {
-      walletFeature = wallet as WalletFeature;
-    } catch (e) {
-      print("Vault cannot generate sweep transaction");
-    }
-
-    List<UTXO> utxoList = walletFeature.walletStatus!.utxoList;
-
     List<TransactionInput> inputs = [];
     List<TransactionOutput> outputs = [];
     int inputAmount = 0;
     for (UTXO utxo in utxoList) {
-      if (utxo.blockHeight == 0) {
-        continue;
-      }
+      // if (utxo.blockHeight == 0) {
+      //   continue;
+      // }
       inputs.add(TransactionInput.forPayment(utxo.transactionHash, utxo.index));
       inputAmount += utxo.amount;
     }
@@ -267,19 +246,6 @@ class Transaction {
     //     inputs, address, inputAmount, wallet.addressType, feeRate);
     // print(tx.serialize());
     tx._utxoList = utxoList;
-    return tx;
-  }
-
-  factory Transaction.fromOnChainData(String transaction, int timestamp,
-      int height, List<String> perviousTransactionList, String memo) {
-    Transaction tx = Transaction.parse(transaction);
-    tx._timestamp = timestamp;
-    tx._height = height;
-    tx._perviousTransactionList = [];
-    for (String txString in perviousTransactionList) {
-      tx._perviousTransactionList!.add(Transaction.parse(txString));
-    }
-    tx._memo = memo;
     return tx;
   }
 
@@ -851,7 +817,6 @@ class Transaction {
         TransactionInput.forPayment(newUtxo.transactionHash, newUtxo.index);
     inputs.add(input);
     _utxoList.add(newUtxo);
-    String changeAddress = wallet.getChangeAddress().address;
     TransactionOutput? changeOutput;
     for (TransactionOutput output in outputs) {
       if (output.scriptPubKey.getAddress() == changeAddress) {
@@ -861,14 +826,13 @@ class Transaction {
     }
 
     if (changeOutput == null) {
-      changeOutput = TransactionOutput.forPayment(0, changeAddress);
+      changeOutput = TransactionOutput.forPayment(0, changeAddress!);
       outputs.add(changeOutput);
     }
 
     int fee = estimateFee(feeRate, wallet.addressType,
         requiredSignature: requiredSignature, totalSinger: totalSinger);
-    int changeAmount =
-        totalInputAmount - getSendingAmount(wallet.addressBook) - fee;
+    int changeAmount = totalInputAmount - sendingAmount! - fee;
 
     if (changeAmount < 0) {
       outputs.remove(changeOutput);
@@ -893,7 +857,6 @@ class Transaction {
       throw Exception('UTXO not found in the UTXO list');
     }
 
-    String changeAddress = wallet.getChangeAddress().address;
     TransactionInput? removeTarget;
     for (TransactionInput input in inputs) {
       if (input.transactionHash == utxoToRemove.transactionHash &&
@@ -907,7 +870,7 @@ class Transaction {
     }
 
     TransactionOutput changeOutput =
-        TransactionOutput.forPayment(0, changeAddress);
+        TransactionOutput.forPayment(0, changeAddress!);
     for (TransactionOutput output in outputs) {
       if (output.scriptPubKey.getAddress() == changeAddress) {
         changeOutput = output;
@@ -925,8 +888,7 @@ class Transaction {
     _utxoList.remove(utxoToRemove);
     int fee = estimateFee(feeRate, wallet.addressType,
         requiredSignature: requiredSignature, totalSinger: totalSinger);
-    int changeAmount =
-        totalInputAmount - getSendingAmount(wallet.addressBook) - fee;
+    int changeAmount = totalInputAmount - sendingAmount! - fee;
     if (changeAmount < 0) {
       outputs.remove(changeOutput);
     } else {
@@ -942,9 +904,8 @@ class Transaction {
       {int? requiredSignature, int? totalSinger}) {
     int fee = estimateFee(feeRate, wallet.addressType,
         requiredSignature: requiredSignature, totalSinger: totalSinger);
-    String changeAddress = wallet.getChangeAddress().address;
     TransactionOutput changeOutput =
-        TransactionOutput.forPayment(0, changeAddress);
+        TransactionOutput.forPayment(0, changeAddress!);
 
     for (TransactionOutput output in outputs) {
       if (output.scriptPubKey.getAddress() == changeAddress) {
@@ -952,8 +913,7 @@ class Transaction {
         break;
       }
     }
-    int changeAmount =
-        totalInputAmount - getSendingAmount(wallet.addressBook) - fee;
+    int changeAmount = totalInputAmount - sendingAmount! - fee;
     if (changeAmount < 0) {
       outputs.remove(changeOutput);
     } else {
@@ -963,26 +923,6 @@ class Transaction {
         outputs.remove(changeOutput);
       }
     }
-  }
-
-  /// Get the change amount of the transaction with AddressBook.
-  int getChangeAmount(AddressBook addressBook) {
-    for (TransactionOutput output in outputs) {
-      if (addressBook.containsInChange(output.scriptPubKey.getAddress())) {
-        return output.amount;
-      }
-    }
-    return 0;
-  }
-
-  int getSendingAmount(AddressBook addressBook) {
-    int sendingAmount = 0;
-    for (TransactionOutput output in outputs) {
-      if (!addressBook.containsInChange(output.scriptPubKey.getAddress())) {
-        sendingAmount += output.amount;
-      }
-    }
-    return sendingAmount;
   }
 
   static int _getDustThreshold(AddressType addressType) {
@@ -999,26 +939,5 @@ class Transaction {
     } else {
       throw Exception('Unsupported Address Type');
     }
-  }
-
-  String toJson() {
-    return jsonEncode({
-      'transaction': serialize(),
-      'timestamp': _timestamp,
-      'height': _height,
-      'perviousTransactionList':
-          _perviousTransactionList!.map((tx) => tx.serialize()).toList(),
-      'memo': _memo
-    });
-  }
-
-  factory Transaction.fromJson(String jsonStr) {
-    Map<String, dynamic> json = jsonDecode(jsonStr);
-    List<String> perviousTransactionList = [];
-    for (var tx in json['perviousTransactionList']) {
-      perviousTransactionList.add(tx);
-    }
-    return Transaction.fromOnChainData(json['transaction'], json['timestamp'],
-        json['height'], perviousTransactionList, json['memo']);
   }
 }

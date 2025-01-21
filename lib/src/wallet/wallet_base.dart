@@ -8,8 +8,6 @@ abstract class WalletBase {
   final int _accountIndex = 0;
   late final Descriptor _descriptor;
 
-  late AddressBook addressBook;
-
   /// Get the identifier of the wallet.
   int get identifier => Hash.getSimpleHash(_descriptor.serialize());
 
@@ -26,31 +24,11 @@ abstract class WalletBase {
   String get descriptor => _descriptor.serialize();
 
   /// @nodoc
-  WalletBase(this._addressType, this._derivationPath) {
-    addressBook = AddressBook(this);
-  }
+  WalletBase(this._addressType, this._derivationPath);
 
   /// Get the address of the given index.
   String getAddress(int addressIndex, {bool isChange = false});
 
-  ///get Address object for receive
-  Address getReceiveAddress() {
-    int index = addressBook.usedReceive + 1;
-    return addressBook.getAddress(index, false);
-  }
-
-  /// get Address object for change
-  Address getChangeAddress() {
-    int index = addressBook.usedChange + 1;
-    return addressBook.getAddress(index, true);
-  }
-
-  /// get Address list from the address book
-  List<Address> getAddressList(int cursor, int count, bool isChange) {
-    List<Address> addressList = [];
-    for (int i = cursor; i < cursor + count; i++) {
-      addressList.add(addressBook.getAddress(i, isChange));
-    }
-    return addressList;
-  }
+  /// Get the address from derivation path
+  String getAddressWithDerivationPath(String derivationPath);
 }

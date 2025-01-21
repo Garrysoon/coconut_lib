@@ -9,7 +9,10 @@ import 'package:test/test.dart';
 import '../mock_generator.dart';
 
 void main() {
-  group('', () {
+  group('UTXO', () {
+    group('', () {
+      test('', () {});
+    });
     group('', () {
       test('', () {});
     });

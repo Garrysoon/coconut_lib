@@ -162,12 +162,19 @@ class PSBT {
   }
 
   /// Create a PSBT from a Transaction object.
-  factory PSBT.fromTransaction(Transaction tx, WalletBase wallet) {
-    late WalletFeature walletFeature;
-    try {
-      walletFeature = wallet as WalletFeature;
-    } catch (e) {
-      print("Vault cannot generate PSBT");
+  factory PSBT.fromTransaction(
+      Transaction tx, List<UTXO> utxoList, WalletBase wallet) {
+    if (!wallet.addressType.isSegwit) {
+      throw Exception('Only Segwit address type is supported');
+    }
+
+    if (tx.inputs.length != utxoList.length) {
+      throw Exception('Transaction input and UTXO list length mismatch');
+    }
+    for (int i = 0; i < tx.inputs.length; i++) {
+      if (tx.inputs[i].transactionHash != utxoList[i].transactionHash) {
+        throw Exception('Transaction input and UTXO list mismatch');
+      }
     }
 
     late SingleSignatureWallet singleSignatureWallet;
@@ -191,44 +198,33 @@ class PSBT {
     //input
     for (int i = 0; i < tx.inputs.length; i++) {
       Map<String, dynamic> inputData = {};
-      String prevTxHash = tx.inputs[i].transactionHash;
-      int prevIndex = tx.inputs[i].index;
 
-      Transaction prevTx =
-          walletFeature.walletStatus!.getTransaction(prevTxHash);
-
-      if (wallet.addressType.isMultisig || !wallet.addressType.isSegwit) {
-        String nonWitnessUtxoKey = getKeyType(inputKeyType, 'NON_WITNESS_UTXO');
-        inputData[nonWitnessUtxoKey] = prevTx.serialize();
-        // tx.perviousTransactionList[i].serialize();
-      }
-
-      //if utxo is witness
-      TransactionOutput utxo = prevTx.outputs[prevIndex];
-      if (utxo.scriptPubKey.isP2WPKH() || utxo.scriptPubKey.isP2WSH()) {
-        String witnessUtxoKey = getKeyType(inputKeyType, 'WITNESS_UTXO');
-        inputData[witnessUtxoKey] = utxo.serialize();
-      }
+      String receivedAddress =
+          wallet.getAddressWithDerivationPath(utxoList[i].derivationPath);
+      TransactionOutput output =
+          TransactionOutput.forPayment(utxoList[i].amount, receivedAddress);
+      String witnessUtxoKey = getKeyType(inputKeyType, 'WITNESS_UTXO');
+      inputData[witnessUtxoKey] = output.serialize();
 
       //derivation path
       String bip32DerivationKeyType =
           getKeyType(inputKeyType, 'BIP32_DERIVATION');
-      String address = utxo.scriptPubKey.getAddress();
-      String derivationPath = wallet.addressBook.getDerivationPath(address);
       if (wallet is SingleSignatureWallet) {
         String publicKey = singleSignatureWallet.keyStore
-            .getPublicKeyWithDerivationPath(derivationPath);
+            .getPublicKeyWithDerivationPath(utxoList[i].derivationPath);
         String fingerPrint = singleSignatureWallet.keyStore.masterFingerprint;
 
         inputData[bip32DerivationKeyType + publicKey] = fingerPrint +
-            Converter.bytesToHex(_serializeDerivationPath(derivationPath));
+            Converter.bytesToHex(
+                _serializeDerivationPath(utxoList[i].derivationPath));
       } else if (wallet is MultisignatureWallet) {
         for (KeyStore keyStore in multisignatureWallet.keyStoreList) {
-          String publicKey =
-              keyStore.getPublicKeyWithDerivationPath(derivationPath);
+          String publicKey = keyStore
+              .getPublicKeyWithDerivationPath(utxoList[i].derivationPath);
           String fingerPrint = keyStore.masterFingerprint;
           inputData[bip32DerivationKeyType + publicKey] = fingerPrint +
-              Converter.bytesToHex(_serializeDerivationPath(derivationPath));
+              Converter.bytesToHex(
+                  _serializeDerivationPath(utxoList[i].derivationPath));
         }
       }
       if (tx.inputs[i].witnessList.isNotEmpty) {
@@ -241,7 +237,7 @@ class PSBT {
       if (wallet.addressType == AddressType.p2wsh) {
         String witnessScriptKey = getKeyType(inputKeyType, 'WITNESS_SCRIPT');
         String witnessScript =
-            multisignatureWallet.getWitnessScript(derivationPath);
+            multisignatureWallet.getWitnessScript(utxoList[i].derivationPath);
         inputData[witnessScriptKey] = witnessScript;
       }
       psbtData["inputs"].add(inputData);
@@ -255,29 +251,6 @@ class PSBT {
           Converter.intToLittleEndianBytes(tx.outputs[i].amount, 4));
       String scriptKey = getKeyType(outputKeyType, 'SCRIPT');
       outputData[scriptKey] = tx.outputs[i].scriptPubKey.serialize();
-      String addr = tx.outputs[i].getAddress();
-      if (wallet.addressBook.contains(addr)) {
-        String bip32DerivationKeyType =
-            getKeyType(outputKeyType, 'BIP32_DERIVATION'); //02
-        String derivationPath = wallet.addressBook.getDerivationPath(addr);
-        if (wallet is SingleSignatureWallet) {
-          String publicKey =
-              wallet.keyStore.getPublicKeyWithDerivationPath(derivationPath);
-          String fingerPrint = wallet.keyStore.masterFingerprint;
-
-          outputData[bip32DerivationKeyType + publicKey] = fingerPrint +
-              Converter.bytesToHex(_serializeDerivationPath(derivationPath));
-        } else if (wallet is MultisignatureWallet) {
-          for (int i = 0; i < wallet.totalSigner; i++) {
-            String publicKey = wallet.keyStoreList[i]
-                .getPublicKeyWithDerivationPath(derivationPath);
-            String fingerPrint = wallet.keyStoreList[i].masterFingerprint;
-
-            outputData[bip32DerivationKeyType + publicKey] = fingerPrint +
-                Converter.bytesToHex(_serializeDerivationPath(derivationPath));
-          }
-        }
-      }
       psbtData["outputs"].add(outputData);
     }
 

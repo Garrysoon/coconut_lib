@@ -6,7 +6,7 @@ abstract class WalletUtility {
 
   /// Get the derivation path for the given address type and account index.
   static String getDerivationPath(AddressType addressType, int accountIndex) {
-    bool isTestnet = BitcoinNetwork.currentNetwork.isTestnet;
+    bool isTestnet = NetworkType.currentNetwork.isTestnet;
     String derivationPath;
     if (addressType == AddressType.p2sh) {
       derivationPath = "m/${addressType.purposeIndex}'";
@@ -23,7 +23,7 @@ abstract class WalletUtility {
 
   /// Check if the given address is valid.
   static bool validateAddress(String address) {
-    if (BitcoinNetwork.currentNetwork.isTestnet) {
+    if (NetworkType.currentNetwork.isTestnet) {
       if (address.startsWith('1') ||
           address.startsWith('3') ||
           address.startsWith('bc1')) {
@@ -122,5 +122,43 @@ abstract class WalletUtility {
     } else {
       return false;
     }
+  }
+
+  static bool validateDerivationPath(String derivationPath) {
+    // Corrected regular expression to match a valid derivation path (e.g., m/44'/0'/0'/0/0)
+    final regex = RegExp(r"^m(\/(\d+'?))*");
+
+    // Check if the derivation path matches the regex
+    if (!regex.hasMatch(derivationPath)) {
+      return false;
+    }
+
+    // Split the path into components and validate each segment
+    final segments = derivationPath.split('/');
+
+    // The first segment must always be 'm'
+    if (segments[0] != 'm') {
+      return false;
+    }
+
+    // Validate the rest of the segments
+    for (int i = 1; i < segments.length; i++) {
+      final segment = segments[i];
+
+      // Ensure the segment is a number optionally followed by a "'"
+      if (!RegExp(r"^\d+'?").hasMatch(segment)) {
+        return false;
+      }
+
+      // Ensure the number part is within a valid range (e.g., 0 to 2^31-1)
+      final numberPart = segment.replaceAll("'", "");
+      final number = int.tryParse(numberPart);
+
+      if (number == null || number < 0 || number >= 0x80000000) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }

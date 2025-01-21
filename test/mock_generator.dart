@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:coconut_lib/coconut_lib.dart';
-import 'package:coconut_lib/src/network/electrum/electrum_response_types.dart';
 import 'package:coconut_lib/src/utils/hash.dart';
 
 enum TestWalletType {
@@ -33,31 +32,6 @@ SingleSignatureWallet getMockSingleWallet(TestWalletType type,
   SingleSignatureWallet wallet =
       SingleSignatureWallet.fromDescriptor(vault.descriptor);
   return wallet;
-}
-
-Future<WalletStatus> getMockWalletStatus(TestWalletType type,
-    {bool isMultisig = false}) async {
-  WalletStatus? status;
-  if (type == TestWalletType.forNormal) {
-    File file = File(
-        'test/mock_data/wallet_status_for_normal${isMultisig ? '_multisig' : ''}.json');
-    status = WalletStatus.fromJson(await file.readAsString());
-  } else if (type == TestWalletType.random) {
-    status = WalletStatus(
-      transactionList: [],
-      utxoList: [],
-      balance: Balance(0, 0),
-      blockHeaderMap: {},
-      receiveAddressBalanceMap: {},
-      changeAddressBalanceMap: {},
-      receiveUsedIndexList: [],
-      changeUsedIndexList: [],
-      receiveMaxGap: 0,
-      changeMaxGap: 0,
-    );
-  }
-
-  return status!;
 }
 
 MultisignatureVault getMockMultisignatureVault(TestWalletType type) {
@@ -113,12 +87,4 @@ Transaction getMockTransaction(String scriptPubKey, int amount,
   ];
 
   return Transaction.withDefault(inputs, outputs, addressType);
-}
-
-BlockHeaderSubscribe getMockBlockHeaderSubscribe({int height = 1000}) {
-  // TODO: height 에 따라 다른 블록 헤더 생성
-  return BlockHeaderSubscribe(
-      height: height,
-      hex:
-          '000000202a25b55e70596e07b52b0fba74fbe464e2e6677deb1cd8bd47670a7b6e8b027be601172e5dc38d15db848dcc66f5c75369765ea86d9c2f03dbbc35b46c218e6eec699d66ffff7f2001000000');
 }

@@ -4,107 +4,108 @@ import 'package:coconut_lib/coconut_lib.dart';
 
 void main() async {
   print("0. Set the Bitcoin Network");
-  BitcoinNetwork.setNetwork(BitcoinNetwork.regtest);
-  NodeConnector nodeConnector = await NodeConnector.connectSync(
-      'regtest-electrum.coconut.onl', 60401,
-      ssl: true);
+  NetworkType.setNetworkType(NetworkType.regtest);
 
-  print("1. Create a vault");
-  // ignore: unused_local_variable
-  Seed seedForUnitTest = Seed.fromMnemonic(
-      'walk nose vibrant ankle advance frame violin apart summer depart volume squeeze decide visit manage tomorrow demand office minimum method manage arm dwarf cement',
-      passphrase: 'ABC');
-
-  // ignore: unused_local_variable
-  Seed emptySeed = Seed.fromMnemonic(
-      'cross february involve argue travel crush they soul echo type tonight strike head carpet joke',
-      passphrase: 'ABC');
-
-  // ignore: unused_local_variable
-  Seed seedForApp = Seed.fromMnemonic(
+  print("1-1. Create a single signature vault");
+  Seed seed = Seed.fromMnemonic(
       'thank split shrimp error own spirit slow glow act evidence globe slight');
 
-  SingleSignatureVault vault =
-      SingleSignatureVault.fromSeed(seedForApp, AddressType.p2wpkh);
-  print(' - Mnemonic: ${vault.keyStore.seed.mnemonic}');
+  SingleSignatureVault singleSignatureVault =
+      SingleSignatureVault.fromSeed(seed, AddressType.p2wpkh);
+  print(
+      ' - Master Fingerprint: ${singleSignatureVault.keyStore.masterFingerprint}');
 
-  print("2. Sync to the wallet");
+  print("1-2. Create a 2-of-3 Multisignature vault");
+  SingleSignatureVault insideVault1 = SingleSignatureVault.fromMnemonic(
+      'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
+      AddressType.p2wpkh,
+      passphrase: 'ABC');
+
+  SingleSignatureVault outsideVault1 = SingleSignatureVault.fromMnemonic(
+      'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
+      AddressType.p2wpkh,
+      passphrase: 'DEF');
+
+  SingleSignatureVault outsideVault2 = SingleSignatureVault.fromMnemonic(
+      'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
+      AddressType.p2wpkh,
+      passphrase: 'GHI');
+
+  //Generate P2WSH Keystore
+  KeyStore insideKey1 =
+      KeyStore.fromSeed(insideVault1.keyStore.seed, AddressType.p2wsh);
+  KeyStore outsideKey1 = KeyStore.fromSignerBsms(
+      outsideVault1.getSignerBsms(AddressType.p2wsh, "OutsideSigner1"));
+  KeyStore outsideKey2 = KeyStore.fromSignerBsms(
+      outsideVault2.getSignerBsms(AddressType.p2wsh, "OutsideSigner2"));
+
+  MultisignatureVault multisignatureVault =
+      MultisignatureVault.fromKeyStoreList(
+          [insideKey1, outsideKey1, outsideKey2], 2, AddressType.p2wsh);
+
+  // Share Coordinator BSMS with Outside Signers
+  MultisignatureVault outsideMultisignatureVault =
+      MultisignatureVault.fromCoordinatorBsms(
+          multisignatureVault.getCoordinatorBsms());
+
+  // Find Seed in Outside Vault and bind it to KeyStore
+  outsideMultisignatureVault.bindSeedToKeyStore(outsideVault1.keyStore.seed);
+
+  print(
+      ' - Master Fingerprint of Key Store [0]: ${multisignatureVault.keyStoreList[0].masterFingerprint}');
+  print(
+      ' - Master Fingerprint of Key Store [1]: ${multisignatureVault.keyStoreList[1].masterFingerprint}');
+  print(
+      ' - Master Fingerprint of Key Store [2]: ${multisignatureVault.keyStoreList[2].masterFingerprint}');
+
+  print("2-1. Sync to the single signature wallet");
   // Repository.initialize('Coconut_Wallet');
-  SingleSignatureWallet wallet =
-      SingleSignatureWallet.fromDescriptor(vault.descriptor);
+  SingleSignatureWallet singleSignatureWallet =
+      SingleSignatureWallet.fromDescriptor(singleSignatureVault.descriptor);
   print(
-      ' - Extended Public Key: ${wallet.keyStore.extendedPublicKey.serialize()}');
-  print(' - Devation Path: ${wallet.derivationPath}');
-  print(' - Fingerprint: ${wallet.keyStore.masterFingerprint}');
+      ' - Extended Public Key: ${singleSignatureWallet.keyStore.extendedPublicKey.serialize()}');
 
-  await wallet.fetchOnChainData(nodeConnector);
+  print("2-2. Sync to the multisignature wallet");
+  MultisignatureWallet multisignatureWallet;
 
-  print(' - [CurrentBlock] height: ${nodeConnector.currentBlock.height}'
-      ' timestamp: ${nodeConnector.currentBlock.timestamp}');
-
-  print(' - Sync Address Book');
-  print(' - Balance: ${wallet.getBalance()}');
-
-  print('3. Receive a Bitcoin');
-  print(' - Address: ${wallet.getReceiveAddress()}');
-  print(' - Utxo List : ');
-  for (UTXO utxo in wallet.getUtxoList()) {
-    print('   ${utxo.transactionHash}:[${utxo.index}] ${utxo.amount}');
+  Descriptor descriptor = Descriptor.parse(multisignatureVault.descriptor);
+  if (descriptor.scriptType == 'wsh') {
+    multisignatureWallet =
+        MultisignatureWallet.fromDescriptor(multisignatureVault.descriptor);
+    // } else if (descriptor.scriptType == 'wpkh') {
+    //   watchOnlyWallet =
+    //       SingleSignatureWallet.fromDescriptor(multisignatureVault.descriptor);
+  } else {
+    throw Exception('Unsupported Address Type');
   }
-  print(' - Transfer History : ');
-  for (Transfer transfer in wallet.getTransferList(cursor: 0, count: 10)) {
-    print(
-        '   [${transfer.transferType}:${transfer.timestamp}] ${transfer.transactionHash} : ${transfer.amount}');
-  }
-  print(' - Total Amount : ${wallet.getBalance()}');
-  print(' - Total Unconfirmed Amount : ${wallet.getUnconfirmedBalance()}');
+  print(
+      ' - Extended Public Key of Key Store [0]: ${multisignatureWallet.keyStoreList[0].extendedPublicKey.serialize()}');
+  print(
+      ' - Extended Public Key of Key Store [1]: ${multisignatureWallet.keyStoreList[1].extendedPublicKey.serialize()}');
+  print(
+      ' - Extended Public Key of Key Store [2]: ${multisignatureWallet.keyStoreList[2].extendedPublicKey.serialize()}');
 
-  print(' - Address and amount :');
-  List<Address> receiveList = wallet.addressBook.receiveBook.values.toList();
-  receiveList.sort((prev, curr) => prev.index.compareTo(curr.index));
-  // changeList.sort((prev, curr) => prev.index.compareTo(curr.index));
-  for (Address address in receiveList) {
-    print(
-        '   ${address.address}, path : ${address.derivationPath}, is Used? : ${address.isUsed}, amount : ${address.amount}');
-  }
-
-  print('4. Create a PSBT (in wallet)');
-  String receiverAddress = wallet.getReceiveAddress().address;
-  // String receiverAddress = 'tb1q8vn76dcysgxany6mlkgz0jd80d7pl9mzhqee73';
+  print(
+      "4. Send Bitcoin from the single signature wallet to the multisignature wallet");
+  String receiverAddress = multisignatureWallet.getAddress(0);
+  String changeAddress = singleSignatureWallet.getAddress(0, isChange: true);
   int sendingAmount = 1000;
-  int feeRate = 14;
-  print(
-      " - Fee estimation : ${await wallet.estimateFee(receiverAddress, sendingAmount, feeRate)}");
-  String psbt =
-      await wallet.generatePsbt(receiverAddress, sendingAmount, feeRate);
-  // if you want to send all Bitcoin : String psbt = wallet.generatePsbtWithMaximum(receiverAddress, 10);
-  print(" - Generated PSBT : $psbt");
-  print(
-      " - Validate address : ${WalletUtility.validateAddress(receiverAddress)}}");
-
-  print('6. Receive PSBT in the wallet (in vault)');
-  PSBT vaultReceivedPsbt = PSBT.parse(psbt);
-  print(" - Sending amount : ${vaultReceivedPsbt.sendingAmount}");
-  print(" - Fee : ${vaultReceivedPsbt.fee}");
-
-  print('7. sign the transaction (in vault)');
-  String signedPsbt = vault.addSignatureToPsbt(psbt);
-
-  print(" - Signed PSBT : $signedPsbt");
-
-  print('7. Receive signed PSBT (in wallet)');
+  int feeRate = 3;
+  List<UTXO> utxosForSingleSignatureWallet = [
+    UTXO('5c5fa04bc94647ee339083d6fd381a3b1ac4de7d7bfa966788971d62072a1e66', 1,
+        100000000, "m/84'/1'/0'/0/68")
+  ];
+  print(' - Generating unsigned PSBT');
+  String unsignedPsbt = await singleSignatureWallet.generatePsbt(
+      utxosForSingleSignatureWallet,
+      receiverAddress,
+      changeAddress,
+      sendingAmount,
+      feeRate);
+  print(' - Add signature from vault');
+  String signedPsbt = singleSignatureVault.addSignatureToPsbt(unsignedPsbt);
   PSBT walletReceivedPsbt = PSBT.parse(signedPsbt);
-  Transaction signed =
-      walletReceivedPsbt.getSignedTransaction(wallet.addressType);
-  print(' - final Transaction : ${signed.serialize()}');
-
-  print('8. Broadcast the transaction');
-  print(
-      ' - Unsigned Tx ID : ${walletReceivedPsbt.unsignedTransaction!.transactionHash}');
-  print(' - Transaction ID : ${signed.transactionHash}');
-  print(' - Transaction : ${signed.serialize()}');
-  // Result result = await nodeConnector.broadcast(signed.serialize());
-  // print(' - Transaction is broadcasted: ${result.value}');
-
-  exit(0);
+  Transaction signedTransaction = walletReceivedPsbt
+      .getSignedTransaction(singleSignatureWallet.addressType);
+  print(' - Final Transaction : ${signedTransaction.serialize()}');
 }
