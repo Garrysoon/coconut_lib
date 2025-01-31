@@ -56,7 +56,6 @@ main() {
         String scriptPubKey =
             '22512028d00add401c7cacf799aa43d074972518c7dcc02c6bac140316707096c38510';
         ScriptPublicKey script = ScriptPublicKey.parse(scriptPubKey);
-        print(script.getAddress());
         expect(script.getAddress(),
             'tb1p9rgq4h2qr372eaue4fpaqayhy5vv0hxq9346c9qrzec8p9krs5gqfj6h0c');
       });

@@ -23,18 +23,7 @@ class Hash {
     return SHA256Digest().process(bytes);
   }
 
-  static String hmacSha512(String key, String data) {
-    var hmacSha512 = HMac(SHA512Digest(), 128)
-      ..init(KeyParameter(utf8.encode(key))); // HMAC-SHA-512 생성
-
-    // var hmacSha512 =
-    //     crypto.Hmac(crypto.sha512, utf8.encode(key)); // HMAC-SHA-512 생성
-    var digest =
-        hmacSha512.process(utf8.encode(data)); // 데이터에 대한 HMAC-SHA-512 계산
-    return digest.toString(); // 계산된 해시를 문자열로 반환
-  }
-
-  static Uint8List hmacSha512FromList(Uint8List key, Uint8List data) {
+  static Uint8List hmacSha512(Uint8List key, Uint8List data) {
     var hmacSha512 = HMac(SHA512Digest(), 128)
       ..init(KeyParameter(key)); // HMAC-SHA-512 생성
     // var hmacSha512 = crypto.Hmac(crypto.sha512, key); // HMAC-SHA-512 생성

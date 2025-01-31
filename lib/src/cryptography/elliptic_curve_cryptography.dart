@@ -10,8 +10,6 @@ import 'package:pointycastle/ecc/api.dart'
 import "package:pointycastle/signers/ecdsa_signer.dart";
 import 'package:pointycastle/macs/hmac.dart';
 import "package:pointycastle/digests/sha256.dart";
-// ignore: implementation_imports
-import 'package:pointycastle/src/utils.dart';
 
 final ZERO32 = Uint8List.fromList(List.generate(32, (index) => 0));
 final EC_GROUP_ORDER = HEX
@@ -173,10 +171,10 @@ BigInt _decodeBigInt(List<int> bytes) {
   return result;
 }
 
-var _byteMask = BigInt.from(0xff);
-
 /// Encode a BigInt into bytes using big-endian encoding.
 Uint8List _encodeBigInt(BigInt number) {
+  var byteMask = BigInt.from(0xff);
+  final negativeFlag = BigInt.from(0x80);
   int needsPaddingByte;
   int rawSize;
 
@@ -196,7 +194,7 @@ Uint8List _encodeBigInt(BigInt number) {
   final size = rawSize < 32 ? rawSize + needsPaddingByte : rawSize;
   var result = Uint8List(size);
   for (int i = 0; i < size; i++) {
-    result[size - i - 1] = (number & _byteMask).toInt();
+    result[size - i - 1] = (number & byteMask).toInt();
     number = number >> 8;
   }
   return result;

@@ -108,7 +108,7 @@ class HDWallet {
       data.setRange(0, 33, publicKey);
       data.buffer.asByteData().setUint32(33, index);
     }
-    final I = Hash.hmacSha512FromList(chainCode, data);
+    final I = Hash.hmacSha512(chainCode, data);
     final il = I.sublist(0, 32);
     final ir = I.sublist(32);
     if (!ecc.isPrivate(il)) {
@@ -201,7 +201,7 @@ class HDWallet {
     if (seedBytes.length > 64) {
       throw Exception(" Seed should be at most 512 bits");
     }
-    final I = Hash.hmacSha512FromList(utf8.encode("Bitcoin seed"), seedBytes);
+    final I = Hash.hmacSha512(utf8.encode("Bitcoin seed"), seedBytes);
     final privateKey = I.sublist(0, 32);
     final chainCode = I.sublist(32);
     final publicKey = ecc.pointFromScalar(privateKey, true)!;

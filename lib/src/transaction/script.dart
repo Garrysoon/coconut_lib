@@ -24,7 +24,6 @@ class Script {
   Script(this._cmds);
 
   /// Parse the script from the given script bytes.
-  // TODO: change to factory constructor
   static List<dynamic> parseToCommand(Uint8List script) {
     int offset = 0;
     int length = Encoder.decodeVariableInteger(script, offset);
@@ -36,6 +35,10 @@ class Script {
                 ? 5
                 : 9;
     List<dynamic> cmds = [];
+
+    if (script.length < offset + length) {
+      throw Exception('parsing script failed');
+    }
 
     int count = 0;
     while (count < length) {

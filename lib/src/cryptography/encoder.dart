@@ -67,15 +67,15 @@ class Encoder {
     return encodeBase58(payload);
   }
 
-  static Uint8List decodeBase58(String string) {
+  static Uint8List decodeBase58(String base58Text) {
     String alphabet =
         '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-    if (string.isEmpty) {
+    if (base58Text.isEmpty) {
       throw Exception('Base58 : Not Base58 string');
     }
     List<int> bytes = [0];
-    for (int i = 0; i < string.length; i++) {
-      int value = alphabet.indexOf(string[i]);
+    for (int i = 0; i < base58Text.length; i++) {
+      int value = alphabet.indexOf(base58Text[i]);
 
       var carry = value;
       for (var j = 0; j < bytes.length; ++j) {
@@ -89,7 +89,7 @@ class Encoder {
       }
     }
     // deal with leading zeros
-    for (var k = 0; string[k] == '1' && k < string.length - 1; ++k) {
+    for (var k = 0; base58Text[k] == '1' && k < base58Text.length - 1; ++k) {
       bytes.add(0);
     }
 
@@ -105,32 +105,32 @@ class Encoder {
         checksum[1] != target[1] ||
         checksum[2] != target[2] ||
         checksum[3] != target[3]) {
-      throw Exception("Base58 : Invalid checksum");
+      throw Exception("Invalid checksum");
     }
     return payload;
   }
 
-  static WIF _decodeWifRaw(Uint8List buffer, [int? version]) {
-    if (version != null && buffer[0] != version) {
-      throw ArgumentError("Invalid network version");
-    }
-    if (buffer.length == 33) {
-      return WIF(
-          version: buffer[0],
-          privateKey: buffer.sublist(1, 33),
-          compressed: false);
-    }
-    if (buffer.length != 34) {
-      throw ArgumentError("Invalid WIF length");
-    }
-    if (buffer[33] != 0x01) {
-      throw ArgumentError("Invalid compression flag");
-    }
-    return WIF(
-        version: buffer[0],
-        privateKey: buffer.sublist(1, 33),
-        compressed: true);
-  }
+  // static WIF _decodeWifRaw(Uint8List buffer, [int? version]) {
+  //   if (version != null && buffer[0] != version) {
+  //     throw ArgumentError("Invalid network version");
+  //   }
+  //   if (buffer.length == 33) {
+  //     return WIF(
+  //         version: buffer[0],
+  //         privateKey: buffer.sublist(1, 33),
+  //         compressed: false);
+  //   }
+  //   if (buffer.length != 34) {
+  //     throw ArgumentError("Invalid WIF length");
+  //   }
+  //   if (buffer[33] != 0x01) {
+  //     throw ArgumentError("Invalid compression flag");
+  //   }
+  //   return WIF(
+  //       version: buffer[0],
+  //       privateKey: buffer.sublist(1, 33),
+  //       compressed: true);
+  // }
 
   static Uint8List _encodeWifRaw(
       int version, Uint8List privateKey, bool compressed) {
@@ -147,9 +147,9 @@ class Encoder {
     return result;
   }
 
-  static WIF decodeWif(String string, [int? version]) {
-    return _decodeWifRaw(Encoder.decodeBase58(string), version);
-  }
+  // static WIF decodeWif(String string, [int? version]) {
+  //   return _decodeWifRaw(Encoder.decodeBase58(string), version);
+  // }
 
   static String encodeWif(WIF wif) {
     return Encoder.encodeBase58(
@@ -165,13 +165,4 @@ class WIF {
       {required this.version,
       required this.privateKey,
       required this.compressed});
-}
-
-void main() {
-  // Example integers
-  String inputString =
-      'd06050454abde3bdd947312b9f54439acb097608a47b0b36a23d76820a3a4044000000006a4730440220360e6c5348a85270a3b14b84780ad56cd189bd12848b125c488a678f5e0d95be022011e51cfd849e5d005fc5352885a954c756f6073de633545f6045c4ad96ac9be0012102742148dd2f73733ce36202798298e8294b42b5aabf1ba87a9bb9b0167abfb8dfffffffff';
-  Uint8List bytes = Converter.hexToBytes(inputString);
-  var scriptSize = Encoder.decodeVariableInteger(bytes, 36);
-  print(scriptSize);
 }
