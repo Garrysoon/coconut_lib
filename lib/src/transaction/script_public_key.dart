@@ -9,13 +9,8 @@ class ScriptPublicKey extends Script {
     return ScriptPublicKey(Script.parseToCommand(Converter.hexToBytes(script)));
   }
 
-  /// Create a script from the given script byte.
-  factory ScriptPublicKey.fromScriptByte(List<dynamic> scriptByte) {
-    return ScriptPublicKey(scriptByte);
-  }
-
   /// Generate P2PKH script public key from given address.
-  static ScriptPublicKey p2pkh(String address) {
+  factory ScriptPublicKey.p2pkh(String address) {
     List<int> h160 = Encoder.decodeBase58(address);
     h160 = h160.sublist(1);
     return ScriptPublicKey([
@@ -28,7 +23,7 @@ class ScriptPublicKey extends Script {
   }
 
   /// Generate P2SH script public key from given address.
-  static ScriptPublicKey p2sh(String address) {
+  factory ScriptPublicKey.p2sh(String address) {
     List<int> h160 = Encoder.decodeBase58(address);
     h160 = h160.sublist(1);
     return ScriptPublicKey([
@@ -39,7 +34,7 @@ class ScriptPublicKey extends Script {
   }
 
   /// Generate P2WPKH script public key from given address.
-  static ScriptPublicKey p2wpkh(String address) {
+  factory ScriptPublicKey.p2wpkh(String address) {
     var codec = Bech32Codec().decode(address);
     codec.data.removeAt(0);
     var data8Bits = Converter.convertBits(codec.data, 5, 8, pad: false);
@@ -50,7 +45,7 @@ class ScriptPublicKey extends Script {
     ]);
   }
 
-  static ScriptPublicKey p2wsh(String address) {
+  factory ScriptPublicKey.p2wsh(String address) {
     var codec = Bech32Codec().decode(address);
     codec.data.removeAt(0);
     var data8Bits = Converter.convertBits(codec.data, 5, 8, pad: false);
@@ -79,33 +74,33 @@ class ScriptPublicKey extends Script {
   String getAddress() {
     bool isTestnet = NetworkType.currentNetworkType.isTestnet;
     //todo: other address type
-    if (isP2WPKH()) {
+    if (_isP2wpkh()) {
       String hrp = _getSegwitHrp();
 
       Uint8List h160 = commands[1];
       var data5Bits =
           Converter.convertBits(Uint8List.fromList(h160), 8, 5, pad: true);
       return bech32.encode(Bech32(hrp, [0x00] + data5Bits));
-    } else if (isP2PKH()) {
+    } else if (_isP2pkh()) {
       Uint8List prefix =
           isTestnet ? Uint8List.fromList([0x6f]) : Uint8List.fromList([0x00]);
       Uint8List h160 = commands[2];
       Uint8List prefixedHash = Uint8List.fromList(prefix + h160);
       return Encoder.encodeBase58Checksum(prefixedHash);
-    } else if (isP2SH()) {
+    } else if (_isP2sh()) {
       Uint8List prefix =
           isTestnet ? Uint8List.fromList([0xc4]) : Uint8List.fromList([0x05]);
       Uint8List h160 = commands[1];
       Uint8List prefixedHash = Uint8List.fromList(prefix + h160);
       return Encoder.encodeBase58Checksum(prefixedHash);
-    } else if (isP2TR()) {
+    } else if (_isP2tr()) {
       String hrp = _getSegwitHrp();
       Uint8List h256 = commands[1];
       var data5Bits =
           Converter.convertBits(Uint8List.fromList(h256), 8, 5, pad: true);
       bech32m.Bech32mCodec codec = bech32m.Bech32mCodec();
       return codec.encode(bech32m.Bech32m(hrp, [0x01] + data5Bits));
-    } else if (isP2WSH()) {
+    } else if (_isP2wsh()) {
       String hrp = _getSegwitHrp();
       Uint8List h256 = commands[1];
       var data5Bits =
@@ -117,7 +112,7 @@ class ScriptPublicKey extends Script {
   }
 
   /// Check if the script is P2WPKH.
-  bool isP2WPKH() {
+  bool _isP2wpkh() {
     return commands.length == 2 &&
         commands[0] == 0x00 &&
         commands[1] is Uint8List &&
@@ -125,7 +120,7 @@ class ScriptPublicKey extends Script {
   }
 
   /// Check if the script is P2PKH.
-  bool isP2PKH() {
+  bool _isP2pkh() {
     return commands.length == 5 &&
         commands[0] == 0x76 &&
         commands[1] == 0xa9 &&
@@ -136,7 +131,7 @@ class ScriptPublicKey extends Script {
   }
 
   /// Check if the script is P2SH.
-  bool isP2SH() {
+  bool _isP2sh() {
     return commands.length == 3 &&
         commands[0] == 0xa9 &&
         commands[2] == 0x87 &&
@@ -145,7 +140,7 @@ class ScriptPublicKey extends Script {
   }
 
   /// Check if the script is P2WSH.
-  bool isP2WSH() {
+  bool _isP2wsh() {
     return commands.length == 2 &&
         commands[0] == 0x00 &&
         commands[1] is Uint8List &&
@@ -153,7 +148,7 @@ class ScriptPublicKey extends Script {
   }
 
   /// Check if the script is P2TR.
-  bool isP2TR() {
+  bool _isP2tr() {
     return commands.length == 2 &&
         commands[0] == 0x51 &&
         commands[1] is Uint8List &&

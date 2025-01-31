@@ -1,0 +1,82 @@
+@Tags(['unit'])
+import 'package:coconut_lib/coconut_lib.dart';
+import 'package:test/test.dart';
+
+main() {
+  group('ScriptPublicKey', () {
+    group('ScriptPublicKey.parse', () {
+      test('Generate script public key from parse', () {
+        String scriptPubKey =
+            '2200200d03b386199fc909ca35652f582a526c6b1c45a588d0843759915eb6a41528b7';
+        ScriptPublicKey script = ScriptPublicKey.parse(scriptPubKey);
+        expect(script, isA<ScriptPublicKey>());
+        expect(script.length, 35);
+        expect(script.commands.length, 2);
+      });
+    });
+    group('ScriptPublicKey.p2pkh', () {
+      test('Generate p2pkh script public key', () {
+        ScriptPublicKey script =
+            ScriptPublicKey.p2pkh('moRfJ2A2uSRMz4tzTrn5VyiUMSMNSHxbL5');
+        expect(script.getAddress(), 'moRfJ2A2uSRMz4tzTrn5VyiUMSMNSHxbL5');
+      });
+    });
+    group('ScriptPublicKey.p2sh', () {
+      test('Generate p2sh script public key', () {
+        ScriptPublicKey script =
+            ScriptPublicKey.p2sh('2N2JD6wb56AfK4tfmM6PwdVmoYk2dCKf4Br');
+        expect(script.getAddress(), '2N2JD6wb56AfK4tfmM6PwdVmoYk2dCKf4Br');
+      });
+    });
+    group('ScriptPublicKey.p2wpkh', () {
+      test('Generate p2wpkh script public key', () {
+        ScriptPublicKey script = ScriptPublicKey.p2wpkh(
+            'tb1qkgm3dcvrhgy5n32adjkzrglfg9mwa5gjmwt5ex');
+        expect(
+            script.getAddress(), 'tb1qkgm3dcvrhgy5n32adjkzrglfg9mwa5gjmwt5ex');
+      });
+    });
+    group('ScriptPublicKey.p2wsh', () {
+      test('Generate p2wsh script public key', () {
+        ScriptPublicKey script = ScriptPublicKey.p2wsh(
+            'tb1qd22redun2rm8mt4zxjazks5mr8dxxdjnk57hhgf2fw2ghmarjahqm9g672');
+        expect(script.getAddress(),
+            'tb1qd22redun2rm8mt4zxjazks5mr8dxxdjnk57hhgf2fw2ghmarjahqm9g672');
+      });
+    });
+    group('getAddress', () {
+      test('Get p2wpkh address', () {
+        String script = '160014cb325c29ac1d9f9c56ab77c7f659f6a304a7bd02';
+        ScriptPublicKey scriptPubKey = ScriptPublicKey.parse(script);
+        String address = scriptPubKey.getAddress();
+        expect(address, 'tb1qeve9c2dvrk0ec44twlrlvk0k5vz200gz8pu2wn');
+      });
+
+      test('Get p2tr address', () {
+        String scriptPubKey =
+            '22512028d00add401c7cacf799aa43d074972518c7dcc02c6bac140316707096c38510';
+        ScriptPublicKey script = ScriptPublicKey.parse(scriptPubKey);
+        print(script.getAddress());
+        expect(script.getAddress(),
+            'tb1p9rgq4h2qr372eaue4fpaqayhy5vv0hxq9346c9qrzec8p9krs5gqfj6h0c');
+      });
+
+      test('Get p2sh address', () {
+        String scriptPubKey =
+            '17a91414a6d9f1ce6e5392df68e987de44b303525cc08687';
+        ScriptPublicKey script = ScriptPublicKey.parse(scriptPubKey);
+
+        expect(script.getAddress(), '2Mu8RP9xjU7Ypaqt71343FAAN8W9zTcGYAW');
+      });
+
+      test('Get p2wsh address', () {
+        String scriptPubKey =
+            '2200200d03b386199fc909ca35652f582a526c6b1c45a588d0843759915eb6a41528b7';
+        ScriptPublicKey script = ScriptPublicKey.parse(scriptPubKey);
+
+        expect(script.getAddress(),
+            'tb1qp5pm8psenlysnj34v5h4s2jjd343c3d93rgggd6ej90tdfq49zms6sye4h');
+      });
+    });
+  });
+}
