@@ -1,13 +1,13 @@
 part of '../../coconut_lib.dart';
 
-class WitnessScript extends Script {
-  WitnessScript(super._cmds);
+class MultisignatureScript extends Script {
+  MultisignatureScript(super._cmds);
 
   /// Parse the script from the given script hex.
-  factory WitnessScript.parse(String script) {
+  factory MultisignatureScript.parse(String script) {
     List<dynamic> cmds = Script.parseToCommand(Converter.hexToBytes(script));
     _validateScript(cmds);
-    return WitnessScript(cmds);
+    return MultisignatureScript(cmds);
   }
 
   static void _validateScript(List<dynamic> cmds) {
@@ -64,7 +64,7 @@ class WitnessScript extends Script {
     return a.length - b.length;
   }
 
-  static WitnessScript p2wsh(
+  factory MultisignatureScript.forP2wsh(
       int requiredSignature, int totalSigner, List<Uint8List> publicKeys) {
     List<dynamic> cmds = [];
 
@@ -84,7 +84,7 @@ class WitnessScript extends Script {
     }
     cmds.add(ScriptOperationCode.getHex('OP_${totalSigner.toString()}'));
     cmds.add(ScriptOperationCode.getHex('OP_CHECKMULTISIG'));
-    return WitnessScript(cmds);
+    return MultisignatureScript(cmds);
   }
 
   int getRequiredSignature() {

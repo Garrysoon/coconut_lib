@@ -75,8 +75,8 @@ abstract class MultisignatureWalletBase extends WalletBase {
         publicKeys.add(Converter.hexToBytes(pub));
       }
 
-      WitnessScript script =
-          WitnessScript.p2wsh(requiredSignature, totalSigner, publicKeys);
+      MultisignatureScript script = MultisignatureScript.forP2wsh(
+          requiredSignature, totalSigner, publicKeys);
 
       return script.rawSerialize();
     } else {

@@ -612,7 +612,8 @@ class Transaction {
       String script = inputs[inputIndex].witnessList.last;
       String size = Converter.bytesToHex(
           Encoder.encodeVariableInteger(script.length ~/ 2));
-      WitnessScript witnessScript = WitnessScript.parse(size + script);
+      MultisignatureScript witnessScript =
+          MultisignatureScript.parse(size + script);
 
       List<Uint8List> signatures = [];
 

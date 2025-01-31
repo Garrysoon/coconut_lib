@@ -25,7 +25,7 @@ class ScriptOperationCode {
   static int getHex(String opCode) {
     int? hex = ScriptOperationCode().opCodeHexMap[opCode];
     if (hex == null) {
-      throw ArgumentError('Not supporting op code');
+      throw Exception('Not supporting op code');
     }
     return hex;
   }
@@ -36,6 +36,6 @@ class ScriptOperationCode {
         return entry.key;
       }
     }
-    throw ArgumentError('Not supporting op code');
+    throw Exception('Not supporting op code');
   }
 }

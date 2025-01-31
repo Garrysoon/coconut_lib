@@ -69,7 +69,7 @@ class PSBT {
 
       List<DerivationPath> inputDerivationPathList = [];
       List<Signature> partialSigList = [];
-      WitnessScript? witnessScript;
+      MultisignatureScript? witnessScript;
 
       psbtMap["inputs"][i].keys.forEach((key) {
         // 06 : BIP32_DERIVATION
@@ -92,7 +92,7 @@ class PSBT {
           String script = psbtMap["inputs"][i][key];
           String size = Converter.bytesToHex(
               Encoder.encodeVariableInteger(script.length ~/ 2));
-          witnessScript = WitnessScript.parse(size + script);
+          witnessScript = MultisignatureScript.parse(size + script);
         }
       });
       inputs.add(PsbtInput(
@@ -571,7 +571,7 @@ class PsbtInput {
   final TransactionOutput? _witnessUtxo;
   final List<DerivationPath> _derivationPathList;
   final List<Signature> _partialSigList;
-  final WitnessScript? witnessScript;
+  final MultisignatureScript? witnessScript;
 
   Transaction? get previousTransaction => _previousTransaction;
   TransactionOutput? get witnessUtxo => _witnessUtxo;

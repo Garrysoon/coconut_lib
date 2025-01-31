@@ -86,7 +86,7 @@ class TransactionInput {
 
   /// Insert signature into the transaction input.
   void setSignature(AddressType addressType, List<Signature> signatureList,
-      {WitnessScript? witnessScript}) {
+      {MultisignatureScript? witnessScript}) {
     if (signatureList.isEmpty) {
       throw Exception("No signature found.");
     }

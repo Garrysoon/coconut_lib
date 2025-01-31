@@ -5,7 +5,7 @@ import 'package:coconut_lib/coconut_lib.dart';
 import 'package:coconut_lib/src/cryptography/converter.dart';
 import 'package:test/test.dart';
 
-main() {
+void main() {
   group('ScriptSignature', () {
     group('ScriptSignature.parse', () {
       test('Generate script signature from parse', () {

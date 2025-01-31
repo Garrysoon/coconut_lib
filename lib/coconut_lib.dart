@@ -26,7 +26,7 @@ part 'src/transaction/signature.dart';
 part 'src/transaction/transaction.dart';
 part 'src/transaction/transaction_input.dart';
 part 'src/transaction/transaction_output.dart';
-part 'src/transaction/witness_script.dart';
+part 'src/transaction/multisignature_script.dart';
 part 'src/wallet/network_type.dart';
 part 'src/wallet/address_type.dart';
 part 'src/wallet/bitcoin_secure_multisig_setup.dart';
