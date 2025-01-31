@@ -4,14 +4,13 @@ import 'dart:typed_data';
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
 
-import '../mock_generator.dart';
+import '../mock_factory.dart';
 
 void main() {
   group('ExtendedPublicKey', () {
     group('ExtendedPublicKey.fromHdWallet', () {
       test('Generate ExtendedPublicKey', () {
-        SingleSignatureVault vault =
-            getMockSingleVault(TestWalletType.forNormal);
+        SingleSignatureVault vault = MockFactory.createP2wpkhVault();
         HDWallet hdWallet = vault.keyStore.hdWallet;
         ExtendedPublicKey extendedPublicKey = ExtendedPublicKey.fromHdWallet(
             hdWallet,
@@ -34,10 +33,23 @@ void main() {
     });
     group('serialize', () {
       test('Serialise extended public key', () {
-        SingleSignatureVault vault =
-            getMockSingleVault(TestWalletType.forNormal);
+        SingleSignatureVault vault = MockFactory.createP2wpkhVault();
         expect(vault.keyStore.extendedPublicKey.serialize(),
             'vpub5ZZ1q76vi2LR9PeQDoV13u8TZwsyqKa7yBfD3GnPPvBjVU9ZnBTMkwzCHCVBZaPHDKJNEdMKo8MTyrQ9234idzSG9nHFD6hsUB8HJ14NBg7');
+      });
+    });
+
+    group('get hashCode', () {
+      test('Get hash code', () {
+        SingleSignatureVault vault = MockFactory.createP2wpkhVault();
+        HDWallet hdWallet = vault.keyStore.hdWallet;
+        ExtendedPublicKey extendedPublicKey = ExtendedPublicKey.fromHdWallet(
+            hdWallet,
+            AddressType.p2wpkh.versionForTestnet,
+            Uint8List.fromList(hdWallet.parentFingerprint));
+
+        expect(extendedPublicKey.hashCode,
+            vault.keyStore.extendedPublicKey.hashCode);
       });
     });
   });

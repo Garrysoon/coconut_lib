@@ -7,7 +7,7 @@ class ScriptSignature extends Script {
   /// Parse the script from the given script hex.
   factory ScriptSignature.parse(String script) {
     //print("script : " + Converter.hexToBytes(script).toString());
-    return ScriptSignature(Script.parse(Converter.hexToBytes(script)));
+    return ScriptSignature(Script.parseToCommand(Converter.hexToBytes(script)));
   }
 
   /// Create a script from the given script byte.

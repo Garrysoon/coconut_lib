@@ -22,8 +22,13 @@ abstract class MultisignatureWalletBase extends WalletBase {
       throw Exception('Use Vault or Wallet class for single signature.');
     }
 
+    if (_keyStoreList.length < requiredSignature) {
+      throw Exception(
+          'Required signature is greater than the number of keyStores.');
+    }
+
     for (KeyStore keyStore in _keyStoreList) {
-      if (NetworkType.currentNetwork.isTestnet !=
+      if (NetworkType.currentNetworkType.isTestnet !=
           AddressType.isTestnetVersion(keyStore.extendedPublicKey.version)) {
         throw Exception('Network type mismatch.');
       }
@@ -77,5 +82,52 @@ abstract class MultisignatureWalletBase extends WalletBase {
     } else {
       throw Exception('Not support witness script for this address type.');
     }
+  }
+
+  @override
+  bool canSignToPsbt(String psbt) {
+    for (KeyStore keyStore in keyStoreList) {
+      if (keyStore.canSignToPsbt(psbt)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @override
+  String addSignatureToPsbt(String psbt) {
+    if (!canSignToPsbt(psbt)) {
+      throw Exception('No keyStore can sign to the PSBT.');
+    }
+
+    String signedPsbt = psbt;
+
+    for (KeyStore keyStore in keyStoreList) {
+      if (!keyStore.hasSeed) continue;
+      if (keyStore.canSignToPsbt(signedPsbt)) {
+        signedPsbt = keyStore.addSignatureToPsbt(signedPsbt);
+      }
+    }
+    return signedPsbt;
+  }
+
+  @override
+  Future<int> estimateFee(List<UTXO> utxoPool, String receiverAddress,
+      String changeAddress, int sendingAmount, int feeRate) async {
+    PSBT psbt = await Future(() => PSBT.fromTransaction(
+        Transaction.forPayment(utxoPool, receiverAddress, changeAddress,
+            sendingAmount, feeRate, this),
+        this));
+    return psbt.estimateFee(feeRate, addressType,
+        requiredSignature: requiredSignature, totalSigner: keyStoreList.length);
+  }
+
+  @override
+  Future<int> estimateFeeForSweep(
+      List<UTXO> utxoPool, String receiverAddress, int feeRate) async {
+    PSBT psbt = await Future(() => PSBT.fromTransaction(
+        Transaction.forSweep(utxoPool, receiverAddress, feeRate, this), this));
+    return psbt.estimateFee(feeRate, addressType,
+        requiredSignature: requiredSignature, totalSigner: keyStoreList.length);
   }
 }

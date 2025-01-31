@@ -6,7 +6,7 @@ class ScriptPublicKey extends Script {
 
   /// Parse the script from the given script hex.
   factory ScriptPublicKey.parse(String script) {
-    return ScriptPublicKey(Script.parse(Converter.hexToBytes(script)));
+    return ScriptPublicKey(Script.parseToCommand(Converter.hexToBytes(script)));
   }
 
   /// Create a script from the given script byte.
@@ -16,7 +16,7 @@ class ScriptPublicKey extends Script {
 
   /// Generate P2PKH script public key from given address.
   static ScriptPublicKey p2pkh(String address) {
-    List<int> h160 = Base58.decode(address);
+    List<int> h160 = Encoder.decodeBase58(address);
     h160 = h160.sublist(1);
     return ScriptPublicKey([
       0x76,
@@ -29,7 +29,7 @@ class ScriptPublicKey extends Script {
 
   /// Generate P2SH script public key from given address.
   static ScriptPublicKey p2sh(String address) {
-    List<int> h160 = Base58.decode(address);
+    List<int> h160 = Encoder.decodeBase58(address);
     h160 = h160.sublist(1);
     return ScriptPublicKey([
       0xa9,
@@ -63,10 +63,10 @@ class ScriptPublicKey extends Script {
 
   String _getSegwitHrp() {
     String hrp;
-    bool isTestnet = NetworkType.currentNetwork.isTestnet;
+    bool isTestnet = NetworkType.currentNetworkType.isTestnet;
     if (!isTestnet) {
       hrp = 'bc';
-    } else if (NetworkType.currentNetwork == NetworkType.testnet) {
+    } else if (NetworkType.currentNetworkType == NetworkType.testnet) {
       hrp = 'tb';
     } else {
       hrp = 'bcrt';
@@ -77,7 +77,7 @@ class ScriptPublicKey extends Script {
 
   /// Get the address from the script.
   String getAddress() {
-    bool isTestnet = NetworkType.currentNetwork.isTestnet;
+    bool isTestnet = NetworkType.currentNetworkType.isTestnet;
     //todo: other address type
     if (isP2WPKH()) {
       String hrp = _getSegwitHrp();
@@ -91,13 +91,13 @@ class ScriptPublicKey extends Script {
           isTestnet ? Uint8List.fromList([0x6f]) : Uint8List.fromList([0x00]);
       Uint8List h160 = commands[2];
       Uint8List prefixedHash = Uint8List.fromList(prefix + h160);
-      return Base58.encodeChecksum(prefixedHash);
+      return Encoder.encodeBase58Checksum(prefixedHash);
     } else if (isP2SH()) {
       Uint8List prefix =
           isTestnet ? Uint8List.fromList([0xc4]) : Uint8List.fromList([0x05]);
       Uint8List h160 = commands[1];
       Uint8List prefixedHash = Uint8List.fromList(prefix + h160);
-      return Base58.encodeChecksum(prefixedHash);
+      return Encoder.encodeBase58Checksum(prefixedHash);
     } else if (isP2TR()) {
       String hrp = _getSegwitHrp();
       Uint8List h256 = commands[1];

@@ -1,24 +1,32 @@
 part of '../../coconut_lib.dart';
 
 /// Represents a single signature vault.
-class SingleSignatureVault extends SingleSignatureWalletBase
-    implements VaultFeature {
+class SingleSignatureVault extends SingleSignatureWalletBase {
   SingleSignatureVault._(
       KeyStore keyStore, AddressType addressType, String derivationPath)
-      : super(keyStore, addressType, derivationPath, true);
+      : super(keyStore, addressType, derivationPath, true) {
+    if (addressType.isMultisig) {
+      throw Exception("Address type is not for single signature vault");
+    }
+  }
 
   /// Create a single signature vault from keystore.
-  factory SingleSignatureVault.fromKeyStore(
-      KeyStore keyStore, AddressType addressType,
-      {int accountIndex = 0}) {
+  factory SingleSignatureVault.fromKeyStore(KeyStore keyStore,
+      {AddressType? addressType, int accountIndex = 0}) {
+    addressType ??= AddressType.p2wpkh;
     String derivationPath =
         WalletUtility.getDerivationPath(addressType, accountIndex);
     return SingleSignatureVault._(keyStore, addressType, derivationPath);
   }
 
   /// Create a single signature vault from random entropy.
-  factory SingleSignatureVault.random(AddressType addressType,
-      {int mnemonicLength = 24, String passphrase = '', int accountIndex = 0}) {
+  factory SingleSignatureVault.random({
+    AddressType? addressType,
+    int mnemonicLength = 24,
+    String passphrase = '',
+    int accountIndex = 0,
+  }) {
+    addressType ??= AddressType.p2wpkh;
     KeyStore keyStore = KeyStore.random(addressType,
         mnemonicLength: mnemonicLength,
         passphrase: passphrase,
@@ -29,9 +37,11 @@ class SingleSignatureVault extends SingleSignatureWalletBase
   }
 
   /// Create a single signature vault from mnemonic words.
-  factory SingleSignatureVault.fromMnemonic(
-      String mnemonicWords, AddressType addressType,
-      {String passphrase = '', int accountIndex = 0}) {
+  factory SingleSignatureVault.fromMnemonic(String mnemonicWords,
+      {AddressType? addressType,
+      String passphrase = '',
+      int accountIndex = 0}) {
+    addressType ??= AddressType.p2wpkh;
     KeyStore keyStore = KeyStore.fromMnemonic(mnemonicWords, addressType,
         passphrase: passphrase, accountIndex: accountIndex);
     String derivationPath =
@@ -40,8 +50,9 @@ class SingleSignatureVault extends SingleSignatureWalletBase
   }
 
   /// Create a single signature vault from seed.
-  factory SingleSignatureVault.fromSeed(Seed seed, AddressType addressType,
-      {int accountIndex = 0}) {
+  factory SingleSignatureVault.fromSeed(Seed seed,
+      {AddressType? addressType, int accountIndex = 0}) {
+    addressType ??= AddressType.p2wpkh;
     KeyStore keyStore =
         KeyStore.fromSeed(seed, addressType, accountIndex: accountIndex);
     String derivationPath =
@@ -50,24 +61,16 @@ class SingleSignatureVault extends SingleSignatureWalletBase
   }
 
   /// Create a single signature vault from hex entropy.
-  factory SingleSignatureVault.fromEntropy(
-      String entropy, AddressType addressType,
-      {String passphrase = '', int accountIndex = 0}) {
+  factory SingleSignatureVault.fromEntropy(String entropy,
+      {AddressType? addressType,
+      String passphrase = '',
+      int accountIndex = 0}) {
+    addressType ??= AddressType.p2wpkh;
     KeyStore keyStore = KeyStore.fromEntropy(entropy, addressType,
         passphrase: passphrase, accountIndex: accountIndex);
     String derivationPath =
         WalletUtility.getDerivationPath(addressType, accountIndex);
     return SingleSignatureVault._(keyStore, addressType, derivationPath);
-  }
-
-  @override
-  bool canSignToPsbt(String psbt) {
-    return keyStore.canSignToPsbt(psbt);
-  }
-
-  @override
-  String addSignatureToPsbt(String psbt) {
-    return keyStore.addSignatureToPsbt(psbt);
   }
 
   /// Display BSMS for multisig setup.

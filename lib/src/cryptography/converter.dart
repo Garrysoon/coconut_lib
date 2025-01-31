@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 class Converter {
+  Converter._();
   static String decToHex(int decimalValue) {
     List<String> hexDigits = [
       '0',

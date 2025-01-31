@@ -5,7 +5,7 @@ class WitnessScript extends Script {
 
   /// Parse the script from the given script hex.
   factory WitnessScript.parse(String script) {
-    List<dynamic> cmds = Script.parse(Converter.hexToBytes(script));
+    List<dynamic> cmds = Script.parseToCommand(Converter.hexToBytes(script));
     _validateScript(cmds);
     return WitnessScript(cmds);
   }

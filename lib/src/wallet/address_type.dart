@@ -131,7 +131,7 @@ class AddressType {
   }
 
   static String _getSegwitHrp() {
-    NetworkType network = NetworkType.currentNetwork;
+    NetworkType network = NetworkType.currentNetworkType;
     if (network == NetworkType.mainnet) {
       return 'bc';
     } else if (network == NetworkType.testnet) {
@@ -155,7 +155,7 @@ class AddressType {
 
   /// @nodoc
   static String getP2pkhAddress(String publicKey) {
-    bool isTestnet = NetworkType.currentNetwork.isTestnet;
+    bool isTestnet = NetworkType.currentNetworkType.isTestnet;
     final ripemd160HashOfSha256 = Hash.sha160fromHex(publicKey);
     final extendedRipemd160Hash = Uint8List(ripemd160HashOfSha256.length + 1);
     if (isTestnet) {
@@ -179,12 +179,12 @@ class AddressType {
         0, extendedRipemd160Hash.length, extendedRipemd160Hash);
     addressBytes.setRange(
         extendedRipemd160Hash.length, addressBytes.length, checksum);
-    return Base58.encode(addressBytes);
+    return Encoder.encodeBase58(addressBytes);
   }
 
   /// @nodoc
   static String getP2wpkhInP2shAddress(String publicKey) {
-    bool isTestnet = NetworkType.currentNetwork.isTestnet;
+    bool isTestnet = NetworkType.currentNetworkType.isTestnet;
     var push_20 = Uint8List.fromList([0x00, 0x14]);
     var scriptSig =
         Uint8List.fromList([...push_20, ...Hash.sha160fromHex(publicKey)]);
@@ -198,13 +198,13 @@ class AddressType {
     var address =
         (Uint8List.fromList([prefix, ...Hash.sha160fromByte(scriptSig)]));
 
-    return Base58.encodeChecksum(address);
+    return Encoder.encodeBase58Checksum(address);
   }
 
   /// @nodoc
   static String getP2shAddress(
       List<String> publicKeys, int requiredSignatures) {
-    bool isTestnet = NetworkType.currentNetwork.isTestnet;
+    bool isTestnet = NetworkType.currentNetworkType.isTestnet;
     publicKeys.sort();
     List<Uint8List> pubKeysBytes =
         publicKeys.map((key) => Converter.hexToBytes(key)).toList();
@@ -222,7 +222,8 @@ class AddressType {
     var networkPrefix = isTestnet ? 0xC4 : 0x05;
     var addressBytes = [networkPrefix, ...redeemScriptHash];
     // print(Converter.bytesToHex(addressBytes));
-    var base58Address = Base58.encodeChecksum(Uint8List.fromList(addressBytes));
+    var base58Address =
+        Encoder.encodeBase58Checksum(Uint8List.fromList(addressBytes));
 
     return base58Address;
   }

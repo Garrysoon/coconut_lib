@@ -16,7 +16,7 @@ abstract class SingleSignatureWalletBase extends WalletBase {
     // if (_addressType.isMultisig) {
     //   throw Exception('Use MultsignatureVault or MultisignatureWallet.');
     // }
-    if (NetworkType.currentNetwork.isTestnet !=
+    if (NetworkType.currentNetworkType.isTestnet !=
         AddressType.isTestnetVersion(_keyStore._extendedPublicKey.version)) {
       throw Exception('Network type mismatch.');
     }
@@ -42,5 +42,33 @@ abstract class SingleSignatureWalletBase extends WalletBase {
     }
     String pubkey = _keyStore.getPublicKeyWithDerivationPath(derivationPath);
     return _addressType.getAddress(pubkey);
+  }
+
+  @override
+  bool canSignToPsbt(String psbt) {
+    return keyStore.canSignToPsbt(psbt);
+  }
+
+  @override
+  String addSignatureToPsbt(String psbt) {
+    return keyStore.addSignatureToPsbt(psbt);
+  }
+
+  @override
+  Future<int> estimateFee(List<UTXO> utxoPool, String receiverAddress,
+      String changeAddress, int sendingAmount, int feeRate) async {
+    PSBT psbt = await Future(() => PSBT.fromTransaction(
+        Transaction.forPayment(utxoPool, receiverAddress, changeAddress,
+            sendingAmount, feeRate, this),
+        this));
+    return psbt.estimateFee(feeRate, addressType);
+  }
+
+  @override
+  Future<int> estimateFeeForSweep(
+      List<UTXO> utxoPool, String receiverAddress, int feeRate) async {
+    PSBT psbt = await Future(() => PSBT.fromTransaction(
+        Transaction.forSweep(utxoPool, receiverAddress, feeRate, this), this));
+    return psbt.estimateFee(feeRate, addressType);
   }
 }

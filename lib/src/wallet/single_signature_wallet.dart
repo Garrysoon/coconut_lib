@@ -1,8 +1,7 @@
 part of '../../coconut_lib.dart';
 
 /// Represents a single signature wallet.
-class SingleSignatureWallet extends SingleSignatureWalletBase
-    implements WalletFeature {
+class SingleSignatureWallet extends SingleSignatureWalletBase {
   /// Creates a new single signature wallet.
   SingleSignatureWallet(
       String fingerprint,
@@ -46,62 +45,5 @@ class SingleSignatureWallet extends SingleSignatureWalletBase
   factory SingleSignatureWallet.fromJson(String jsonStr) {
     Map<String, dynamic> json = jsonDecode(jsonStr);
     return SingleSignatureWallet.fromDescriptor(json['descriptor']);
-  }
-
-  @override
-  Future<String> generatePsbt(List<UTXO> utxoList, String receiverAddress,
-      String changeAddress, int sendingAmount, int feeRate) async {
-    PSBT psbt = await Future(() => PSBT.fromTransaction(
-        Transaction.forPayment(utxoList, receiverAddress, changeAddress,
-            sendingAmount, feeRate, this),
-        utxoList,
-        this));
-    return psbt.serialize();
-  }
-
-  @override
-  Future<String> generatePsbtWithMaximum(
-      List<UTXO> utxoList, String receiverAddress, int feeRate) async {
-    PSBT psbt = await Future(() => PSBT.fromTransaction(
-        Transaction.forSweep(utxoList, receiverAddress, feeRate, this),
-        utxoList,
-        this));
-    return psbt.serialize();
-  }
-
-  @override
-  Future<String> generatePsbtWithUtxoList(
-      List<UTXO> utxoList,
-      String receiverAddress,
-      String changeAddress,
-      int sendingAmount,
-      int feeRate) async {
-    PSBT psbt = await Future(() => PSBT.fromTransaction(
-        Transaction.fromUtxoList(utxoList, receiverAddress, changeAddress,
-            sendingAmount, feeRate, this),
-        utxoList,
-        this));
-    return psbt.serialize();
-  }
-
-  @override
-  Future<int> estimateFee(List<UTXO> utxoList, String receiverAddress,
-      String changeAddress, int sendingAmount, int feeRate) async {
-    PSBT psbt = await Future(() => PSBT.fromTransaction(
-        Transaction.forPayment(utxoList, receiverAddress, changeAddress,
-            sendingAmount, feeRate, this),
-        utxoList,
-        this));
-    return psbt.estimateFee(feeRate, addressType);
-  }
-
-  @override
-  Future<int> estimateFeeWithMaximum(
-      List<UTXO> utxoList, String receiverAddress, int feeRate) async {
-    PSBT psbt = await Future(() => PSBT.fromTransaction(
-        Transaction.forSweep(utxoList, receiverAddress, feeRate, this),
-        utxoList,
-        this));
-    return psbt.estimateFee(feeRate, addressType);
   }
 }

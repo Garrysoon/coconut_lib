@@ -43,7 +43,7 @@ class ExtendedPublicKey {
 
   /// Parse an extended public key.
   factory ExtendedPublicKey.parse(String expub) {
-    Uint8List buffer = Base58.decode(expub);
+    Uint8List buffer = Encoder.decodeBase58(expub);
     if (buffer.length != 78) {
       throw Exception("ExtendedPublicKey :Invalid buffer length");
     }
@@ -86,6 +86,22 @@ class ExtendedPublicKey {
         Uint8List.fromList(Hash.sha256fromByte(Hash.sha256fromByte(buffer)));
     Uint8List combine = Uint8List.fromList(
         [buffer, hash.sublist(0, 4)].expand((i) => i).toList(growable: false));
-    return Base58.encode(combine);
+    return Encoder.encodeBase58(combine);
   }
+
+  @override
+  String toString() {
+    return serialize();
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (other is ExtendedPublicKey) {
+      return serialize() == other.serialize();
+    }
+    return false;
+  }
+
+  @override
+  int get hashCode => serialize().hashCode;
 }

@@ -1,18 +1,56 @@
 @Tags(['unit'])
-import 'dart:math';
 
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
 
-import '../mock_generator.dart';
-
 void main() {
   group('TransactionOutput', () {
+    group('get amount', () {
+      test('Get amont from transaction output', () {
+        String address = 'bc1qkfr6qzkvrnpvpd97p57r3krxl8qg6fz24nzjsa';
+        int amount = 1000;
+        TransactionOutput output =
+            TransactionOutput.forPayment(amount, address);
+        expect(output.amount, amount);
+      });
+    });
+    group('get scriptPubKey', () {
+      test('Get script public key', () {
+        String address = 'bc1qkfr6qzkvrnpvpd97p57r3krxl8qg6fz24nzjsa';
+        int amount = 1000;
+        TransactionOutput output =
+            TransactionOutput.forPayment(amount, address);
+        expect(output.scriptPubKey.serialize(),
+            '160014b247a00acc1cc2c0b4be0d3c38d866f9c08d244a');
+      });
+    });
+    group('get length', () {
+      test('Get length of transcation output', () {
+        String address = 'bc1qkfr6qzkvrnpvpd97p57r3krxl8qg6fz24nzjsa';
+        int amount = 1000;
+        TransactionOutput output =
+            TransactionOutput.forPayment(amount, address);
+        expect(output.length, 31);
+      });
+    });
     group('setAmount', () {
-      test('', () {});
+      test('Set amount of transaction output', () {
+        String address = 'bc1qkfr6qzkvrnpvpd97p57r3krxl8qg6fz24nzjsa';
+        int amount = 1000;
+        TransactionOutput output =
+            TransactionOutput.forPayment(amount, address);
+        output.setAmount(2000);
+        expect(output.amount, 2000);
+      });
     });
     group('TransactionOutput.forPayment', () {
-      test('', () {});
+      test('Generate transaction output for payment', () {
+        String address = 'bc1qkfr6qzkvrnpvpd97p57r3krxl8qg6fz24nzjsa';
+        int amount = 1000;
+        TransactionOutput output =
+            TransactionOutput.forPayment(amount, address);
+        expect(output, isA<TransactionOutput>());
+      });
     });
     group('isDustOutput', () {
       //   p2wpkh 294;
@@ -53,11 +91,55 @@ void main() {
         expect(output.isDustOutput(AddressType.p2wsh.isSegwit), true);
       });
     });
-    group('', () {
-      test('', () {});
+    group('TransactionOutput.parse', () {
+      test('Generate transaction output from parser on p2pkh', () {
+        String outputText =
+            'e803000000000000160014b247a00acc1cc2c0b4be0d3c38d866f9c08d244a';
+        TransactionOutput output = TransactionOutput.parse(outputText);
+        expect(output.amount, 1000);
+        expect(output.scriptPubKey.getAddress(),
+            'tb1qkfr6qzkvrnpvpd97p57r3krxl8qg6fz2l4eptw');
+      });
+      test('Generate transaction output from parser on p2wpkh', () {
+        String outputText =
+            '277c5d000000000016001424b3e9491f3eadd9862389d98480acf89bdab078';
+        TransactionOutput output = TransactionOutput.parse(outputText);
+        expect(output.amount, 6126631);
+        expect(output.scriptPubKey.getAddress(),
+            'tb1qyje7jjgl86kanp3r38vcfq9vlzda4vrcj8cctu');
+      });
     });
-    group('', () {
-      test('', () {});
+    group('serialize', () {
+      test('Serialize transaction output', () {
+        TransactionOutput output = TransactionOutput.forPayment(1000,
+            'bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej');
+        expect(output.serialize(),
+            'e803000000000000220020701a8d401c84fb13e6baf169d59684e17abd9fa216c8cc5b9fc63d622ff8c58d');
+      });
+    });
+    group('getAddress', () {
+      test('Get address from transaction output', () {
+        TransactionOutput output = TransactionOutput.forPayment(1000,
+            'tb1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxsey6dra');
+        expect(output.getAddress(),
+            'tb1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxsey6dra');
+      });
+    });
+    group('operator ==', () {
+      test('Check the equality of transaction outputs', () {
+        TransactionOutput targetOutput = TransactionOutput.forPayment(1000,
+            'bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej');
+        TransactionOutput matchedOutput = TransactionOutput.parse(
+            'e803000000000000220020701a8d401c84fb13e6baf169d59684e17abd9fa216c8cc5b9fc63d622ff8c58d');
+        expect(targetOutput == matchedOutput, true);
+      });
+    });
+    group('get hashCode', () {
+      test('Get hash code', () {
+        TransactionOutput targetOutput = TransactionOutput.forPayment(1000,
+            'bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej');
+        expect(targetOutput.hashCode, 369910355);
+      });
     });
   });
 }

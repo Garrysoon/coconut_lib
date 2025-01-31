@@ -60,7 +60,7 @@ measure_step "Step 2. Formatting coverage data" "dart pub global run coverage:fo
 
 # 3. lcov 파일을 HTML로 변환하며 .g.dart 파일 제외
 echo "${BLUE}Step 3/3: Generating HTML report from lcov...${RESET}"
-measure_step "Step 3. Generating HTML report" "genhtml -o coverage/html coverage/lcov.info --exclude '*.g.dart' >/dev/null 2>&1"
+measure_step "Step 3. Generating HTML report" "genhtml -o coverage/html coverage/lcov.info >/dev/null 2>&1"
 
 # 전체 종료 시간
 total_end_time=$(date +%s)

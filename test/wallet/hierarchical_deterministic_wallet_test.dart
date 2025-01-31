@@ -2,20 +2,20 @@
 import 'dart:typed_data';
 
 import 'package:coconut_lib/coconut_lib.dart';
-import 'package:coconut_lib/src/utils/converter.dart';
-import 'package:coconut_lib/src/utils/hash.dart';
+import 'package:coconut_lib/src/cryptography/converter.dart';
+import 'package:coconut_lib/src/cryptography/hash.dart';
 import 'package:test/test.dart';
 
 void main() {
-  late HDWallet hdWallet;
-  setUpAll(() {
-    Uint8List privateKey = Converter.hexToBytes(
-        '6a8c473974ffabbf2bac36adadd328baabf8b6d7a269b69bb808d80d64f17f41');
-    Uint8List chainCode = Converter.hexToBytes(
-        '4cfac59caf9be1428410291697177b2efc8373a29f7ad4a34694163686a4d20b');
-    hdWallet = HDWallet.fromPrivateKey(privateKey, chainCode);
-  });
   group('HDWallet', () {
+    late HDWallet hdWallet;
+    setUpAll(() {
+      Uint8List privateKey = Converter.hexToBytes(
+          '6a8c473974ffabbf2bac36adadd328baabf8b6d7a269b69bb808d80d64f17f41');
+      Uint8List chainCode = Converter.hexToBytes(
+          '4cfac59caf9be1428410291697177b2efc8373a29f7ad4a34694163686a4d20b');
+      hdWallet = HDWallet.fromPrivateKey(privateKey, chainCode);
+    });
     group('neutered', () {
       test('Check neutered', () {
         expect(hdWallet.neutered().isNeutered(), true);

@@ -6,6 +6,7 @@ import 'package:pointycastle/export.dart';
 import 'converter.dart';
 
 class Hash {
+  Hash._();
   static String sha256(String input) {
     var bytes = utf8.encode(input);
     var digest = SHA256Digest().process(bytes);
@@ -56,13 +57,14 @@ class Hash {
     return ripemd;
   }
 
-  /// Returns the first 4 bytes of the SHA256 hashed value as uint.
-  static int getSimpleHash(String input) {
-    final hex = utf8.encode(input);
-    final d = SHA256Digest();
+  static pbkdf2(String secret, String salt) {
+    PBKDF2KeyDerivator derivator =
+        PBKDF2KeyDerivator(HMac(SHA512Digest(), 128));
 
-    var hash = d.process(Uint8List.fromList(hex));
-
-    return hash.buffer.asByteData().getUint32(0);
+    final saltList = Uint8List.fromList(utf8.encode(salt));
+    derivator.reset();
+    derivator.init(Pbkdf2Parameters(saltList, 2048, 64));
+    var array = derivator.process(Uint8List.fromList(secret.codeUnits));
+    return array.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join('');
   }
 }

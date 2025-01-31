@@ -1,20 +1,47 @@
 @Tags(['unit'])
-import 'dart:typed_data';
-
 import 'package:coconut_lib/coconut_lib.dart';
-import 'package:coconut_lib/src/utils/converter.dart';
-import 'package:coconut_lib/src/utils/hash.dart';
 import 'package:test/test.dart';
 
-import '../mock_generator.dart';
+import '../mock_factory.dart';
 
 void main() {
   group('UTXO', () {
-    group('', () {
-      test('', () {});
+    late UTXO utxo;
+
+    setUpAll(() async {
+      utxo = MockFactory.createUtxo(entropy: 'ABC');
     });
-    group('', () {
-      test('', () {});
+    group('get transactionHash', () {
+      test('Get transaction hash', () {
+        print(utxo.transactionHash.hashCode);
+        expect(utxo.transactionHash.hashCode, 1052119297);
+      });
+    });
+    group('get index', () {
+      test('Get transaction index', () {
+        expect(utxo.index, 0);
+      });
+    });
+    group('get amount', () {
+      test('Get amount', () {
+        expect(utxo.amount, 100000);
+      });
+    });
+    group('operator ==', () {
+      test('Check equal', () {
+        UTXO targetUtxo = UTXO(
+          utxo.transactionHash,
+          utxo.index,
+          utxo.amount,
+          utxo.derivationPath,
+        );
+        expect(utxo == targetUtxo, true);
+      });
+    });
+    group('get hashCode', () {
+      test('Get hash code', () {
+        expect(utxo.hashCode, 277499242);
+      });
     });
   });
 }

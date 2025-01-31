@@ -16,7 +16,7 @@ class Script {
         if (raw[0] == 0x00 && raw.length == 1) {
           return length;
         }
-        length += Varints.encode(raw.length).length;
+        length += Encoder.encodeVariableInteger(raw.length).length;
         return length;
       }();
 
@@ -24,9 +24,10 @@ class Script {
   Script(this._cmds);
 
   /// Parse the script from the given script bytes.
-  static List<dynamic> parse(Uint8List script) {
+  // TODO: change to factory constructor
+  static List<dynamic> parseToCommand(Uint8List script) {
     int offset = 0;
-    int length = Varints.read(script, offset);
+    int length = Encoder.decodeVariableInteger(script, offset);
     offset += (length < 0xfd)
         ? 1
         : (length == 0xfd)
@@ -108,8 +109,9 @@ class Script {
       return Converter.bytesToHex(raw);
     }
 
-    String serialized = Converter.bytesToHex(Varints.encode(raw.length)) +
-        Converter.bytesToHex(raw);
+    String serialized =
+        Converter.bytesToHex(Encoder.encodeVariableInteger(raw.length)) +
+            Converter.bytesToHex(raw);
 
     return serialized;
   }
@@ -120,9 +122,9 @@ class Script {
       return true; // Check if they are the same instance
     }
     if (other is! Script) return false; // Ensure the object is of the same type
-    return _cmds == other._cmds; // Compare properties
+    return serialize() == other.serialize(); // Compare properties
   }
 
   @override
-  int get hashCode => _cmds.hashCode;
+  int get hashCode => serialize().hashCode;
 }

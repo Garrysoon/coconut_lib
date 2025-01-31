@@ -1,37 +1,21 @@
 library coconut_lib;
 
 import 'dart:async';
-import 'dart:collection';
 import 'dart:convert';
-import 'dart:io';
-import 'dart:isolate';
 import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:bech32/bech32.dart';
 import 'package:bech32m_i/bech32m_i.dart' as bech32m;
-import 'package:coconut_lib/src/utils/error.dart';
-import 'package:convert/convert.dart';
 import 'package:decimal/decimal.dart';
 import 'package:hex/hex.dart';
-import 'package:http/http.dart';
 
-import 'src/utils/base58.dart';
-import 'src/utils/converter.dart';
-import 'src/utils/ecc.dart' as ecc;
-import 'src/utils/enum.dart';
-import 'src/utils/file_database.dart';
-import 'src/utils/hash.dart';
-import 'src/utils/pbkdf2.dart';
-import 'src/utils/result_type.dart';
-import 'src/utils/varints.dart';
-import 'src/utils/wif.dart' as wif;
-import 'src/utils/wordlists/english.dart' as english_words;
-
-export 'src/utils/enum.dart';
-export 'src/utils/error.dart';
-export 'src/utils/result_type.dart';
-export 'src/utils/wordlists/english.dart';
+import 'src/cryptography/converter.dart';
+import 'src/cryptography/elliptic_curve_cryptography.dart' as ecc;
+import 'src/cryptography/hash.dart';
+import 'src/cryptography/encoder.dart';
+import 'src/cryptography/mnemonic_wordlist/english.dart' as english_words;
+export 'src/cryptography/mnemonic_wordlist/english.dart';
 
 part 'src/transaction/partially_signed_bitcoin_transaction.dart';
 part 'src/transaction/script.dart';
@@ -43,7 +27,6 @@ part 'src/transaction/transaction.dart';
 part 'src/transaction/transaction_input.dart';
 part 'src/transaction/transaction_output.dart';
 part 'src/transaction/witness_script.dart';
-part 'src/utils/unit.dart';
 part 'src/wallet/network_type.dart';
 part 'src/wallet/address_type.dart';
 part 'src/wallet/bitcoin_secure_multisig_setup.dart';
@@ -59,7 +42,5 @@ part 'src/wallet/single_signature_vault.dart';
 part 'src/wallet/single_signature_wallet.dart';
 part 'src/wallet/single_signature_wallet_base.dart';
 part 'src/wallet/unspent_transaction_output.dart';
-part 'src/wallet/vault_feature.dart';
 part 'src/wallet/wallet_base.dart';
-part 'src/wallet/wallet_feature.dart';
 part 'src/wallet/wallet_utility.dart';

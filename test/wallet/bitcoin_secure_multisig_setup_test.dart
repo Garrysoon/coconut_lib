@@ -2,7 +2,7 @@
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
 
-import '../mock_generator.dart';
+import '../mock_factory.dart';
 
 void main() {
   group('BSMS', () {
@@ -21,8 +21,7 @@ void main() {
 
     group('BSMS.fromCoordinator', () {
       test('Generate coordinator', () {
-        MultisignatureWallet mockWallet =
-            getMockMultisignatureWallet(TestWalletType.forNormal);
+        MultisignatureVault mockWallet = MockFactory.createP2wshVault();
         BSMS bsms = BSMS.fromCoordinator(
             mockWallet.getAddress(0), mockWallet.descriptor);
         expect(bsms.coordinator, isA<Coordinator>());

@@ -1,31 +1,37 @@
 part of '../../coconut_lib.dart';
 
 /// Represents a multisignature vault.
-class MultisignatureVault extends MultisignatureWalletBase
-    implements VaultFeature {
-  MultisignatureVault(int requiredSignature, AddressType addressType,
-      int accountIndex, String derivationPath, List<KeyStore> keyStores)
-      : super(requiredSignature, addressType, derivationPath, keyStores) {
-    if (keyStores.length < requiredSignature) {
-      throw Exception(
-          'Required signature is greater than the number of keyStores.');
-    }
-  }
+class MultisignatureVault extends MultisignatureWalletBase {
+  MultisignatureVault(super.requiredSignature, super.addressType,
+      int accountIndex, super.derivationPath, super.keyStores);
 
   /// Create a multisignature vault from a list of keyStores.
-  factory MultisignatureVault.fromKeyStoreList(List<KeyStore> keyStoreList,
-      int requiredSignature, AddressType addressType,
-      {int accountIndex = 0}) {
+  factory MultisignatureVault.fromKeyStoreList(
+      List<KeyStore> keyStoreList, int requiredSignature,
+      {AddressType? addressType, int accountIndex = 0}) {
+    addressType ??= AddressType.p2wsh;
     String derivationPath =
         WalletUtility.getDerivationPath(addressType, accountIndex);
+
+    for (KeyStore keyStore in keyStoreList) {
+      if (!keyStore.addressType.isMultisig) {
+        throw Exception("Non multisignature address type in key store list.");
+      }
+      if (keyStore.addressType != AddressType.p2wsh) {
+        throw Exception("Unsupported address type.");
+      }
+    }
+
     return MultisignatureVault(requiredSignature, addressType, accountIndex,
         derivationPath, keyStoreList);
   }
 
   /// Create a multisignature vault from a list of seeds.
   factory MultisignatureVault.fromSeedList(
-      List<Seed> seedList, int requiredSignature, AddressType addressType,
-      {int accountIndex = 0}) {
+      List<Seed> seedList, int requiredSignature,
+      {AddressType? addressType, int accountIndex = 0}) {
+    addressType ??= AddressType.p2wsh;
+
     String derivationPath =
         WalletUtility.getDerivationPath(addressType, accountIndex);
     List<KeyStore> keyStores = [];
@@ -54,46 +60,9 @@ class MultisignatureVault extends MultisignatureWalletBase
     }
 
     return MultisignatureVault.fromKeyStoreList(
-        keyStores,
-        descriptor.requiredSignatures,
-        AddressType.getAddressTypeFromScriptType("p2${descriptor.scriptType}"));
-  }
-
-  @override
-  bool canSignToPsbt(String psbt) {
-    for (KeyStore keyStore in keyStoreList) {
-      if (keyStore.canSignToPsbt(psbt)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  @override
-  String addSignatureToPsbt(String psbt) {
-    if (!canSignToPsbt(psbt)) {
-      throw Exception('No keyStore can sign to the PSBT.');
-    }
-
-    String signedPsbt = psbt;
-
-    for (KeyStore keyStore in keyStoreList) {
-      if (!keyStore.hasSeed) continue;
-      if (keyStore.canSignToPsbt(signedPsbt)) {
-        signedPsbt = keyStore.addSignatureToPsbt(signedPsbt);
-      }
-    }
-    return signedPsbt;
-  }
-
-  /// Get Json string of the multisignature vault.
-  String toJson() {
-    return jsonEncode({
-      "keyStores": keyStoreList.map((e) => e.toJson()).toList(),
-      "requiredSignature": requiredSignature,
-      "addressType": addressType.scriptType,
-      "derivationPath": derivationPath
-    });
+        keyStores, descriptor.requiredSignatures,
+        addressType: AddressType.getAddressTypeFromScriptType(
+            "p2${descriptor.scriptType}"));
   }
 
   void bindSeedToKeyStore(Seed seed, {int accountIndex = 0}) {
@@ -108,6 +77,16 @@ class MultisignatureVault extends MultisignatureWalletBase
     }
   }
 
+  /// Get Json string of the multisignature vault.
+  String toJson() {
+    return jsonEncode({
+      "keyStores": keyStoreList.map((e) => e.toJson()).toList(),
+      "requiredSignature": requiredSignature,
+      "addressType": addressType.scriptType,
+      "derivationPath": derivationPath
+    });
+  }
+
   /// Create a multisignature vault from a json string.
   factory MultisignatureVault.fromJson(String jsonStr) {
     Map<String, dynamic> json = jsonDecode(jsonStr);
@@ -116,9 +95,9 @@ class MultisignatureVault extends MultisignatureWalletBase
       keyStores.add(KeyStore.fromJson(keyStoreJson));
     }
     return MultisignatureVault.fromKeyStoreList(
-        keyStores,
-        json['requiredSignature'],
-        AddressType.getAddressTypeFromScriptType(json['addressType']),
+        keyStores, json['requiredSignature'],
+        addressType:
+            AddressType.getAddressTypeFromScriptType(json['addressType']),
         accountIndex: 0);
   }
 }

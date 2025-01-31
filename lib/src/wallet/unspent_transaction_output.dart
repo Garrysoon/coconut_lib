@@ -41,5 +41,5 @@ class UTXO {
   }
 
   @override
-  int get hashCode => _transactionHash.hashCode ^ _index.hashCode;
+  int get hashCode => _transactionHash.hashCode ^ _index.toString().hashCode;
 }

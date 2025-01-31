@@ -11,17 +11,7 @@ class Transaction {
   late String? receiveAddress;
   late String? changeAddress;
 
-  // Field for from Blockchain Ledger
   late List<UTXO> _utxoList = [];
-
-  List<UTXO> get utxoList => _utxoList;
-  int get totalInputAmount {
-    int total = 0;
-    for (UTXO utxo in _utxoList) {
-      total += utxo.amount;
-    }
-    return total;
-  }
 
   /// Get the version of the transaction.
   String get version => Converter.bytesToHex(_version);
@@ -37,7 +27,7 @@ class Transaction {
 
   /// Get the transaction hash.
   String get transactionHash {
-    String hash = Hash.sha256fromHex(Hash.sha256fromHex(serializeLegacy()));
+    String hash = Hash.sha256fromHex(Hash.sha256fromHex(_serializeLegacy()));
     String littleEndian = Converter.toLittleEndian(hash);
     return littleEndian;
   }
@@ -49,17 +39,26 @@ class Transaction {
         if (_isSegwit) {
           total += 2;
         }
-        total += Varints.encode(_inputs.length).length;
+        total += Encoder.encodeVariableInteger(_inputs.length).length;
         for (TransactionInput input in _inputs) {
           total += input.length;
         }
-        total += Varints.encode(_outputs.length).length;
+        total += Encoder.encodeVariableInteger(_outputs.length).length;
         for (TransactionOutput output in _outputs) {
           total += output.length;
         }
         total += _lockTime.length;
         return total;
       }();
+
+  List<UTXO> get utxoList => _utxoList;
+  int get totalInputAmount {
+    int total = 0;
+    for (UTXO utxo in _utxoList) {
+      total += utxo.amount;
+    }
+    return total;
+  }
 
   /// @nodoc
   Transaction(this._version, this._inputs, this._outputs, this._lockTime,
@@ -106,8 +105,8 @@ class Transaction {
     if (wallet.addressType == AddressType.p2wpkh) {
       vByte = tx.estimateVirtualByte(wallet.addressType);
     } else if (wallet.addressType == AddressType.p2wsh) {
-      MultisignatureWallet multisignatureWallet =
-          wallet as MultisignatureWallet;
+      MultisignatureWalletBase multisignatureWallet =
+          wallet as MultisignatureWalletBase;
       vByte = tx.estimateVirtualByte(wallet.addressType,
           requiredSignature: multisignatureWallet.requiredSignature,
           totalSigner: multisignatureWallet.totalSigner);
@@ -148,15 +147,19 @@ class Transaction {
   }
 
   /// Create a transaction for simple payment.
-  factory Transaction.forPayment(List<UTXO> utxoList, String receiveAddress,
+  factory Transaction.forPayment(List<UTXO> utxoPool, String receiveAddress,
       String changeAddress, int amount, int feeRate, WalletBase wallet,
       {int version = 2, int lockTime = 0}) {
     List<UTXO> selectedUtxoList =
-        _selectOptimalUtxo(utxoList, amount, feeRate, wallet.addressType);
+        _selectOptimalUtxo(utxoPool, amount, feeRate, wallet.addressType);
 
-    return Transaction.fromUtxoList(selectedUtxoList, receiveAddress,
-        changeAddress, amount, feeRate, wallet,
+    Transaction transaction = Transaction.fromUtxoList(selectedUtxoList,
+        receiveAddress, changeAddress, amount, feeRate, wallet,
         version: version, lockTime: lockTime);
+
+    transaction._utxoList = selectedUtxoList;
+
+    return transaction;
   }
 
   static List<UTXO> _selectOptimalUtxo(
@@ -193,12 +196,12 @@ class Transaction {
 
   /// Create a transaction for sending all Bitcoin in the wallet.
   factory Transaction.forSweep(
-      List<UTXO> utxoList, String address, int feeRate, WalletBase wallet,
+      List<UTXO> utxoPool, String address, int feeRate, WalletBase wallet,
       {int version = 2, int lockTime = 0}) {
     List<TransactionInput> inputs = [];
     List<TransactionOutput> outputs = [];
     int inputAmount = 0;
-    for (UTXO utxo in utxoList) {
+    for (UTXO utxo in utxoPool) {
       // if (utxo.blockHeight == 0) {
       //   continue;
       // }
@@ -217,17 +220,17 @@ class Transaction {
     TransactionOutput sendingOutput = TransactionOutput.forPayment(0, address);
     outputs.add(sendingOutput);
 
-    Transaction tx = Transaction.withDefault(
+    Transaction transaction = Transaction.withDefault(
         inputs, outputs, wallet.addressType,
         version: version, lockTime: lockTime);
 
     double vByte = 0.0;
     if (wallet.addressType == AddressType.p2wpkh) {
-      vByte = tx.estimateVirtualByte(wallet.addressType);
+      vByte = transaction.estimateVirtualByte(wallet.addressType);
     } else if (wallet.addressType == AddressType.p2wsh) {
-      MultisignatureWallet multisignatureWallet =
-          wallet as MultisignatureWallet;
-      vByte = tx.estimateVirtualByte(wallet.addressType,
+      MultisignatureWalletBase multisignatureWallet =
+          wallet as MultisignatureWalletBase;
+      vByte = transaction.estimateVirtualByte(wallet.addressType,
           requiredSignature: multisignatureWallet.requiredSignature,
           totalSigner: multisignatureWallet.totalSigner);
     } else {
@@ -245,8 +248,8 @@ class Transaction {
     // Transaction tx = Transaction.forMaximumSending(
     //     inputs, address, inputAmount, wallet.addressType, feeRate);
     // print(tx.serialize());
-    tx._utxoList = utxoList;
-    return tx;
+    transaction._utxoList = utxoPool;
+    return transaction;
   }
 
   /// Parse the transaction.
@@ -275,7 +278,7 @@ class Transaction {
     if (!(marker[0] == 0x00 && marker[1] == 0x01)) {
       throw Exception('Transaction : Not a segwit transaction maker');
     }
-    int numInputs = Varints.read(txBytes, offset);
+    int numInputs = Encoder.decodeVariableInteger(txBytes, offset);
     //print(numInputs);
     offset += 1;
     List<TransactionInput> inputs = [];
@@ -288,7 +291,7 @@ class Transaction {
       //print("size:" + size.toString());
       offset += size;
     }
-    int numOutputs = Varints.read(txBytes, offset);
+    int numOutputs = Encoder.decodeVariableInteger(txBytes, offset);
     offset += 1;
     //print(numOutputs);
     List<TransactionOutput> outputs = [];
@@ -301,10 +304,10 @@ class Transaction {
     }
     //witness
     for (TransactionInput txIn in inputs) {
-      int numItems = Varints.read(txBytes, offset++);
+      int numItems = Encoder.decodeVariableInteger(txBytes, offset++);
       List items = [];
       for (int i = 0; i < numItems; i++) {
-        int itemLen = Varints.read(txBytes, offset);
+        int itemLen = Encoder.decodeVariableInteger(txBytes, offset);
         offset++;
         if (itemLen == 0) {
           items.add(0);
@@ -335,7 +338,7 @@ class Transaction {
     int offset = 0;
     Uint8List version = txBytes.sublist(0, 4);
     offset += 4;
-    int numInputs = Varints.read(txBytes, offset);
+    int numInputs = Encoder.decodeVariableInteger(txBytes, offset);
     //print("numInputs : $numInputs");
     offset += 1;
     List<TransactionInput> inputs = [];
@@ -351,7 +354,7 @@ class Transaction {
       // print("input : ${input.serialize()}");
     }
 
-    int numOutputs = Varints.read(txBytes, offset);
+    int numOutputs = Encoder.decodeVariableInteger(txBytes, offset);
     offset++;
     // print("numOutputs : $numOutputs");
     List<TransactionOutput> outputs = [];
@@ -373,7 +376,7 @@ class Transaction {
     Uint8List version = txBytes.sublist(0, 4);
     offset += 4;
 
-    int numInputs = Varints.read(txBytes, offset);
+    int numInputs = Encoder.decodeVariableInteger(txBytes, offset);
     offset += 1;
     List<TransactionInput> inputs = [];
 
@@ -390,7 +393,7 @@ class Transaction {
       // print("input sequence : " + input.sequence.toString());
     }
 
-    int numOutputs = Varints.read(txBytes, offset);
+    int numOutputs = Encoder.decodeVariableInteger(txBytes, offset);
     offset += 1;
     List<TransactionOutput> outputs = [];
     for (int i = 0; i < numOutputs; i++) {
@@ -413,30 +416,32 @@ class Transaction {
   /// Serialize the transaction.
   String serialize() {
     if (_isSegwit) {
-      return serializeSegwit();
+      return _serializeSegwit();
     } else {
-      return serializeLegacy();
+      return _serializeLegacy();
     }
   }
 
   /// Serialize to segwit transaction.
-  String serializeSegwit() {
+  String _serializeSegwit() {
     String serialized = '';
     serialized += version;
     serialized += '0001';
-    serialized += Converter.bytesToHex(Varints.encode(inputs.length));
+    serialized +=
+        Converter.bytesToHex(Encoder.encodeVariableInteger(inputs.length));
     for (int i = 0; i < inputs.length; i++) {
       serialized += inputs[i].serialize();
     }
-    serialized += Converter.bytesToHex(Varints.encode(outputs.length));
+    serialized +=
+        Converter.bytesToHex(Encoder.encodeVariableInteger(outputs.length));
     for (int i = 0; i < outputs.length; i++) {
       serialized += outputs[i].serialize();
     }
 
     //serialize witness
     for (int i = 0; i < inputs.length; i++) {
-      serialized +=
-          Converter.bytesToHex(Varints.encode(inputs[i].witnessList.length));
+      serialized += Converter.bytesToHex(
+          Encoder.encodeVariableInteger(inputs[i].witnessList.length));
 
       //if the script is p2wpkh or else
       for (int j = 0; j < inputs[i].witnessList.length; j++) {
@@ -456,14 +461,16 @@ class Transaction {
   }
 
   /// Serialize to legacy transaction.
-  String serializeLegacy() {
+  String _serializeLegacy() {
     String serialized = '';
     serialized += version;
-    serialized += Converter.bytesToHex(Varints.encode(inputs.length));
+    serialized +=
+        Converter.bytesToHex(Encoder.encodeVariableInteger(inputs.length));
     for (int i = 0; i < inputs.length; i++) {
       serialized += inputs[i].serialize();
     }
-    serialized += Converter.bytesToHex(Varints.encode(outputs.length));
+    serialized +=
+        Converter.bytesToHex(Encoder.encodeVariableInteger(outputs.length));
     //print(Converter.bytesToHex(Varints.encode(outputs.length)));
     for (int i = 0; i < outputs.length; i++) {
       serialized += outputs[i].serialize();
@@ -531,7 +538,7 @@ class Transaction {
         throw ArgumentError('witnessScript is required for p2wsh');
       }
       int length = witnessScript.length ~/ 2;
-      sigHash += Converter.bytesToHex(Varints.encode(length));
+      sigHash += Converter.bytesToHex(Encoder.encodeVariableInteger(length));
       sigHash += witnessScript;
     } else {
       sigHash += prevUtxo.scriptPubKey.serialize();
@@ -603,7 +610,8 @@ class Transaction {
 
     if (addressType == AddressType.p2wsh) {
       String script = inputs[inputIndex].witnessList.last;
-      String size = Converter.bytesToHex(Varints.encode(script.length ~/ 2));
+      String size = Converter.bytesToHex(
+          Encoder.encodeVariableInteger(script.length ~/ 2));
       WitnessScript witnessScript = WitnessScript.parse(size + script);
 
       List<Uint8List> signatures = [];
@@ -747,10 +755,6 @@ class Transaction {
     return vByte;
   }
 
-  int calculateFeeWithWitnessSize(int feeRatePerByte, int witnessSize) {
-    return ((getVirtualByte() - witnessSize) * feeRatePerByte).ceil();
-  }
-
   /// Estimate the fee of the transaction.
   int estimateFee(int feeRatePerByte, AddressType addressType,
       {int? requiredSignature, int? totalSinger}) {
@@ -777,26 +781,6 @@ class Transaction {
     double vByte = estimateVirtualByte(addressType,
         requiredSignature: requiredSignature, totalSigner: totalSinger);
     return (vByte * feeRatePerByte).ceil();
-  }
-
-  /// Check if the transaction has no signature.
-  bool hasNoSignature() {
-    for (TransactionInput input in inputs) {
-      if (input.hasSignature(_isSegwit)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  /// Check if the all inputs have a signature.
-  bool hasAllSignature() {
-    for (TransactionInput input in inputs) {
-      if (!input.hasSignature(_isSegwit)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   /// Add utxo to the transaction.
@@ -833,7 +817,6 @@ class Transaction {
     int fee = estimateFee(feeRate, wallet.addressType,
         requiredSignature: requiredSignature, totalSinger: totalSinger);
     int changeAmount = totalInputAmount - sendingAmount! - fee;
-
     if (changeAmount < 0) {
       outputs.remove(changeOutput);
     } else {
@@ -914,6 +897,7 @@ class Transaction {
       }
     }
     int changeAmount = totalInputAmount - sendingAmount! - fee;
+
     if (changeAmount < 0) {
       outputs.remove(changeOutput);
     } else {

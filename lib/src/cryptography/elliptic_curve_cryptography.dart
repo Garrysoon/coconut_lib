@@ -162,35 +162,6 @@ bool verify(Uint8List hash, Uint8List q, Uint8List signature) {
   final signer = ECDSASigner(null, HMac(SHA256Digest(), 64));
   signer.init(false, PublicKeyParameter(ECPublicKey(Q, secp256k1)));
   return signer.verifySignature(hash, ECSignature(r, s));
-  /* STEP BY STEP
-  // 1.4.1 Enforce r and s are both integers in the interval [1, n − 1] (2, enforces '> 0')
-  if (r.compareTo(n) >= 0) return false;
-  if (s.compareTo(n) >= 0) return false;
-
-  // 1.4.2 H = Hash(M), already done by the user
-  // 1.4.3 e = H
-  BigInt e = fromBuffer(hash);
-
-  BigInt sInv = s.modInverse(n);
-  BigInt u1 = (e * sInv) % n;
-  BigInt u2 = (r * sInv) % n;
-
-  // 1.4.5 Compute R = (xR, yR)
-  //               R = u1G + u2Q
-  ECPoint R = G * u1 + Q * u2;
-
-  // 1.4.5 (cont.) Enforce R is not at infinity
-  if (R.isInfinity) return false;
-
-  // 1.4.6 Convert the field element R.x to an integer
-  BigInt xR = R.x.toBigInteger();
-
-  // 1.4.7 Set v = xR mod n
-  BigInt v = xR % n;
-
-  // 1.4.8 If v = r, output "valid", and if v != r, output "invalid"
-  return v.compareTo(r) == 0;
-  */
 }
 
 /// Decode a BigInt from bytes in big-endian encoding.

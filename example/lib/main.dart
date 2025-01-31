@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:coconut_lib/coconut_lib.dart';
 
 void main() async {
@@ -11,24 +9,21 @@ void main() async {
       'thank split shrimp error own spirit slow glow act evidence globe slight');
 
   SingleSignatureVault singleSignatureVault =
-      SingleSignatureVault.fromSeed(seed, AddressType.p2wpkh);
+      SingleSignatureVault.fromSeed(seed);
   print(
       ' - Master Fingerprint: ${singleSignatureVault.keyStore.masterFingerprint}');
 
   print("1-2. Create a 2-of-3 Multisignature vault");
   SingleSignatureVault insideVault1 = SingleSignatureVault.fromMnemonic(
       'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
-      AddressType.p2wpkh,
       passphrase: 'ABC');
 
   SingleSignatureVault outsideVault1 = SingleSignatureVault.fromMnemonic(
       'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
-      AddressType.p2wpkh,
       passphrase: 'DEF');
 
   SingleSignatureVault outsideVault2 = SingleSignatureVault.fromMnemonic(
       'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
-      AddressType.p2wpkh,
       passphrase: 'GHI');
 
   //Generate P2WSH Keystore
@@ -41,7 +36,7 @@ void main() async {
 
   MultisignatureVault multisignatureVault =
       MultisignatureVault.fromKeyStoreList(
-          [insideKey1, outsideKey1, outsideKey2], 2, AddressType.p2wsh);
+          [insideKey1, outsideKey1, outsideKey2], 2);
 
   // Share Coordinator BSMS with Outside Signers
   MultisignatureVault outsideMultisignatureVault =
@@ -96,7 +91,7 @@ void main() async {
         100000000, "m/84'/1'/0'/0/68")
   ];
   print(' - Generating unsigned PSBT');
-  String unsignedPsbt = await singleSignatureWallet.generatePsbt(
+  String unsignedPsbt = await singleSignatureWallet.generatePsbtForPayment(
       utxosForSingleSignatureWallet,
       receiverAddress,
       changeAddress,

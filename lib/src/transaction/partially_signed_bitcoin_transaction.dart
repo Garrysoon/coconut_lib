@@ -90,8 +90,8 @@ class PSBT {
         // 05 : WITNESS_SCRIPT
         if (key.startsWith('05')) {
           String script = psbtMap["inputs"][i][key];
-          String size =
-              Converter.bytesToHex(Varints.encode(script.length ~/ 2));
+          String size = Converter.bytesToHex(
+              Encoder.encodeVariableInteger(script.length ~/ 2));
           witnessScript = WitnessScript.parse(size + script);
         }
       });
@@ -152,38 +152,37 @@ class PSBT {
     List<int> globalBytes = [];
     map.forEach((key, value) {
       List<int> keyBytes = Converter.hexToBytes(key);
-      globalBytes += Varints.encode(keyBytes.length);
+      globalBytes += Encoder.encodeVariableInteger(keyBytes.length);
       globalBytes += keyBytes;
       List<int> valueBytes = Converter.hexToBytes(value);
-      globalBytes += Varints.encode(valueBytes.length);
+      globalBytes += Encoder.encodeVariableInteger(valueBytes.length);
       globalBytes += valueBytes;
     });
     return globalBytes;
   }
 
   /// Create a PSBT from a Transaction object.
-  factory PSBT.fromTransaction(
-      Transaction tx, List<UTXO> utxoList, WalletBase wallet) {
+  factory PSBT.fromTransaction(Transaction tx, WalletBase wallet) {
     if (!wallet.addressType.isSegwit) {
       throw Exception('Only Segwit address type is supported');
     }
 
-    if (tx.inputs.length != utxoList.length) {
-      throw Exception('Transaction input and UTXO list length mismatch');
+    if (tx.utxoList.isEmpty) {
+      throw Exception('No UTXOs in transaction');
     }
     for (int i = 0; i < tx.inputs.length; i++) {
-      if (tx.inputs[i].transactionHash != utxoList[i].transactionHash) {
+      if (tx.inputs[i].transactionHash != tx.utxoList[i].transactionHash) {
         throw Exception('Transaction input and UTXO list mismatch');
       }
     }
 
-    late SingleSignatureWallet singleSignatureWallet;
-    if (wallet is SingleSignatureWallet) {
+    late SingleSignatureWalletBase singleSignatureWallet;
+    if (wallet is SingleSignatureWalletBase) {
       singleSignatureWallet = wallet;
     }
 
-    late MultisignatureWallet multisignatureWallet;
-    if (wallet is MultisignatureWallet) {
+    late MultisignatureWalletBase multisignatureWallet;
+    if (wallet is MultisignatureWalletBase) {
       multisignatureWallet = wallet;
     }
 
@@ -192,7 +191,7 @@ class PSBT {
     //--- Global
     Map<String, dynamic> globalData = {};
     String txKey = getKeyType(globalKeyType, 'UNSIGNED_TX');
-    globalData[txKey] = tx.serializeLegacy(); //old serialze format BIP0174
+    globalData[txKey] = tx._serializeLegacy(); //old serialze format BIP0174
     psbtData["global"] = globalData;
 
     //input
@@ -200,31 +199,31 @@ class PSBT {
       Map<String, dynamic> inputData = {};
 
       String receivedAddress =
-          wallet.getAddressWithDerivationPath(utxoList[i].derivationPath);
+          wallet.getAddressWithDerivationPath(tx.utxoList[i].derivationPath);
       TransactionOutput output =
-          TransactionOutput.forPayment(utxoList[i].amount, receivedAddress);
+          TransactionOutput.forPayment(tx.utxoList[i].amount, receivedAddress);
       String witnessUtxoKey = getKeyType(inputKeyType, 'WITNESS_UTXO');
       inputData[witnessUtxoKey] = output.serialize();
 
       //derivation path
       String bip32DerivationKeyType =
           getKeyType(inputKeyType, 'BIP32_DERIVATION');
-      if (wallet is SingleSignatureWallet) {
+      if (wallet is SingleSignatureWalletBase) {
         String publicKey = singleSignatureWallet.keyStore
-            .getPublicKeyWithDerivationPath(utxoList[i].derivationPath);
+            .getPublicKeyWithDerivationPath(tx.utxoList[i].derivationPath);
         String fingerPrint = singleSignatureWallet.keyStore.masterFingerprint;
 
         inputData[bip32DerivationKeyType + publicKey] = fingerPrint +
             Converter.bytesToHex(
-                _serializeDerivationPath(utxoList[i].derivationPath));
-      } else if (wallet is MultisignatureWallet) {
+                _serializeDerivationPath(tx.utxoList[i].derivationPath));
+      } else if (wallet is MultisignatureWalletBase) {
         for (KeyStore keyStore in multisignatureWallet.keyStoreList) {
           String publicKey = keyStore
-              .getPublicKeyWithDerivationPath(utxoList[i].derivationPath);
+              .getPublicKeyWithDerivationPath(tx.utxoList[i].derivationPath);
           String fingerPrint = keyStore.masterFingerprint;
           inputData[bip32DerivationKeyType + publicKey] = fingerPrint +
               Converter.bytesToHex(
-                  _serializeDerivationPath(utxoList[i].derivationPath));
+                  _serializeDerivationPath(tx.utxoList[i].derivationPath));
         }
       }
       if (tx.inputs[i].witnessList.isNotEmpty) {
@@ -236,8 +235,8 @@ class PSBT {
 
       if (wallet.addressType == AddressType.p2wsh) {
         String witnessScriptKey = getKeyType(inputKeyType, 'WITNESS_SCRIPT');
-        String witnessScript =
-            multisignatureWallet.getWitnessScript(utxoList[i].derivationPath);
+        String witnessScript = multisignatureWallet
+            .getWitnessScript(tx.utxoList[i].derivationPath);
         inputData[witnessScriptKey] = witnessScript;
       }
       psbtData["inputs"].add(inputData);
@@ -293,14 +292,14 @@ class PSBT {
     Map<String, String> globalMap = {};
     // print(' ---> GLOBAL ---');
     while (true) {
-      int keyLen = Varints.read(psbtBytes, offset);
+      int keyLen = Encoder.decodeVariableInteger(psbtBytes, offset);
       offset += _getOffset(psbtBytes[offset]);
       if (keyLen == 0) {
         break;
       }
       Uint8List key = psbtBytes.sublist(offset, offset + keyLen);
       offset += keyLen;
-      int valueLen = Varints.read(psbtBytes, offset);
+      int valueLen = Encoder.decodeVariableInteger(psbtBytes, offset);
       offset += _getOffset(psbtBytes[offset]);
       Uint8List value = psbtBytes.sublist(offset, offset + valueLen);
       offset += valueLen;
@@ -318,14 +317,14 @@ class PSBT {
     for (int i = 0; i < globalTx.inputs.length; i++) {
       Map<String, String> inputData = {};
       while (true) {
-        int keyLen = Varints.read(psbtBytes, offset);
+        int keyLen = Encoder.decodeVariableInteger(psbtBytes, offset);
         offset += _getOffset(psbtBytes[offset]);
         if (keyLen == 0) {
           break;
         }
         Uint8List key = psbtBytes.sublist(offset, offset + keyLen);
         offset += keyLen;
-        int valueLen = Varints.read(psbtBytes, offset);
+        int valueLen = Encoder.decodeVariableInteger(psbtBytes, offset);
         offset += _getOffset(psbtBytes[offset]);
         Uint8List value = psbtBytes.sublist(offset, offset + valueLen);
         offset += valueLen;
@@ -338,7 +337,7 @@ class PSBT {
     for (int i = 0; i < globalTx.outputs.length; i++) {
       Map<String, String> outputData = {};
       while (true) {
-        int keyLen = Varints.read(psbtBytes, offset);
+        int keyLen = Encoder.decodeVariableInteger(psbtBytes, offset);
         // print(' -key len ${keyLen.toString()}-');
         offset += _getOffset(psbtBytes[offset]);
         if (keyLen == 0) {
@@ -346,7 +345,7 @@ class PSBT {
         }
         Uint8List key = psbtBytes.sublist(offset, offset + keyLen);
         offset += keyLen;
-        int valueLen = Varints.read(psbtBytes, offset);
+        int valueLen = Encoder.decodeVariableInteger(psbtBytes, offset);
         offset += _getOffset(psbtBytes[offset]);
         Uint8List value = psbtBytes.sublist(offset, offset + valueLen);
         offset += valueLen;
@@ -358,22 +357,10 @@ class PSBT {
     return PSBT(psbtData);
   }
 
-  /// @nodoc
-  PsbtInput getPsbtInput(String txHash) {
-    return inputs.firstWhere(
-        (element) => element.previousTransaction!.transactionHash == txHash);
-  }
-
   /// Add a signature to the PSBT.
   void addSignature(int inputIndex, String signature, String publicKey) {
-    inputs[inputIndex]._addSignature(signature, publicKey);
+    inputs[inputIndex].addSignature(signature, publicKey);
     psbtMap["inputs"][inputIndex]["02$publicKey"] = signature;
-  }
-
-  /// @nodoc
-  @override
-  String toString() {
-    return jsonEncode(psbtMap);
   }
 
   bool isSigned(KeyStore keyStore) {
@@ -606,7 +593,7 @@ class PsbtInput {
       this._derivationPathList, this._partialSigList,
       {this.witnessScript});
 
-  _addSignature(String signature, String publicKey) {
+  addSignature(String signature, String publicKey) {
     _partialSigList.add(Signature(signature, publicKey));
   }
 }
@@ -619,7 +606,6 @@ class PsbtOutput {
 
   DerivationPath? get derivationPath => _derivationPath;
   int? get amount => _amount;
-  String? get script => _script;
 
   String getAddress() {
     ScriptPublicKey script = ScriptPublicKey.parse(_script!);

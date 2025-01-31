@@ -31,10 +31,8 @@ class Seed {
 
   /// Create a seed from random entropy.
   factory Seed.random({mnemonicLength = 24, passphrase = ''}) {
-    if (mnemonicLength <= 12 &&
-        mnemonicLength >= 24 &&
-        mnemonicLength % 3 != 0) {
-      throw Exception('Seed : MnemonicLength is not valid.');
+    if (mnemonicLength < 12 || mnemonicLength > 24 || mnemonicLength % 3 != 0) {
+      throw Exception('MnemonicLength is not valid.');
     }
     int digit = (mnemonicLength ~/ 3 * 32) ~/ 8;
 
@@ -135,7 +133,7 @@ class Seed {
   }
 
   Uint8List _getRootSeed() {
-    return utf8.encode(PBKDF2.getSeed(_getMnemonic(), 'mnemonic$passphrase'));
+    return utf8.encode(Hash.pbkdf2(_getMnemonic(), 'mnemonic$passphrase'));
   }
 
   ///@nodoc
@@ -155,4 +153,16 @@ class Seed {
         mnemonic: List<String>.from(map['mnemonic']),
         passphrase: map['passphrase']);
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (other is Seed) {
+      return Converter.bytesToHex(_getRootSeed()) ==
+          Converter.bytesToHex(other._getRootSeed());
+    }
+    return false;
+  }
+
+  @override
+  int get hashCode => Converter.bytesToHex(_getRootSeed()).hashCode;
 }

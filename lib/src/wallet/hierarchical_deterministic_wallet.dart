@@ -80,7 +80,7 @@ class HDWallet {
         Uint8List.fromList(Hash.sha256fromByte(Hash.sha256fromByte(buffer)));
     Uint8List combine = Uint8List.fromList(
         [buffer, hash.sublist(0, 4)].expand((i) => i).toList(growable: false));
-    return Base58.encode(combine);
+    return Encoder.encodeBase58(combine);
   }
 
   /// get master private WIF format
@@ -88,8 +88,8 @@ class HDWallet {
     if (privateKey == null) {
       throw Exception("HDWallet : Missing private key");
     }
-    return wif.encode(
-        wif.WIF(version: 0x80, privateKey: privateKey!, compressed: true));
+    return Encoder.encodeWif(
+        WIF(version: 0x80, privateKey: privateKey!, compressed: true));
   }
 
   /// @nodoc

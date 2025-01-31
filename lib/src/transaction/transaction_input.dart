@@ -127,7 +127,7 @@ class TransactionInput {
     if (isSewit) {
       return witnessList.length >= 2;
     } else {
-      return (scriptSig.commands.length == 1 && scriptSig.commands[0] == 0x00);
+      return !(scriptSig.commands.length == 1 && scriptSig.commands[0] == 0x00);
     }
   }
 

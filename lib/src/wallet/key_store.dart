@@ -45,7 +45,7 @@ class KeyStore {
   /// Create a key store from a seed.
   factory KeyStore.fromSeed(Seed seed, AddressType addressType,
       {int accountIndex = 0}) {
-    bool isTestnet = NetworkType.currentNetwork.isTestnet;
+    bool isTestnet = NetworkType.currentNetworkType.isTestnet;
     HDWallet rootWallet = HDWallet.fromRootSeed(seed.rootSeed);
     String fingerprint =
         Converter.bytesToHex(rootWallet.fingerprint).toUpperCase();
@@ -136,92 +136,13 @@ class KeyStore {
 //sign with derivation path.
   String signWithDerivationPath(String message, String derivationPath,
       {bool isDer = true}) {
+    if (!WalletUtility.validateDerivationPath(derivationPath)) {
+      throw Exception('Invalid derivation path');
+    }
     List<String> pathList = derivationPath.split('/');
     int index = int.parse(pathList.last);
     int changeIndex = int.parse(pathList[pathList.length - 2]);
     return sign(message, index, isChange: changeIndex == 1, isDer: isDer);
-  }
-
-  ///Check if the PSBT can be signed from this vault.
-  bool canSignToPsbt(String psbt) {
-    PSBT psbtObj = PSBT.parse(psbt);
-    for (int i = 0; i < psbtObj.unsignedTransaction!.inputs.length; i++) {
-      PsbtInput thisInput = psbtObj.inputs[i];
-      // PsbtInput thisInput = psbtObj
-      //     .getPsbtInput(psbtObj.unsignedTransaction!.inputs[i].transactionHash)
-      // if (thisInput.derivationPath!.parentFingerprint == fingerprint &&
-      //     thisInput.derivationPath!.publicKey ==
-      //         getPublicKeyWithDerivationPath(thisInput.derivationPath!.path)) {
-      //   return true;
-      // }
-
-      for (int j = 0; j < thisInput.derivationPathList.length; j++) {
-        if (thisInput.derivationPathList[j].masterFingerprint ==
-                masterFingerprint &&
-            thisInput.derivationPathList[j].publicKey ==
-                getPublicKeyWithDerivationPath(
-                    thisInput.derivationPathList[j].path)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  ///add signature to PSBT if it's possible.
-  String addSignatureToPsbt(String psbt) {
-    if (!hasSeed) {
-      throw Exception('This vault does not have seed');
-    }
-    PSBT psbtObject = PSBT.parse(psbt);
-    if (canSignToPsbt(psbtObject.serialize()) == false) {
-      throw Exception('Vault : This vault can not sign this PSBT');
-    }
-    for (int i = 0; i < psbtObject.unsignedTransaction!.inputs.length; i++) {
-      PsbtInput thisInput = psbtObject.inputs[i];
-      // PsbtInput thisInput = psbtObject.getPsbtInput(
-      //     psbtObject.unsignedTransaction!.inputs[i].transactionHash);
-
-      //sign
-      String utxo = '';
-      if (thisInput.witnessUtxo == null) {
-        utxo = thisInput.previousTransaction!
-            .outputs[psbtObject.unsignedTransaction!.inputs[i].index]
-            .serialize();
-      } else {
-        utxo = thisInput.witnessUtxo!.serialize();
-      }
-      String sigHash;
-      if (addressType == AddressType.p2wsh) {
-        String? witnessScript = thisInput.witnessScript!.rawSerialize();
-        sigHash = psbtObject.unsignedTransaction!
-            .getSigHash(i, utxo, addressType, witnessScript: witnessScript);
-      } else {
-        sigHash =
-            psbtObject.unsignedTransaction!.getSigHash(i, utxo, addressType);
-      }
-
-      for (int j = 0; j < thisInput.derivationPathList.length; j++) {
-        if (thisInput.derivationPathList[j].masterFingerprint !=
-            masterFingerprint) {
-          continue;
-        }
-        String publicKey = getPublicKeyWithDerivationPath(
-            thisInput.derivationPathList[j].path);
-        String signature = signWithDerivationPath(
-            sigHash, thisInput.derivationPathList[j].path);
-        if (validateSignatureWithDerivationPath(
-            signature, sigHash, thisInput.derivationPathList[j].path)) {}
-        psbtObject.addSignature(i, signature, publicKey);
-      }
-      // String publicKey =
-      //     getPublicKeyWithDerivationPath(thisInput.derivationPathList!.path);
-      // String signature =
-      //     signWithDerivationPath(sigHash, thisInput.derivationPathList!.path);
-      // if (validateSignatureWithDerivationPath(
-      //     signature, sigHash, thisInput.derivationPathList!.path)) {}
-    }
-    return psbtObject.serialize();
   }
 
   /// Get the public key of the key store using index.
@@ -274,6 +195,81 @@ class KeyStore {
         isChange: changeIndex == 1, isDer: isDer);
   }
 
+  ///Check if the PSBT can be signed from this vault.
+  bool canSignToPsbt(String psbt) {
+    PSBT psbtObj = PSBT.parse(psbt);
+    for (int i = 0; i < psbtObj.unsignedTransaction!.inputs.length; i++) {
+      PsbtInput thisInput = psbtObj.inputs[i];
+      for (int j = 0; j < thisInput.derivationPathList.length; j++) {
+        if (thisInput.derivationPathList[j].masterFingerprint ==
+                masterFingerprint &&
+            thisInput.derivationPathList[j].publicKey ==
+                getPublicKeyWithDerivationPath(
+                    thisInput.derivationPathList[j].path)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  ///add signature to PSBT if it's possible.
+  String addSignatureToPsbt(String psbt) {
+    if (!hasSeed) {
+      throw Exception('This vault does not have seed');
+    }
+    PSBT psbtObject = PSBT.parse(psbt);
+    if (canSignToPsbt(psbtObject.serialize()) == false) {
+      throw Exception('Vault : This vault can not sign this PSBT');
+    }
+    for (int i = 0; i < psbtObject.unsignedTransaction!.inputs.length; i++) {
+      PsbtInput thisInput = psbtObject.inputs[i];
+
+      if (thisInput.requiredSignature <= thisInput.partialSigList.length) {
+        continue;
+      }
+
+      String utxo = '';
+      if (thisInput.witnessUtxo == null) {
+        utxo = thisInput.previousTransaction!
+            .outputs[psbtObject.unsignedTransaction!.inputs[i].index]
+            .serialize();
+      } else {
+        utxo = thisInput.witnessUtxo!.serialize();
+      }
+      String sigHash;
+      if (addressType == AddressType.p2wsh) {
+        String? witnessScript = thisInput.witnessScript!.rawSerialize();
+        sigHash = psbtObject.unsignedTransaction!
+            .getSigHash(i, utxo, addressType, witnessScript: witnessScript);
+      } else {
+        sigHash =
+            psbtObject.unsignedTransaction!.getSigHash(i, utxo, addressType);
+      }
+
+      for (int j = 0; j < thisInput.derivationPathList.length; j++) {
+        if (thisInput.derivationPathList[j].masterFingerprint !=
+            masterFingerprint) {
+          continue;
+        }
+        String publicKey = getPublicKeyWithDerivationPath(
+            thisInput.derivationPathList[j].path);
+        String signature = signWithDerivationPath(
+            sigHash, thisInput.derivationPathList[j].path);
+        if (validateSignatureWithDerivationPath(
+            signature, sigHash, thisInput.derivationPathList[j].path)) {}
+        psbtObject.addSignature(i, signature, publicKey);
+      }
+      // String publicKey =
+      //     getPublicKeyWithDerivationPath(thisInput.derivationPathList!.path);
+      // String signature =
+      //     signWithDerivationPath(sigHash, thisInput.derivationPathList!.path);
+      // if (validateSignatureWithDerivationPath(
+      //     signature, sigHash, thisInput.derivationPathList!.path)) {}
+    }
+    return psbtObject.serialize();
+  }
+
   ///@nodoc
   String toJson() {
     return jsonEncode({
@@ -310,12 +306,16 @@ class KeyStore {
   bool operator ==(Object other) {
     if (other is KeyStore) {
       return _masterFingerprint == other._masterFingerprint &&
-          _extendedPublicKey == other._extendedPublicKey;
+          _extendedPublicKey == other._extendedPublicKey &&
+          _seed == other._seed;
     }
     return false;
   }
 
   ///@nodoc
   @override
-  int get hashCode => toString().hashCode;
+  int get hashCode =>
+      _masterFingerprint.hashCode ^
+      _extendedPublicKey.hashCode ^
+      _seed.hashCode;
 }

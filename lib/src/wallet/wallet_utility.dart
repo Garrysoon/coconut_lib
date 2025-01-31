@@ -6,7 +6,7 @@ abstract class WalletUtility {
 
   /// Get the derivation path for the given address type and account index.
   static String getDerivationPath(AddressType addressType, int accountIndex) {
-    bool isTestnet = NetworkType.currentNetwork.isTestnet;
+    bool isTestnet = NetworkType.currentNetworkType.isTestnet;
     String derivationPath;
     if (addressType == AddressType.p2sh) {
       derivationPath = "m/${addressType.purposeIndex}'";
@@ -23,7 +23,7 @@ abstract class WalletUtility {
 
   /// Check if the given address is valid.
   static bool validateAddress(String address) {
-    if (NetworkType.currentNetwork.isTestnet) {
+    if (NetworkType.currentNetworkType.isTestnet) {
       if (address.startsWith('1') ||
           address.startsWith('3') ||
           address.startsWith('bc1')) {
@@ -39,18 +39,37 @@ abstract class WalletUtility {
       }
     }
     if (address.startsWith('1') ||
+        address.startsWith('2') ||
         address.startsWith('3') ||
         address.startsWith('m') ||
         address.startsWith('n')) {
       if (address.length < 26 || address.length > 35) return false;
       Uint8List decoded;
       try {
-        decoded = Base58.decode(address);
+        decoded = Encoder.decodeBase58(address);
       } catch (e) {
         return false;
       }
+
+      // Check the version byte
       int versionByte = decoded[0];
-      if (versionByte != 0x00 && versionByte != 0x05) return false;
+      if (address.startsWith('1')) {
+        if (versionByte != 0x00) {
+          return false;
+        }
+      } else if (address.startsWith('3')) {
+        if (versionByte != 0x05) {
+          return false;
+        }
+      } else if (address.startsWith('m') || address.startsWith('n')) {
+        if (versionByte != 0x6f) {
+          return false;
+        }
+      } else if (address.startsWith('2')) {
+        if (versionByte != 0xc4) {
+          return false;
+        }
+      }
       return true;
     } else if (address.startsWith('bc1p') || address.startsWith('tb1p')) {
       var codec = bech32m.Bech32mCodec().decode(address);
@@ -160,5 +179,16 @@ abstract class WalletUtility {
     }
 
     return true;
+  }
+
+  static double satoshiToBitcoin(int satoshi) {
+    return satoshi / 100000000.0;
+  }
+
+  /// 부동 소숫점 연산 시 오차가 발생할 수 있으므로 Decimal이용
+  static int bitcoinToSatoshi(double bitcoin) {
+    return (Decimal.parse(bitcoin.toString()) * Decimal.parse('100000000'))
+        .toDouble()
+        .toInt();
   }
 }

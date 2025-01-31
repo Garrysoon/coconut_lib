@@ -27,7 +27,7 @@ class NetworkType {
   }
 
   /// Get the current network
-  static NetworkType get currentNetwork => _currentNetwork;
+  static NetworkType get currentNetworkType => _currentNetworkType;
 
   /// Mainnet
   static NetworkType mainnet = NetworkType('mainnet', false);
@@ -41,11 +41,11 @@ class NetworkType {
   /// Get all network values
   static List<NetworkType> get values => [mainnet, testnet, regtest];
 
-  static NetworkType _currentNetwork = NetworkType.testnet;
+  static NetworkType _currentNetworkType = NetworkType.testnet;
 
   /// Set network type
   static setNetworkType(NetworkType networkType) {
-    _currentNetwork = networkType;
+    _currentNetworkType = networkType;
   }
 
   /// Get network by name (mainnet, testnet, regtest)
