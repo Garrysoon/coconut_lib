@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 
-import 'package:coconut_lib/src/cryptography/encoder.dart';
 import 'package:coconut_lib/src/cryptography/hash.dart';
 import 'package:test/test.dart';
 
