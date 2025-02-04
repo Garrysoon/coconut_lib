@@ -47,6 +47,14 @@ void main() {
             'vpub5ZdiLsDFtRYJRUx3ovW4FhpN4PVteQ5NYDCTPmCzndUas71bsVDRcuHh9VfJR9kAPXXyRoi2BZnqZdnMGTKM615fcwnu9YG28HmnCWEKjDq');
       });
     });
+    group('KeyStore.fromExtendedPublicKey', () {
+      test('Generate key store from extended public key', () {
+        String exPub =
+            'Vpub5n3ihNrEwZjBFZ32N6STEsMaUPAJ42pjoVMgbZUAuPbuubQR5eDXUyB8nw6ASMmzpM4PjyVsx6BHGhZwufeyVzCHxwLcXW5RoQ5feCiE6Qm';
+        KeyStore keyStore = KeyStore.fromExtendedPublicKey(exPub);
+        expect(keyStore.masterFingerprint, 'ae2e1224');
+      });
+    });
     group('KeyStore.fromSignerBsms', () {
       test('Generate key store from signer', () {
         String bsms =
@@ -198,7 +206,7 @@ void main() {
     });
     group('toJson', () {
       test('Generate json', () {
-        expect(keyStore.toJson().hashCode, 138507244);
+        expect(keyStore.toJson().hashCode, 301565750);
       });
     });
     group('KeyStore.fromJson', () {

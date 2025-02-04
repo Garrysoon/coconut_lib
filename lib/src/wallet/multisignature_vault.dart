@@ -13,15 +13,6 @@ class MultisignatureVault extends MultisignatureWalletBase {
     String derivationPath =
         WalletUtility.getDerivationPath(addressType, accountIndex);
 
-    for (KeyStore keyStore in keyStoreList) {
-      if (!keyStore.addressType.isMultisig) {
-        throw Exception("Non multisignature address type in key store list.");
-      }
-      if (keyStore.addressType != AddressType.p2wsh) {
-        throw Exception("Unsupported address type.");
-      }
-    }
-
     return MultisignatureVault(requiredSignature, addressType, accountIndex,
         derivationPath, keyStoreList);
   }
@@ -54,8 +45,8 @@ class MultisignatureVault extends MultisignatureWalletBase {
           ExtendedPublicKey.parse(descriptor.getPublicKey(i));
       HDWallet hdWallet = HDWallet.fromPublicKey(
           extendedPublicKey.publicKey, extendedPublicKey.chainCode);
-      KeyStore keyStore = KeyStore(addressType, descriptor.getFingerprint(i),
-          hdWallet, extendedPublicKey);
+      KeyStore keyStore =
+          KeyStore(descriptor.getFingerprint(i), hdWallet, extendedPublicKey);
       keyStores.add(keyStore);
     }
 

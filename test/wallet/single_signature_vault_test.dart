@@ -64,7 +64,7 @@ void main() {
     });
     group('toJson', () {
       test('Get json text', () {
-        expect(vault.toJson().hashCode, 46074269);
+        expect(vault.toJson().hashCode, 904282832);
       });
     });
     group('SingleSignatureVault.fromJson', () {

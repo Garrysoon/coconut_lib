@@ -51,7 +51,7 @@ abstract class SingleSignatureWalletBase extends WalletBase {
 
   @override
   String addSignatureToPsbt(String psbt) {
-    return keyStore.addSignatureToPsbt(psbt);
+    return keyStore.addSignatureToPsbt(psbt, addressType);
   }
 
   @override
