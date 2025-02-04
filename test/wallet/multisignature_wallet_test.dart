@@ -21,8 +21,6 @@ void main() async {
         expect(wallet.derivationPath, vault.derivationPath);
         expect(wallet.keyStoreList.length, vault.keyStoreList.length);
         for (int i = 0; i < wallet.keyStoreList.length; i++) {
-          expect(wallet.keyStoreList[i].addressType,
-              vault.keyStoreList[i].addressType);
           expect(wallet.keyStoreList[i].extendedPublicKey.serialize(),
               vault.keyStoreList[i].extendedPublicKey.serialize());
         }
@@ -66,8 +64,6 @@ void main() async {
         expect(targetWallet.derivationPath, wallet.derivationPath);
         expect(targetWallet.keyStoreList.length, wallet.keyStoreList.length);
         for (int i = 0; i < targetWallet.keyStoreList.length; i++) {
-          expect(targetWallet.keyStoreList[i].addressType,
-              wallet.keyStoreList[i].addressType);
           expect(targetWallet.keyStoreList[i].extendedPublicKey.serialize(),
               wallet.keyStoreList[i].extendedPublicKey.serialize());
         }

@@ -34,8 +34,7 @@ class MultisignatureWallet extends MultisignatureWalletBase {
         throw Exception('Derivation Path is not same.');
       }
 
-      KeyStore keyStore =
-          KeyStore(addressType, fingerprint, wallet, extendedPublicKey);
+      KeyStore keyStore = KeyStore(fingerprint, wallet, extendedPublicKey);
       keyStores.add(keyStore);
     }
 

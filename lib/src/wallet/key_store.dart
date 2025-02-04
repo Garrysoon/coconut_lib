@@ -8,9 +8,6 @@ class KeyStore {
   HDWallet _hdWalletChange;
   ExtendedPublicKey _extendedPublicKey;
   Seed? _seed;
-  AddressType _addressType;
-
-  AddressType get addressType => _addressType;
 
   /// The fingerprint of the key store.
   String get masterFingerprint => _masterFingerprint;
@@ -36,8 +33,7 @@ class KeyStore {
   bool get hasSeed => _seed != null;
 
   /// @nodoc
-  KeyStore(this._addressType, this._masterFingerprint, this._hdWallet,
-      this._extendedPublicKey,
+  KeyStore(this._masterFingerprint, this._hdWallet, this._extendedPublicKey,
       [this._seed])
       : _hdWalletReceive = _hdWallet.derive(0),
         _hdWalletChange = _hdWallet.derive(1);
@@ -58,7 +54,7 @@ class KeyStore {
         : addressType.versionForMainnet;
     ExtendedPublicKey extendedPublicKey = ExtendedPublicKey.fromHdWallet(
         wallet, version, wallet.parentFingerprint);
-    return KeyStore(addressType, fingerprint, wallet, extendedPublicKey, seed);
+    return KeyStore(fingerprint, wallet, extendedPublicKey, seed);
   }
 
   /// Create a key store from a mnemonic.
@@ -90,15 +86,20 @@ class KeyStore {
     return KeyStore.fromSeed(seed, addressType, accountIndex: accountIndex);
   }
 
-  factory KeyStore.fromSignerBsms(String signer, {AddressType? addressType}) {
-    addressType ??= AddressType.p2wsh;
+  factory KeyStore.fromExtendedPublicKey(String extendedPublicKey) {
+    ExtendedPublicKey exPub = ExtendedPublicKey.parse(extendedPublicKey);
+    HDWallet wallet = HDWallet.fromPublicKey(exPub.publicKey, exPub.chainCode);
+    return KeyStore(exPub.parentFingerprint, wallet, exPub);
+  }
+
+  factory KeyStore.fromSignerBsms(String signer) {
     BSMS bsms = BSMS.parseSigner(signer);
     // KeyStore(fingerprint, wallet, extendedPublicKey)
     HDWallet wallet = HDWallet.fromPublicKey(
         bsms.signer!.extendedPublicKey.publicKey,
         bsms.signer!.extendedPublicKey.chainCode);
-    return KeyStore(addressType, bsms.signer!.masterFingerPrint, wallet,
-        bsms.signer!.extendedPublicKey);
+    return KeyStore(
+        bsms.signer!.masterFingerPrint, wallet, bsms.signer!.extendedPublicKey);
   }
 
   /// Get the private key of the key store using index.
@@ -146,9 +147,14 @@ class KeyStore {
   }
 
   /// Get the public key of the key store using index.
-  String getPublicKey(int addressIndex, {bool isChange = false}) {
+  String getPublicKey(int addressIndex,
+      {bool isChange = false, isShnorr = false}) {
     HDWallet child = getChildHdWallet(isChange).derive(addressIndex).neutered();
-    return HEX.encode((child.publicKey).toList());
+    if (isShnorr) {
+      return HEX.encode((child.publicKey).sublist(1));
+    } else {
+      return HEX.encode((child.publicKey).toList());
+    }
   }
 
   /// Get the public key of the key store using derivation path.
@@ -214,7 +220,7 @@ class KeyStore {
   }
 
   ///add signature to PSBT if it's possible.
-  String addSignatureToPsbt(String psbt) {
+  String addSignatureToPsbt(String psbt, AddressType addressType) {
     if (!hasSeed) {
       throw Exception('This vault does not have seed');
     }
@@ -273,7 +279,6 @@ class KeyStore {
   ///@nodoc
   String toJson() {
     return jsonEncode({
-      'addressType': _addressType.scriptType,
       'fingerprint': _masterFingerprint,
       'hdWallet': _hdWallet.toJson(),
       'extendedPublicKey': _extendedPublicKey.serialize(),
@@ -284,15 +289,12 @@ class KeyStore {
   ///@nodoc
   factory KeyStore.fromJson(String json) {
     Map<String, dynamic> map = jsonDecode(json);
-    AddressType addressType =
-        AddressType.getAddressTypeFromScriptType(map['addressType']);
     String fingerprint = map['fingerprint'];
     HDWallet hdWallet = HDWallet.fromJson(map['hdWallet']);
     ExtendedPublicKey extendedPublicKey =
         ExtendedPublicKey.parse(map['extendedPublicKey']);
     Seed? seed = map['seed'] != null ? Seed.fromJson(map['seed']) : null;
-    return KeyStore(
-        addressType, fingerprint, hdWallet, extendedPublicKey, seed);
+    return KeyStore(fingerprint, hdWallet, extendedPublicKey, seed);
   }
 
   ///@nodoc

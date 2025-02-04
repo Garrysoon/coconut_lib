@@ -105,7 +105,7 @@ abstract class MultisignatureWalletBase extends WalletBase {
     for (KeyStore keyStore in keyStoreList) {
       if (!keyStore.hasSeed) continue;
       if (keyStore.canSignToPsbt(signedPsbt)) {
-        signedPsbt = keyStore.addSignatureToPsbt(signedPsbt);
+        signedPsbt = keyStore.addSignatureToPsbt(signedPsbt, addressType);
       }
     }
     return signedPsbt;

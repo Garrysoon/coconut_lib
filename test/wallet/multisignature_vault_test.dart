@@ -21,23 +21,6 @@ void main() {
         expect(() => MultisignatureVault.fromKeyStoreList(keyStoreList, 4),
             throwsException);
       });
-
-      test('Single signature key store inside exception', () {
-        expect(
-            () => MultisignatureVault.fromKeyStoreList([
-                  KeyStore.random(AddressType.p2wpkh),
-                  KeyStore.random(AddressType.p2wsh)
-                ], 1),
-            throwsException);
-      });
-      test('Unsupported address typ in key store inside exception', () {
-        expect(
-            () => MultisignatureVault.fromKeyStoreList([
-                  KeyStore.random(AddressType.p2sh),
-                  KeyStore.random(AddressType.p2wsh)
-                ], 1),
-            throwsException);
-      });
     });
     group('MultisignatureVault.fromSeedList', () {
       test('Generate multisignature vault from seed list', () {
@@ -78,7 +61,7 @@ void main() {
     group('toJson', () {
       test('Get json text', () {
         int hash = vault.toJson().hashCode;
-        expect(hash, 380243808);
+        expect(hash, 185281785);
       });
     });
     group('MultisignatureVault.fromJson', () {
