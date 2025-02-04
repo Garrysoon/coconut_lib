@@ -395,6 +395,20 @@ void main() {
                 outputAmount + tx.estimateFee(afterFeeRate, vault.addressType),
             true);
       });
+      test('For sweep case', () {
+        int beforeFeeRate = 2;
+        int afterFeeRate = 5;
+
+        Transaction tx = Transaction.forSweep(
+            utxos.sublist(0, 4), receiveAddress, beforeFeeRate, vault);
+
+        int beforeSendindAmount = tx.outputs[0].amount;
+        tx.updateFeeRate(afterFeeRate, vault);
+
+        int afterSendAmount = tx.outputs[0].amount;
+        expect(tx.outputs.length, 1);
+        expect(beforeSendindAmount >= afterSendAmount, true);
+      });
     });
   });
 }

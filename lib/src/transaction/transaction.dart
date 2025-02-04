@@ -888,24 +888,32 @@ class Transaction {
       {int? requiredSignature, int? totalSinger}) {
     int fee = estimateFee(feeRate, wallet.addressType,
         requiredSignature: requiredSignature, totalSinger: totalSinger);
-    TransactionOutput changeOutput =
-        TransactionOutput.forPayment(0, changeAddress!);
 
-    for (TransactionOutput output in outputs) {
-      if (output.scriptPubKey.getAddress() == changeAddress) {
-        changeOutput = output;
-        break;
+    if (outputs.length == 1) {
+      outputs[0].setAmount(outputs[0].amount - fee);
+      if (outputs[0].isDustOutput(wallet.addressType.isSegwit)) {
+        throw Exception('Sending amount is under dust threshold.');
       }
-    }
-    int changeAmount = totalInputAmount - sendingAmount! - fee;
-
-    if (changeAmount < 0) {
-      outputs.remove(changeOutput);
     } else {
-      changeOutput.setAmount(changeAmount);
+      TransactionOutput changeOutput =
+          TransactionOutput.forPayment(0, changeAddress!);
 
-      if (changeOutput.isDustOutput(wallet.addressType.isSegwit)) {
+      for (TransactionOutput output in outputs) {
+        if (output.scriptPubKey.getAddress() == changeAddress) {
+          changeOutput = output;
+          break;
+        }
+      }
+      int changeAmount = totalInputAmount - sendingAmount! - fee;
+
+      if (changeAmount < 0) {
         outputs.remove(changeOutput);
+      } else {
+        changeOutput.setAmount(changeAmount);
+
+        if (changeOutput.isDustOutput(wallet.addressType.isSegwit)) {
+          outputs.remove(changeOutput);
+        }
       }
     }
   }
