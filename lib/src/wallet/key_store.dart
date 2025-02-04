@@ -146,9 +146,14 @@ class KeyStore {
   }
 
   /// Get the public key of the key store using index.
-  String getPublicKey(int addressIndex, {bool isChange = false}) {
+  String getPublicKey(int addressIndex,
+      {bool isChange = false, isShnorr = false}) {
     HDWallet child = getChildHdWallet(isChange).derive(addressIndex).neutered();
-    return HEX.encode((child.publicKey).toList());
+    if (isShnorr) {
+      return HEX.encode((child.publicKey).sublist(1));
+    } else {
+      return HEX.encode((child.publicKey).toList());
+    }
   }
 
   /// Get the public key of the key store using derivation path.
