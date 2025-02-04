@@ -91,9 +91,21 @@ class AddressType {
   static AddressType p2wsh = AddressType._('p2wsh', 48, 'bc1', 'P2WSH', true,
       true, 0x02aa7ed3, 0x02575483, getWrongAddress, getP2wshAddress);
 
+  static AddressType p2tr = AddressType._(
+      'p2tr',
+      86,
+      'bc1',
+      'P2TR',
+      true,
+      true,
+      0x04b2430c,
+      0x044a5262,
+      getP2trSingleSignatureAddress,
+      getWrongMultisigatureAddress);
+
   /// List of all address types.
   static List<AddressType> get values =>
-      [p2pkh, p2wpkh, p2wpkhInP2sh, p2sh, p2wsh];
+      [p2pkh, p2wpkh, p2wpkhInP2sh, p2sh, p2wsh, p2tr];
 
   /// Get the address type from the script type.(P2PKH, P2WPKH, P2WSH-in-P2SH, P2SH, P2WSH)
   static AddressType getAddressTypeFromScriptType(String addressType) {
@@ -144,12 +156,8 @@ class AddressType {
   /// @nodoc
   static String getP2wpkhAddress(String publicKey) {
     String hrp = _getSegwitHrp();
-
-    //int version;
     final program = Hash.sha160fromHex(publicKey);
-
     var data = Converter.convertBits(program, 8, 5, pad: true);
-
     return bech32.encode(Bech32(hrp, [0x00] + data));
   }
 
@@ -258,6 +266,21 @@ class AddressType {
     var address = bech32.encode(Bech32(hrp, [version] + program));
 
     return address;
+  }
+
+  static String getP2trSingleSignatureAddress(String publicKey) {
+    String hrp = _getSegwitHrp();
+    final program = Converter.hexToBytes(Hash.sha256fromHex(publicKey));
+    var data = Converter.convertBits(program, 8, 5, pad: true);
+    bech32m.Bech32mCodec codec = bech32m.Bech32mCodec();
+    return codec.encode(bech32m.Bech32m(hrp, [0x01] + data));
+
+    // String hrp = _getSegwitHrp();
+    // Uint8List h256 = commands[1];
+    // var data5Bits =
+    //     Converter.convertBits(Uint8List.fromList(h256), 8, 5, pad: true);
+    // bech32m.Bech32mCodec codec = bech32m.Bech32mCodec();
+    // return codec.encode(bech32m.Bech32m(hrp, [0x01] + data5Bits));
   }
 
   /// @nodoc
