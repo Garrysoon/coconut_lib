@@ -14,8 +14,8 @@ void main() {
             AddressType.p2wpkh);
         expect(AddressType.getAddressTypeFromScriptType('p2wsh'),
             AddressType.p2wsh);
-        expect(() => AddressType.getAddressTypeFromScriptType('p2tr'),
-            throwsException);
+        expect(
+            AddressType.getAddressTypeFromScriptType('p2tr'), AddressType.p2tr);
       });
 
       group('isTestnetVersion', () {
@@ -74,6 +74,18 @@ void main() {
               AddressType.p2wpkhInP2sh.getAddress(
                   '039b3b694b8fc5b5e07fb069c783cac754f5d38c3e08bed1960e31fdb1dda35c24'),
               '37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf');
+        });
+        test('getP2trSingleSignatureAddress', () {
+          NetworkType.setNetworkType(NetworkType.mainnet);
+          KeyStore keyStore = KeyStore.fromMnemonic(
+              "machine crack daughter fish credit glare raven fever tunnel delay fish record",
+              AddressType.p2tr);
+          SingleSignatureVault vault =
+              SingleSignatureVault.fromKeyStore(keyStore);
+          print(vault.derivationPath);
+          print(keyStore.getPublicKey(0, isShnorr: true));
+          print(AddressType.p2tr
+              .getAddress(keyStore.getPublicKey(2, isShnorr: true)));
         });
         test('getWrondAddress', () {
           NetworkType.setNetworkType(NetworkType.mainnet);
