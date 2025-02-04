@@ -14,8 +14,8 @@ void main() {
             AddressType.p2wpkh);
         expect(AddressType.getAddressTypeFromScriptType('p2wsh'),
             AddressType.p2wsh);
-        expect(() => AddressType.getAddressTypeFromScriptType('p2tr'),
-            throwsException);
+        expect(
+            AddressType.getAddressTypeFromScriptType('p2tr'), AddressType.p2tr);
       });
 
       group('isTestnetVersion', () {
