@@ -1,6 +1,10 @@
 @Tags(['unit'])
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
+import 'package:crypto/crypto.dart';
 
 void main() {
   group('AddressType', () {
@@ -75,24 +79,24 @@ void main() {
                   '039b3b694b8fc5b5e07fb069c783cac754f5d38c3e08bed1960e31fdb1dda35c24'),
               '37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf');
         });
-        test('getP2trSingleSignatureAddress', () {
-          NetworkType.setNetworkType(NetworkType.mainnet);
-          KeyStore keyStore = KeyStore.fromMnemonic(
-              "machine crack daughter fish credit glare raven fever tunnel delay fish record",
-              AddressType.p2tr);
-          SingleSignatureVault vault =
-              SingleSignatureVault.fromKeyStore(keyStore);
-          print(vault.derivationPath);
-          print(keyStore.getPublicKey(0, isShnorr: true));
-          print(AddressType.p2tr
-              .getAddress(keyStore.getPublicKey(2, isShnorr: true)));
-        });
         test('getWrondAddress', () {
           NetworkType.setNetworkType(NetworkType.mainnet);
           expect(
               () => AddressType.p2wsh.getAddress(
                   '039b3b694b8fc5b5e07fb069c783cac754f5d38c3e08bed1960e31fdb1dda35c24'),
               throwsException);
+        });
+
+        test('getP2trSingleSignatureAddress', () {
+          NetworkType.setNetworkType(NetworkType.mainnet);
+          expect(
+              AddressType.getP2trAddress(
+                  'cc8a4bc64d897bddc5fbc2f670f7a8ba0b386779106cf1223c6fc5d7cd6fc115'),
+              'bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr');
+          expect(
+              AddressType.p2tr.getAddress(
+                  '83dfe85a3151d2517290da461fe2815591ef69f2b18a2ce63f01697a8b313145'),
+              'bc1p4qhjn9zdvkux4e44uhx8tc55attvtyu358kutcqkudyccelu0was9fqzwh');
         });
       });
       group('getMultisignatureAddress', () {

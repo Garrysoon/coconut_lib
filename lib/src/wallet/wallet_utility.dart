@@ -6,7 +6,6 @@ abstract class WalletUtility {
 
   /// Get the derivation path for the given address type and account index.
   static String getDerivationPath(AddressType addressType, int accountIndex) {
-    print(addressType);
     bool isTestnet = NetworkType.currentNetworkType.isTestnet;
     String derivationPath;
     if (addressType == AddressType.p2sh) {

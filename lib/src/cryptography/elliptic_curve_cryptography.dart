@@ -112,7 +112,9 @@ Uint8List? pointAddScalar(Uint8List p, Uint8List tweak, bool isCompressed) {
   ECPoint qq = (G * tt) as ECPoint;
   ECPoint uu = (pp! + qq) as ECPoint;
   if (uu.isInfinity) return null;
-  return getEncoded(uu, compressed);
+  Uint8List encoded = getEncoded(uu, compressed);
+
+  return encoded;
 }
 
 Uint8List? privateAdd(Uint8List d, Uint8List tweak) {

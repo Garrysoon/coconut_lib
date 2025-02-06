@@ -56,4 +56,21 @@ class Hash {
     var array = derivator.process(Uint8List.fromList(secret.codeUnits));
     return array.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join('');
   }
+
+  static Uint8List hashTapTweak(Uint8List pubkey, Uint8List? merkleRoot) {
+    // var tag = sha256.convert(utf8.encode("TapTweak")).bytes;
+    var tag = sha256fromByte(utf8.encode("TapTweak"));
+    var tagHash = Uint8List.fromList(tag + tag);
+    Uint8List combined;
+    if (merkleRoot == null) {
+      combined = Uint8List.fromList(pubkey);
+    } else {
+      combined = Uint8List.fromList(pubkey + merkleRoot);
+    }
+    // var tweakHash =
+    //     sha256.convert(Uint8List.fromList(tagHash + combined)).bytes;
+
+    var tweakHash = sha256fromByte(Uint8List.fromList(tagHash + combined));
+    return Uint8List.fromList(tweakHash);
+  }
 }

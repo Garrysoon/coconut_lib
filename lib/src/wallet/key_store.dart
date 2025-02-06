@@ -158,13 +158,17 @@ class KeyStore {
   }
 
   /// Get the public key of the key store using derivation path.
-  String getPublicKeyWithDerivationPath(String path) {
+  String getPublicKeyWithDerivationPath(String path, {isShnorr = false}) {
     List<String> pathList = path.split('/');
     int index = int.parse(pathList.last);
     int changeIndex = int.parse(pathList[pathList.length - 2]);
     HDWallet child =
         getChildHdWallet(changeIndex == 1).derive(index).neutered();
-    return HEX.encode((child.publicKey).toList());
+    if (isShnorr) {
+      return HEX.encode((child.publicKey).sublist(1));
+    } else {
+      return HEX.encode((child.publicKey).toList());
+    }
   }
 
   /// Validate the signatured from this key store.

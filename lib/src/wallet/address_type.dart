@@ -91,17 +91,8 @@ class AddressType {
   static AddressType p2wsh = AddressType._('p2wsh', 48, 'bc1', 'P2WSH', true,
       true, 0x02aa7ed3, 0x02575483, getWrongAddress, getP2wshAddress);
 
-  static AddressType p2tr = AddressType._(
-      'p2tr',
-      86,
-      'bc1',
-      'P2TR',
-      true,
-      true,
-      0x04b2430c,
-      0x044a5262,
-      getP2trSingleSignatureAddress,
-      getWrongMultisigatureAddress);
+  static AddressType p2tr = AddressType._('p2tr', 86, 'bc1', 'P2TR', true, true,
+      0x04b2430c, 0x044a5262, getP2trAddress, getWrongMultisigatureAddress);
 
   /// List of all address types.
   static List<AddressType> get values =>
@@ -268,19 +259,26 @@ class AddressType {
     return address;
   }
 
-  static String getP2trSingleSignatureAddress(String publicKey) {
-    String hrp = _getSegwitHrp();
-    final program = Converter.hexToBytes(Hash.sha256fromHex(publicKey));
-    var data = Converter.convertBits(program, 8, 5, pad: true);
-    bech32m.Bech32mCodec codec = bech32m.Bech32mCodec();
-    return codec.encode(bech32m.Bech32m(hrp, [0x01] + data));
+  static String getP2trAddress(String publicKey) {
+    Uint8List internalKey = Converter.hexToBytes(publicKey);
+    if (internalKey.length != 32) {
+      throw ArgumentError("Public Key must be a 32-byte x-only public key.");
+    }
 
-    // String hrp = _getSegwitHrp();
-    // Uint8List h256 = commands[1];
-    // var data5Bits =
-    //     Converter.convertBits(Uint8List.fromList(h256), 8, 5, pad: true);
-    // bech32m.Bech32mCodec codec = bech32m.Bech32mCodec();
-    // return codec.encode(bech32m.Bech32m(hrp, [0x01] + data5Bits));
+    Uint8List compressedPubKey = Uint8List(33);
+    compressedPubKey[0] = 0x02;
+    compressedPubKey.setRange(1, 33, internalKey);
+
+    Uint8List hashTapTweek = Hash.hashTapTweak(internalKey, null);
+
+    Uint8List outputKey =
+        ecc.pointAddScalar(compressedPubKey, hashTapTweek, true)!.sublist(1);
+
+    var data5Bits =
+        Converter.convertBits(Uint8List.fromList(outputKey), 8, 5, pad: true);
+
+    bech32m.Bech32mCodec codec = bech32m.Bech32mCodec();
+    return codec.encode(bech32m.Bech32m(_getSegwitHrp(), [0x01] + data5Bits));
   }
 
   /// @nodoc
