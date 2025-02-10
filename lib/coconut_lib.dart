@@ -15,7 +15,9 @@ import 'src/cryptography/elliptic_curve_cryptography.dart' as ecc;
 import 'src/cryptography/hash.dart';
 import 'src/cryptography/encoder.dart';
 import 'src/cryptography/mnemonic_wordlist/english.dart' as english_words;
+
 export 'src/cryptography/mnemonic_wordlist/english.dart';
+export 'src/cryptography/converter.dart';
 
 part 'src/transaction/partially_signed_bitcoin_transaction.dart';
 part 'src/transaction/script.dart';
