@@ -6,7 +6,6 @@ abstract class WalletUtility {
 
   /// Get the derivation path for the given address type and account index.
   static String getDerivationPath(AddressType addressType, int accountIndex) {
-    print(addressType);
     bool isTestnet = NetworkType.currentNetworkType.isTestnet;
     String derivationPath;
     if (addressType == AddressType.p2sh) {
@@ -72,9 +71,13 @@ abstract class WalletUtility {
         }
       }
       return true;
-    } else if (address.startsWith('bc1p') || address.startsWith('tb1p')) {
+    } else if (address.startsWith('bc1p') ||
+        address.startsWith('tb1p') ||
+        address.startsWith('bcrt1p')) {
       var codec = bech32m.Bech32mCodec().decode(address);
-      if (codec.hrp != 'bc' && codec.hrp != 'tb') return false;
+      if (codec.hrp != 'bc' && codec.hrp != 'tb' && codec.hrp != 'bcrt') {
+        return false;
+      }
       if (codec.data[0] != 1) return false;
       if (codec.data[0] > 16) return false;
       return true;

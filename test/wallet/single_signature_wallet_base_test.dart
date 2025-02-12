@@ -72,7 +72,7 @@ void main() {
         expect(estimatedFee, targetFee);
       });
     });
-    group('estimateFeeWithMaximum', () {
+    group('estimateFeeForSweep', () {
       Matcher isWithinRange(int lower, int upper) => predicate(
           (x) => x is num && x >= lower && x <= upper,
           'is within range $lower to $upper');

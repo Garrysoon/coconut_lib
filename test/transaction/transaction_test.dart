@@ -1,6 +1,5 @@
 @Tags(['unit'])
 import 'package:coconut_lib/coconut_lib.dart';
-import 'package:coconut_lib/src/cryptography/converter.dart';
 import 'package:test/test.dart';
 
 import '../mock_factory.dart';

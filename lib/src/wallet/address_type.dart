@@ -326,7 +326,7 @@ class AddressType {
     Uint8List internalKeyBytes = Converter.hexToBytes(internalKey);
     Uint8List merkleRootBytes = Converter.hexToBytes(merkleRoot);
     Uint8List hashTapTweek =
-        Hash.hashTapTweak('TapTweak', internalKeyBytes, merkleRootBytes);
+        _hashTapTweak('TapTweak', internalKeyBytes, merkleRootBytes);
 
     // print("hashTapTweek: ${Converter.bytesToHex(hashTapTweek)}");
 
@@ -348,6 +348,23 @@ class AddressType {
 
   static String getWrongAddress(String publicKey) {
     throw Exception('Use getMultisigAddress for multisig address type.');
+  }
+
+  static Uint8List _hashTapTweak(
+      String tag, Uint8List pubkey, Uint8List? merkleRoot) {
+    var tagByte = Hash.sha256fromByte(utf8.encode(tag));
+    var tagHash = Uint8List.fromList(tagByte + tagByte);
+    Uint8List combined;
+    if (merkleRoot == null) {
+      combined = Uint8List.fromList(pubkey);
+    } else {
+      combined = Uint8List.fromList(pubkey + merkleRoot);
+    }
+    // var tweakHash =
+    //     sha256.convert(Uint8List.fromList(tagHash + combined)).bytes;
+
+    var tweakHash = Hash.sha256fromByte(Uint8List.fromList(tagHash + combined));
+    return Uint8List.fromList(tweakHash);
   }
 
   static Uint8List _getTapleafHash(int version, String script) {

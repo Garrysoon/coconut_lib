@@ -23,7 +23,7 @@ class SingleSignatureWallet extends SingleSignatureWalletBase {
           'P2${descriptorObject.scriptType}');
     }
 
-    if (addressType.isMultisig) {
+    if (addressType.isMultisig && addressType != AddressType.p2tr) {
       throw Exception(
           '${addressType.getAddress} is multisig script. Use MultsignatureVault Class.');
     }

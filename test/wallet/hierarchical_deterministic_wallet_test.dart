@@ -2,7 +2,6 @@
 import 'dart:typed_data';
 
 import 'package:coconut_lib/coconut_lib.dart';
-import 'package:coconut_lib/src/cryptography/converter.dart';
 import 'package:coconut_lib/src/cryptography/hash.dart';
 import 'package:test/test.dart';
 
