@@ -1,10 +1,6 @@
 @Tags(['unit'])
-import 'dart:typed_data';
-
 import 'package:coconut_lib/coconut_lib.dart';
-import 'package:coconut_lib/src/cryptography/converter.dart';
 import 'package:test/test.dart';
-import 'package:crypto/crypto.dart';
 
 void main() {
   group('AddressType', () {
@@ -99,19 +95,14 @@ void main() {
               'bc1p4qhjn9zdvkux4e44uhx8tc55attvtyu358kutcqkudyccelu0was9fqzwh');
         });
         test('getP2trScriptPathMultisignatureAddress', () {
+          //TODO : need to validate the address
           NetworkType.setNetworkType(NetworkType.mainnet);
           expect(
               AddressType.getP2trScriptPathMultisignatureAddress([
                 'febe583fa77e49089f89b78fa8c116710715d6e40cc5f5a075ef1681550dd3c4',
                 'd0fa46cb883e940ac3dc5421f05b03859972639f51ed2eccbf3dc5a62e2e1b15'
-              ], 2,
-                  '2e44c9e47eaeb4bb313adecd11012dfad435cd72ce71f525329f24d75c5b9432'),
-              'bc1p9l9dw3cz09jje30c3wysseuddax40t6kyuvrkqlusszvknskmzys00k7zm');
-          //TX Hash : 905ecdf95a84804b192f4dc221cfed4d77959b81ed66013a7e41a6e61e7ed530
-          //Script : 20febe583fa77e49089f89b78fa8c116710715d6e40cc5f5a075ef1681550dd3c4ad20d0fa46cb883e940ac3dc5421f05b03859972639f51ed2eccbf3dc5a62e2e1b15ac
-          //Leaf version : c0
-          //Internal Key : 2e44c9e47eaeb4bb313adecd11012dfad435cd72ce71f525329f24d75c5b9432
-          //Merkle Proof : 774e148e9209baf3f1656a46986d5f38ddf4e20912c6ac28f48d6bf747469fb1
+              ], 2),
+              'bc1p2s5lw3ur53usrj7m0jytdexp26gmsyamvjwaamh8wy5qm90kfylqhq964c');
         });
       });
       group('getTaprootAddress', () {

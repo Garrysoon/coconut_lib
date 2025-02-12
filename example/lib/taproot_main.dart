@@ -1,5 +1,4 @@
 import 'package:coconut_lib/coconut_lib.dart';
-import 'package:coconut_lib/src/cryptography/converter.dart';
 
 void main() async {
   NetworkType.setNetworkType(NetworkType.regtest);

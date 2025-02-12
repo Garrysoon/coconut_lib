@@ -273,24 +273,30 @@ class AddressType {
   }
 
   static String getP2trScriptPathMultisignatureAddress(
-      List<String> publicKeyList, int requiredSignature, String internalKey) {
+      List<String> publicKeys, int requiredSignature) {
     if (requiredSignature > 3) {
       throw Exception("requiredSignature cannot be greater than 3");
     }
-    if (requiredSignature > publicKeyList.length) {
+    if (requiredSignature > publicKeys.length) {
       throw Exception(
           "requiredSignature cannot be greater than the number of pubkeys");
     }
-    for (var publicKey in publicKeyList) {
+    publicKeys.sort();
+    for (var publicKey in publicKeys) {
       if (Converter.hexToBytes(publicKey).length != 32) {
         throw Exception("Public Key must be a 32-byte x-only public key.");
       }
     }
     List<Uint8List> pubList =
-        publicKeyList.map((hex) => Converter.hexToBytes(hex)).toList();
+        publicKeys.map((hex) => Converter.hexToBytes(hex)).toList();
+
+    String concatenedPubkeys =
+        pubList.map((e) => Converter.bytesToHex(e)).join('');
+
+    String internalKey = Hash.sha256fromHex(concatenedPubkeys);
 
     List<int> tapscript = [];
-    if (publicKeyList.length == requiredSignature) {
+    if (publicKeys.length == requiredSignature) {
       for (var i = 0; i < pubList.length - 1; i++) {
         tapscript.add(pubList[i].length); // 공개키 길이 추가
         tapscript.addAll(pubList[i]); // 공개키 추가
@@ -308,7 +314,7 @@ class AddressType {
       tapscript.add(0x87); // OP_NUMEQUAL
     }
 
-    print(Converter.bytesToHex(tapscript));
+    // print(Converter.bytesToHex(tapscript));
 
     Uint8List merkleRoot =
         _getTapleafHash(0xc0, Converter.bytesToHex(tapscript));
@@ -322,7 +328,7 @@ class AddressType {
     Uint8List hashTapTweek =
         Hash.hashTapTweak('TapTweak', internalKeyBytes, merkleRootBytes);
 
-    print("hashTapTweek: ${Converter.bytesToHex(hashTapTweek)}");
+    // print("hashTapTweek: ${Converter.bytesToHex(hashTapTweek)}");
 
     Uint8List compressedPubKey = Uint8List(33);
     compressedPubKey[0] = 0x02;
@@ -331,7 +337,7 @@ class AddressType {
     Uint8List tweakPubkey =
         ecc.pointAddScalar(compressedPubKey, hashTapTweek, true)!.sublist(1);
 
-    print("tweakPubkey: ${Converter.bytesToHex(tweakPubkey)}");
+    // print("tweakPubkey: ${Converter.bytesToHex(tweakPubkey)}");
 
     var data5Bits =
         Converter.convertBits(Uint8List.fromList(tweakPubkey), 8, 5, pad: true);
