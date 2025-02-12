@@ -54,7 +54,7 @@ void main() {
     group('get utxoList', () {
       test('Get utxo list if exist', () {
         SingleSignatureVault vault = MockFactory.createP2wpkhVault();
-        List<UTXO> utxoList = MockFactory.createUtxoList(count: 2);
+        List<Utxo> utxoList = MockFactory.createUtxoList(count: 2);
         Transaction tx = Transaction.fromUtxoList(
             utxoList,
             'bcrt1qk4z5ysfc2k72pz2ws4dhskxdq772s7uq6cdqkv',
@@ -83,7 +83,7 @@ void main() {
       });
     });
     group('Transaction.fromUtxoList', () {
-      List<UTXO> utxos = MockFactory.createUtxoList(count: 5);
+      List<Utxo> utxos = MockFactory.createUtxoList(count: 5);
       String receiveAddress = 'bcrt1q8e5ghfg8gpe4dlfv7qqck2c2jc47lnllul3puh';
       String changeAddress = 'bcrt1qyg29ghzqe5fweer9tyga4dtccxhnx4yq7ysflg';
       test(
@@ -95,7 +95,7 @@ void main() {
             receiveAddress, changeAddress, 99800, 1, vault);
         int inputAmount = 0;
         int outputAmount = 0;
-        for (UTXO u in tx.utxoList) {
+        for (Utxo u in tx.utxoList) {
           inputAmount += u.amount;
         }
         for (TransactionOutput output in tx.outputs) {
@@ -108,7 +108,7 @@ void main() {
       });
       test('Generate transactin with utxo list', () {
         SingleSignatureVault vault = MockFactory.createP2wpkhVault();
-        List<UTXO> utxos = MockFactory.createUtxoList(count: 5);
+        List<Utxo> utxos = MockFactory.createUtxoList(count: 5);
         Transaction tx = Transaction.fromUtxoList(
             utxos, receiveAddress, changeAddress, 4200, 1, vault);
         expect(tx.outputs.length, 2);
@@ -118,7 +118,7 @@ void main() {
     group('Transaction.forPayment', () {
       test('Generate transaction for payment', () {
         SingleSignatureVault vault = MockFactory.createP2wpkhVault();
-        List<UTXO> utxos = MockFactory.createUtxoList(count: 5);
+        List<Utxo> utxos = MockFactory.createUtxoList(count: 5);
         String receiveAddress = 'bcrt1q8e5ghfg8gpe4dlfv7qqck2c2jc47lnllul3puh';
         String changeAddress = 'bcrt1qyg29ghzqe5fweer9tyga4dtccxhnx4yq7ysflg';
         Transaction tx = Transaction.forPayment(
@@ -131,11 +131,11 @@ void main() {
     group('Transaction.forSweep', () {
       test('Generate transaction for sweep', () {
         SingleSignatureVault vault = MockFactory.createP2wpkhVault();
-        List<UTXO> utxos = MockFactory.createUtxoList(count: 5);
+        List<Utxo> utxos = MockFactory.createUtxoList(count: 5);
         String receiveAddress = 'bcrt1q8e5ghfg8gpe4dlfv7qqck2c2jc47lnllul3puh';
         Transaction tx = Transaction.forSweep(utxos, receiveAddress, 1, vault);
         int utxoTotalAmount = 0;
-        for (UTXO utxo in utxos) {
+        for (Utxo utxo in utxos) {
           utxoTotalAmount += utxo.amount;
         }
         expect(tx.outputs[0].amount < utxoTotalAmount, true);
@@ -236,7 +236,7 @@ void main() {
     group('estimateVirtualByte', () {
       test('Get estimated virtyal byte', () {
         SingleSignatureVault vault = MockFactory.createP2wpkhVault();
-        List<UTXO> utxos = MockFactory.createUtxoList(count: 5);
+        List<Utxo> utxos = MockFactory.createUtxoList(count: 5);
         String receiveAddress = 'bcrt1q8e5ghfg8gpe4dlfv7qqck2c2jc47lnllul3puh';
         String changeAddress = 'bcrt1qyg29ghzqe5fweer9tyga4dtccxhnx4yq7ysflg';
         Transaction tx = Transaction.fromUtxoList(
@@ -259,7 +259,7 @@ void main() {
     });
     group('addInputWithUtxo', () {
       SingleSignatureVault vault = MockFactory.createP2wpkhVault();
-      List<UTXO> utxos = MockFactory.createUtxoList(count: 5);
+      List<Utxo> utxos = MockFactory.createUtxoList(count: 5);
       String receiveAddress = 'bcrt1q8e5ghfg8gpe4dlfv7qqck2c2jc47lnllul3puh';
       String changeAddress = 'bcrt1qyg29ghzqe5fweer9tyga4dtccxhnx4yq7ysflg';
       int feeRate = 2;
@@ -273,7 +273,7 @@ void main() {
         int afterInputLength = tx.inputs.length;
 
         int inputAmount = 0;
-        for (UTXO u in tx.utxoList) {
+        for (Utxo u in tx.utxoList) {
           inputAmount += u.amount;
         }
         int outputAmount = 0;
@@ -298,7 +298,7 @@ void main() {
 
         int afterInputLength = tx.inputs.length;
         int inputAmount = 0;
-        for (UTXO u in tx.utxoList) {
+        for (Utxo u in tx.utxoList) {
           inputAmount += u.amount;
         }
 
@@ -316,7 +316,7 @@ void main() {
     });
     group('removeInputWithUtxo', () {
       SingleSignatureVault vault = MockFactory.createP2wpkhVault();
-      List<UTXO> utxos = MockFactory.createUtxoList(count: 5);
+      List<Utxo> utxos = MockFactory.createUtxoList(count: 5);
       String receiveAddress = 'bcrt1q8e5ghfg8gpe4dlfv7qqck2c2jc47lnllul3puh';
       String changeAddress = 'bcrt1qyg29ghzqe5fweer9tyga4dtccxhnx4yq7ysflg';
       int feeRate = 2;
@@ -328,7 +328,7 @@ void main() {
         tx.removeInputWithUtxo(utxos[3], feeRate, vault);
         int afterInputLength = tx.inputs.length;
         int inputAmount = 0;
-        for (UTXO u in tx.utxoList) {
+        for (Utxo u in tx.utxoList) {
           inputAmount += u.amount;
         }
         int outputAmount = 0;
@@ -345,7 +345,7 @@ void main() {
     });
     group('updateFeeRate', () {
       SingleSignatureVault vault = MockFactory.createP2wpkhVault();
-      List<UTXO> utxos = MockFactory.createUtxoList(count: 5);
+      List<Utxo> utxos = MockFactory.createUtxoList(count: 5);
       String receiveAddress = 'bcrt1q8e5ghfg8gpe4dlfv7qqck2c2jc47lnllul3puh';
       String changeAddress = 'bcrt1qyg29ghzqe5fweer9tyga4dtccxhnx4yq7ysflg';
       test('Lower fee rate', () {
@@ -386,7 +386,7 @@ void main() {
         for (TransactionOutput output in tx.outputs) {
           outputAmount += output.amount;
         }
-        for (UTXO u in tx.utxoList) {
+        for (Utxo u in tx.utxoList) {
           inputAmount += u.amount;
         }
         expect(tx.outputs.length, 1);

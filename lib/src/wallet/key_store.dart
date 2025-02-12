@@ -93,7 +93,7 @@ class KeyStore {
   }
 
   factory KeyStore.fromSignerBsms(String signer) {
-    BSMS bsms = BSMS.parseSigner(signer);
+    Bsms bsms = Bsms.parseSigner(signer);
     // KeyStore(fingerprint, wallet, extendedPublicKey)
     HDWallet wallet = HDWallet.fromPublicKey(
         bsms.signer!.extendedPublicKey.publicKey,
@@ -203,7 +203,7 @@ class KeyStore {
 
   ///Check if the PSBT can be signed from this vault.
   bool canSignToPsbt(String psbt) {
-    PSBT psbtObj = PSBT.parse(psbt);
+    Psbt psbtObj = Psbt.parse(psbt);
     for (int i = 0; i < psbtObj.unsignedTransaction!.inputs.length; i++) {
       PsbtInput thisInput = psbtObj.inputs[i];
       for (int j = 0; j < thisInput.derivationPathList.length; j++) {
@@ -224,7 +224,7 @@ class KeyStore {
     if (!hasSeed) {
       throw Exception('This vault does not have seed');
     }
-    PSBT psbtObject = PSBT.parse(psbt);
+    Psbt psbtObject = Psbt.parse(psbt);
     if (canSignToPsbt(psbtObject.serialize()) == false) {
       throw Exception('Vault : This vault can not sign this PSBT');
     }

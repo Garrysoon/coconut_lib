@@ -32,19 +32,19 @@ abstract class WalletBase {
 
   String addSignatureToPsbt(String psbt);
 
-  Future<int> estimateFee(List<UTXO> utxoPool, String receiverAddress,
+  Future<int> estimateFee(List<Utxo> utxoPool, String receiverAddress,
       String changeAddress, int sendingAmount, int feeRate);
 
   Future<int> estimateFeeForSweep(
-      List<UTXO> utxoPool, String receiverAddress, int feeRate);
+      List<Utxo> utxoPool, String receiverAddress, int feeRate);
 
   Future<String> generatePsbtForPayment(
-      List<UTXO> utxoPool,
+      List<Utxo> utxoPool,
       String receiverAddress,
       String changeAddress,
       int sendingAmount,
       int feeRate) async {
-    PSBT psbt = await Future(() => PSBT.fromTransaction(
+    Psbt psbt = await Future(() => Psbt.fromTransaction(
         Transaction.forPayment(utxoPool, receiverAddress, changeAddress,
             sendingAmount, feeRate, this),
         this));
@@ -52,12 +52,12 @@ abstract class WalletBase {
   }
 
   Future<String> generatePsbtWithUtxoList(
-      List<UTXO> utxoList,
+      List<Utxo> utxoList,
       String receiverAddress,
       String changeAddress,
       int sendingAmount,
       int feeRate) async {
-    PSBT psbt = await Future(() => PSBT.fromTransaction(
+    Psbt psbt = await Future(() => Psbt.fromTransaction(
         Transaction.fromUtxoList(utxoList, receiverAddress, changeAddress,
             sendingAmount, feeRate, this),
         this));
@@ -65,8 +65,8 @@ abstract class WalletBase {
   }
 
   Future<String> generatePsbtForSweep(
-      List<UTXO> utxoPool, String receiverAddress, int feeRate) async {
-    PSBT psbt = await Future(() => PSBT.fromTransaction(
+      List<Utxo> utxoPool, String receiverAddress, int feeRate) async {
+    Psbt psbt = await Future(() => Psbt.fromTransaction(
         Transaction.forSweep(utxoPool, receiverAddress, feeRate, this), this));
     return psbt.serialize();
   }

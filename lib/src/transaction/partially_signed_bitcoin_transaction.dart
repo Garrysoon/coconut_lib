@@ -1,7 +1,7 @@
 part of '../../coconut_lib.dart';
 
 /// Represents a PSBT(BIP-0174).
-class PSBT {
+class Psbt {
   /// @nodoc
   Map<String, dynamic> psbtMap;
 
@@ -42,7 +42,7 @@ class PSBT {
       }();
 
   /// @nodoc
-  PSBT(this.psbtMap) {
+  Psbt(this.psbtMap) {
     unsignedTransaction =
         Transaction.parseUnsignedTransaction(psbtMap["global"]["00"]);
 
@@ -162,7 +162,7 @@ class PSBT {
   }
 
   /// Create a PSBT from a Transaction object.
-  factory PSBT.fromTransaction(Transaction tx, WalletBase wallet) {
+  factory Psbt.fromTransaction(Transaction tx, WalletBase wallet) {
     if (!wallet.addressType.isSegwit) {
       throw Exception('Only Segwit address type is supported');
     }
@@ -253,7 +253,7 @@ class PSBT {
       psbtData["outputs"].add(outputData);
     }
 
-    PSBT psbt = PSBT(psbtData);
+    Psbt psbt = Psbt(psbtData);
 
     //check input amount is enough
     int totalInputAmount = 0;
@@ -272,7 +272,7 @@ class PSBT {
   }
 
   /// Parse a PSBT from a base64 string.
-  factory PSBT.parse(String psbtBase64) {
+  factory Psbt.parse(String psbtBase64) {
     int offset = 0;
 
     Uint8List psbtBytes = base64Decode(psbtBase64);
@@ -354,7 +354,7 @@ class PSBT {
       psbtData["outputs"].add(outputData);
     }
 
-    return PSBT(psbtData);
+    return Psbt(psbtData);
   }
 
   /// Add a signature to the PSBT.

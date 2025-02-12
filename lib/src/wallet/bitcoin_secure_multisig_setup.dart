@@ -1,27 +1,27 @@
 part of '../../coconut_lib.dart';
 
 /// Represents the setup of a Bitcoin secure multisig wallet.(BIP-0129)
-class BSMS {
+class Bsms {
   String version = 'BSMS 1.0';
   String secretToken = '00';
   Coordinator? coordinator;
   Signer? signer;
 
-  BSMS({this.coordinator, this.signer});
+  Bsms({this.coordinator, this.signer});
 
-  factory BSMS.fromSigner(String fingerPrint, String derivationPath,
+  factory Bsms.fromSigner(String fingerPrint, String derivationPath,
       String extendedPublicKey, String description) {
-    return BSMS(
+    return Bsms(
         signer: Signer(fingerPrint, derivationPath,
             ExtendedPublicKey.parse(extendedPublicKey), description));
   }
 
-  factory BSMS.fromCoordinator(String firstAddress, String descriptor) {
-    return BSMS(
+  factory Bsms.fromCoordinator(String firstAddress, String descriptor) {
+    return Bsms(
         coordinator: Coordinator(firstAddress, Descriptor.parse(descriptor)));
   }
 
-  factory BSMS.parseSigner(String bsmsText) {
+  factory Bsms.parseSigner(String bsmsText) {
     final lines = bsmsText.split('\n');
     if (lines.length < 4) {
       throw FormatException('Incomplete BSMS data');
@@ -50,14 +50,14 @@ class BSMS {
     String? derivationPath = keyInfoMatch.group(2);
     String? xpub = keyInfoMatch.group(4)!;
 
-    BSMS bsms = BSMS();
+    Bsms bsms = Bsms();
     bsms.signer = Signer(fingerprint!, derivationPath!,
         ExtendedPublicKey.parse(xpub), description);
     return bsms;
   }
 
-  factory BSMS.parseCoordinator(String bsmsText) {
-    BSMS bsms = BSMS();
+  factory Bsms.parseCoordinator(String bsmsText) {
+    Bsms bsms = Bsms();
 
     final lines = bsmsText.split('\n');
 

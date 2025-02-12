@@ -60,19 +60,19 @@ void main() {
       test('Check the vault can sign', () {
         MultisignatureVault otherVault =
             MockFactory.createP2wshVault(testWalletType: TestWalletType.random);
-        PSBT psbt = MockFactory.createP2wshUnsignedPsbt();
+        Psbt psbt = MockFactory.createP2wshUnsignedPsbt();
         expect(otherVault.canSignToPsbt(psbt.serialize()), false);
         expect(vault.canSignToPsbt(psbt.serialize()), true);
       });
     });
     group('addSignatureToPsbt', () {
       test('Sign to PSBT', () {
-        PSBT unsignedPsbt = MockFactory.createP2wshUnsignedPsbt();
+        Psbt unsignedPsbt = MockFactory.createP2wshUnsignedPsbt();
         String signedPsbtText =
             vault.addSignatureToPsbt(unsignedPsbt.serialize());
         expect(signedPsbtText.hashCode, 244975286);
 
-        PSBT signedPsbt = PSBT.parse(signedPsbtText);
+        Psbt signedPsbt = Psbt.parse(signedPsbtText);
 
         for (PsbtInput input in signedPsbt.inputs) {
           expect(input.requiredSignature, input.partialSigList.length);
@@ -106,9 +106,8 @@ void main() {
             vault.getAddress(1),
             1,
             vault);
-        int targetFee = PSBT
-            .parse(vault.addSignatureToPsbt(
-                PSBT.fromTransaction(transaction, vault).serialize()))
+        int targetFee = Psbt.parse(vault.addSignatureToPsbt(
+                Psbt.fromTransaction(transaction, vault).serialize()))
             .getSignedTransaction(AddressType.p2wsh)
             .getVirtualByte()
             .floor();

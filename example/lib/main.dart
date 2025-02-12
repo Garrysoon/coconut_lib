@@ -86,8 +86,8 @@ void main() async {
   String changeAddress = singleSignatureWallet.getAddress(0, isChange: true);
   int sendingAmount = 1000;
   int feeRate = 3;
-  List<UTXO> utxosForSingleSignatureWallet = [
-    UTXO('5c5fa04bc94647ee339083d6fd381a3b1ac4de7d7bfa966788971d62072a1e66', 1,
+  List<Utxo> utxosForSingleSignatureWallet = [
+    Utxo('5c5fa04bc94647ee339083d6fd381a3b1ac4de7d7bfa966788971d62072a1e66', 1,
         100000000, "m/84'/1'/0'/0/68")
   ];
   print(' - Generating unsigned PSBT');
@@ -99,7 +99,7 @@ void main() async {
       feeRate);
   print(' - Add signature from vault');
   String signedPsbt = singleSignatureVault.addSignatureToPsbt(unsignedPsbt);
-  PSBT walletReceivedPsbt = PSBT.parse(signedPsbt);
+  Psbt walletReceivedPsbt = Psbt.parse(signedPsbt);
   Transaction signedTransaction = walletReceivedPsbt
       .getSignedTransaction(singleSignatureWallet.addressType);
   print(' - Final Transaction : ${signedTransaction.serialize()}');

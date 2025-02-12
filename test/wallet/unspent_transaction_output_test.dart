@@ -5,8 +5,8 @@ import 'package:test/test.dart';
 import '../mock_factory.dart';
 
 void main() {
-  group('UTXO', () {
-    late UTXO utxo;
+  group('Utxo', () {
+    late Utxo utxo;
 
     setUpAll(() async {
       utxo = MockFactory.createUtxo(entropy: 'ABC');
@@ -29,7 +29,7 @@ void main() {
     });
     group('operator ==', () {
       test('Check equal', () {
-        UTXO targetUtxo = UTXO(
+        Utxo targetUtxo = Utxo(
           utxo.transactionHash,
           utxo.index,
           utxo.amount,

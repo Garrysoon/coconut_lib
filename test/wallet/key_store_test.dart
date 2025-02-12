@@ -182,11 +182,11 @@ void main() {
     });
     group('canSignToPsbt', () {
       test('Check sign possibility with wrong key store', () {
-        PSBT psbt = MockFactory.createP2wpkhUnsignedPsbt();
+        Psbt psbt = MockFactory.createP2wpkhUnsignedPsbt();
         expect(keyStore.canSignToPsbt(psbt.serialize()), false);
       });
       test('Check sign possibility with right key store', () {
-        PSBT psbt = MockFactory.createP2wpkhUnsignedPsbt();
+        Psbt psbt = MockFactory.createP2wpkhUnsignedPsbt();
 
         expect(
             MockFactory.createP2wpkhVault()
@@ -197,7 +197,7 @@ void main() {
     });
     group('addSignatureToPsbt', () {
       test('Sign to PSBT', () {
-        PSBT unsignedPsbt = MockFactory.createP2wpkhUnsignedPsbt();
+        Psbt unsignedPsbt = MockFactory.createP2wpkhUnsignedPsbt();
         String signedPsbtText = MockFactory.createP2wpkhVault()
             .addSignatureToPsbt(unsignedPsbt.serialize());
         print(signedPsbtText.hashCode);

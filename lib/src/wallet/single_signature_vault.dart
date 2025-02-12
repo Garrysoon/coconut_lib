@@ -86,7 +86,7 @@ class SingleSignatureVault extends SingleSignatureWalletBase {
         // ignore: unnecessary_non_null_assertion
         KeyStore.fromSeed(keyStore.seed!, targetAddressType);
 
-    BSMS bsms = BSMS.fromSigner(
+    Bsms bsms = Bsms.fromSigner(
         multisigKeyStore.masterFingerprint,
         (WalletUtility.getDerivationPath(targetAddressType, 0))
             .replaceAll("m/", ""),

@@ -55,9 +55,9 @@ abstract class SingleSignatureWalletBase extends WalletBase {
   }
 
   @override
-  Future<int> estimateFee(List<UTXO> utxoPool, String receiverAddress,
+  Future<int> estimateFee(List<Utxo> utxoPool, String receiverAddress,
       String changeAddress, int sendingAmount, int feeRate) async {
-    PSBT psbt = await Future(() => PSBT.fromTransaction(
+    Psbt psbt = await Future(() => Psbt.fromTransaction(
         Transaction.forPayment(utxoPool, receiverAddress, changeAddress,
             sendingAmount, feeRate, this),
         this));
@@ -66,8 +66,8 @@ abstract class SingleSignatureWalletBase extends WalletBase {
 
   @override
   Future<int> estimateFeeForSweep(
-      List<UTXO> utxoPool, String receiverAddress, int feeRate) async {
-    PSBT psbt = await Future(() => PSBT.fromTransaction(
+      List<Utxo> utxoPool, String receiverAddress, int feeRate) async {
+    Psbt psbt = await Future(() => Psbt.fromTransaction(
         Transaction.forSweep(utxoPool, receiverAddress, feeRate, this), this));
     return psbt.estimateFee(feeRate, addressType);
   }

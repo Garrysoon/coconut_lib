@@ -1,14 +1,14 @@
 part of '../../coconut_lib.dart';
 
 /// Represents an UTXO.
-class UTXO {
+class Utxo {
   final String _transactionHash;
   final int _index;
   final int _amount;
   final String _derivationPath;
 
   /// @nodoc
-  UTXO(
+  Utxo(
     this._transactionHash,
     this._index,
     this._amount,
@@ -35,7 +35,7 @@ class UTXO {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
 
-    return other is UTXO &&
+    return other is Utxo &&
         other._transactionHash == _transactionHash &&
         other._index == _index;
   }

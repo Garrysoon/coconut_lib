@@ -43,7 +43,7 @@ void main() {
     });
     group('canSignToPsbt', () {
       test('Can right vault can sign', () {
-        PSBT psbt = MockFactory.createP2wpkhUnsignedPsbt();
+        Psbt psbt = MockFactory.createP2wpkhUnsignedPsbt();
         expect(vault.canSignToPsbt(psbt.serialize()), true);
 
         SingleSignatureVault targetVault = SingleSignatureVault.random();
@@ -52,7 +52,7 @@ void main() {
     });
     group('addSignatureToPsbt', () {
       test('Sign to psbt', () {
-        PSBT psbt = MockFactory.createP2wpkhUnsignedPsbt();
+        Psbt psbt = MockFactory.createP2wpkhUnsignedPsbt();
         String signedPsbt = vault.addSignatureToPsbt(psbt.serialize());
         expect(signedPsbt.hashCode, 862890113);
       });
@@ -82,9 +82,8 @@ void main() {
             vault.getAddress(1),
             1,
             vault);
-        int targetFee = PSBT
-            .parse(vault.addSignatureToPsbt(
-                PSBT.fromTransaction(transaction, vault).serialize()))
+        int targetFee = Psbt.parse(vault.addSignatureToPsbt(
+                Psbt.fromTransaction(transaction, vault).serialize()))
             .getSignedTransaction(AddressType.p2wpkh)
             .getVirtualByte()
             .floor();

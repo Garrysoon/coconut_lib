@@ -37,7 +37,7 @@ class MultisignatureVault extends MultisignatureWalletBase {
   factory MultisignatureVault.fromCoordinatorBsms(String coordinator,
       {AddressType? addressType}) {
     addressType ??= AddressType.p2wsh;
-    BSMS bsms = BSMS.parseCoordinator(coordinator);
+    Bsms bsms = Bsms.parseCoordinator(coordinator);
     List<KeyStore> keyStores = [];
     Descriptor descriptor = bsms.coordinator!.descriptor;
     for (int i = 0; i < descriptor.totalSigner; i++) {

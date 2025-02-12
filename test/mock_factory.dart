@@ -48,7 +48,7 @@ abstract class MockFactory {
     return vault;
   }
 
-  static UTXO createUtxo(
+  static Utxo createUtxo(
       {int amount = 100000,
       String derivationPath = "m/84'/1'/0'/0/0",
       String entropy = ''}) {
@@ -56,12 +56,12 @@ abstract class MockFactory {
       entropy = "FakeTransactionHash${Random().nextInt(100000)}";
     }
     String fakeTransactionHash = Hash.sha256(entropy);
-    return UTXO(fakeTransactionHash, 0, amount, derivationPath);
+    return Utxo(fakeTransactionHash, 0, amount, derivationPath);
   }
 
-  static List<UTXO> createUtxoList(
+  static List<Utxo> createUtxoList(
       {int count = 10, String derivationPath = "m/84'/1'/0'/0/0"}) {
-    List<UTXO> utxos = [];
+    List<Utxo> utxos = [];
     for (int i = 0; i < count; i++) {
       utxos.add(createUtxo(
           entropy: "utxo #${i.toString()}", derivationPath: derivationPath));
@@ -69,7 +69,7 @@ abstract class MockFactory {
     return utxos;
   }
 
-  static PSBT createP2wpkhUnsignedPsbt() {
+  static Psbt createP2wpkhUnsignedPsbt() {
     SingleSignatureVault vault = createP2wpkhVault();
     Transaction tx = Transaction.forPayment(
         createUtxoList(count: 2),
@@ -78,10 +78,10 @@ abstract class MockFactory {
         15000,
         3,
         vault);
-    return PSBT.fromTransaction(tx, vault);
+    return Psbt.fromTransaction(tx, vault);
   }
 
-  static PSBT createP2wshUnsignedPsbt() {
+  static Psbt createP2wshUnsignedPsbt() {
     MultisignatureVault vault = createP2wshVault();
     Transaction tx = Transaction.forPayment(
         createUtxoList(count: 2, derivationPath: "m/48'/1'/0'/2'/0/0"),
@@ -90,10 +90,10 @@ abstract class MockFactory {
         15000,
         3,
         vault);
-    return PSBT.fromTransaction(tx, vault);
+    return Psbt.fromTransaction(tx, vault);
   }
 
-  static PSBT createP2wshSignedPsbt() {
+  static Psbt createP2wshSignedPsbt() {
     MultisignatureVault vault = createP2wshVault();
     Transaction tx = Transaction.forPayment(
         createUtxoList(count: 2, derivationPath: "m/48'/1'/0'/2'/0/0"),
@@ -102,12 +102,12 @@ abstract class MockFactory {
         15000,
         3,
         vault);
-    PSBT unsignedPsbt = PSBT.fromTransaction(tx, vault);
+    Psbt unsignedPsbt = Psbt.fromTransaction(tx, vault);
 
-    return PSBT.parse(vault.addSignatureToPsbt(unsignedPsbt.serialize()));
+    return Psbt.parse(vault.addSignatureToPsbt(unsignedPsbt.serialize()));
   }
 
-  static PSBT createP2wpkhSignedPsbt() {
+  static Psbt createP2wpkhSignedPsbt() {
     SingleSignatureVault vault = createP2wpkhVault();
     Transaction tx = Transaction.forPayment(
         createUtxoList(count: 2),
@@ -116,9 +116,9 @@ abstract class MockFactory {
         15000,
         3,
         vault);
-    PSBT unsignedPsbt = PSBT.fromTransaction(tx, vault);
+    Psbt unsignedPsbt = Psbt.fromTransaction(tx, vault);
 
-    return PSBT.parse(vault.addSignatureToPsbt(unsignedPsbt.serialize()));
+    return Psbt.parse(vault.addSignatureToPsbt(unsignedPsbt.serialize()));
   }
 
   Transaction getMockTransaction(String scriptPubKey, int amount,

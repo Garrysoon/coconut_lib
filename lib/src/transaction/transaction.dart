@@ -11,7 +11,7 @@ class Transaction {
   late String? receiveAddress;
   late String? changeAddress;
 
-  late List<UTXO> _utxoList = [];
+  late List<Utxo> _utxoList = [];
 
   /// Get the version of the transaction.
   String get version => Converter.bytesToHex(_version);
@@ -51,10 +51,10 @@ class Transaction {
         return total;
       }();
 
-  List<UTXO> get utxoList => _utxoList;
+  List<Utxo> get utxoList => _utxoList;
   int get totalInputAmount {
     int total = 0;
-    for (UTXO utxo in _utxoList) {
+    for (Utxo utxo in _utxoList) {
       total += utxo.amount;
     }
     return total;
@@ -76,13 +76,13 @@ class Transaction {
   }
 
   /// Create a transaction with UTXO List.
-  factory Transaction.fromUtxoList(List<UTXO> utxoList, String receiveAddress,
+  factory Transaction.fromUtxoList(List<Utxo> utxoList, String receiveAddress,
       String changeAddress, int amount, int feeRate, WalletBase wallet,
       {int version = 2, int lockTime = 0}) {
     int totalInputAmount = 0;
     List<TransactionInput> inputs = [];
     List<TransactionOutput> outputs = [];
-    for (UTXO utxo in utxoList) {
+    for (Utxo utxo in utxoList) {
       totalInputAmount += utxo.amount;
       inputs.add(TransactionInput.forPayment(utxo.transactionHash, utxo.index));
     }
@@ -147,10 +147,10 @@ class Transaction {
   }
 
   /// Create a transaction for simple payment.
-  factory Transaction.forPayment(List<UTXO> utxoPool, String receiveAddress,
+  factory Transaction.forPayment(List<Utxo> utxoPool, String receiveAddress,
       String changeAddress, int amount, int feeRate, WalletBase wallet,
       {int version = 2, int lockTime = 0}) {
-    List<UTXO> selectedUtxoList =
+    List<Utxo> selectedUtxoList =
         _selectOptimalUtxo(utxoPool, amount, feeRate, wallet.addressType);
 
     Transaction transaction = Transaction.fromUtxoList(selectedUtxoList,
@@ -162,8 +162,8 @@ class Transaction {
     return transaction;
   }
 
-  static List<UTXO> _selectOptimalUtxo(
-      List<UTXO> utxos, int amount, int feeRate, AddressType addressType) {
+  static List<Utxo> _selectOptimalUtxo(
+      List<Utxo> utxos, int amount, int feeRate, AddressType addressType) {
     int baseVbyte = 72; //0 input, 2 output
     int vBytePerInput = 0;
     int dust = _getDustThreshold(addressType);
@@ -172,13 +172,13 @@ class Transaction {
     } else {
       vBytePerInput = 148;
     }
-    List<UTXO> selectedUtxos = [];
+    List<Utxo> selectedUtxos = [];
 
     int totalAmount = 0;
     int totalVbyte = baseVbyte;
     int finalFee = 0;
     utxos.sort((a, b) => b.amount.compareTo(a.amount));
-    for (UTXO utxo in utxos) {
+    for (Utxo utxo in utxos) {
       // if (utxo.blockHeight == 0) {
       //   continue;
       // }
@@ -196,12 +196,12 @@ class Transaction {
 
   /// Create a transaction for sending all Bitcoin in the wallet.
   factory Transaction.forSweep(
-      List<UTXO> utxoPool, String address, int feeRate, WalletBase wallet,
+      List<Utxo> utxoPool, String address, int feeRate, WalletBase wallet,
       {int version = 2, int lockTime = 0}) {
     List<TransactionInput> inputs = [];
     List<TransactionOutput> outputs = [];
     int inputAmount = 0;
-    for (UTXO utxo in utxoPool) {
+    for (Utxo utxo in utxoPool) {
       // if (utxo.blockHeight == 0) {
       //   continue;
       // }
@@ -785,7 +785,7 @@ class Transaction {
   }
 
   /// Add utxo to the transaction.
-  void addInputWithUtxo(UTXO newUtxo, int feeRate, WalletBase wallet,
+  void addInputWithUtxo(Utxo newUtxo, int feeRate, WalletBase wallet,
       {int? requiredSignature, int? totalSinger}) {
     for (TransactionInput input in inputs) {
       if (input.transactionHash == newUtxo.transactionHash &&
@@ -835,7 +835,7 @@ class Transaction {
   }
 
   /// Remove utxo from the transaction.
-  void removeInputWithUtxo(UTXO utxoToRemove, int feeRate, WalletBase wallet,
+  void removeInputWithUtxo(Utxo utxoToRemove, int feeRate, WalletBase wallet,
       {int? requiredSignature, int? totalSinger}) {
     if (!_utxoList.contains(utxoToRemove)) {
       throw Exception('UTXO not found in the UTXO list');

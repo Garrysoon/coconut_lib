@@ -41,7 +41,7 @@ void main() {
     });
     group('generatePsbtForPayment', () {
       test('Generate psbt for payment', () async {
-        List<UTXO> utxoPool = MockFactory.createUtxoList(count: 5);
+        List<Utxo> utxoPool = MockFactory.createUtxoList(count: 5);
         int sendingAmount = 150000;
         int feeRate = 1;
         String psbt = await wallet.generatePsbtForPayment(
@@ -51,7 +51,7 @@ void main() {
     });
     group('generatePsbtWithUtxoList', () {
       test('Generate psbt from utxo list', () async {
-        List<UTXO> utxoPool = MockFactory.createUtxoList(count: 3);
+        List<Utxo> utxoPool = MockFactory.createUtxoList(count: 3);
         String psbt = await wallet.generatePsbtWithUtxoList(
             utxoPool, receiverAddress, changeAddress, 150000, 1);
         expect(psbt.hashCode, 793019315);
@@ -59,7 +59,7 @@ void main() {
     });
     group('generatePsbtForSweep', () {
       test('Generate psbt for sweep', () async {
-        List<UTXO> utxoPool = MockFactory.createUtxoList(count: 5);
+        List<Utxo> utxoPool = MockFactory.createUtxoList(count: 5);
         String psbt =
             await wallet.generatePsbtForSweep(utxoPool, receiverAddress, 1);
         expect(psbt.hashCode, 943576437);
