@@ -31,7 +31,13 @@ abstract class SingleSignatureWalletBase extends WalletBase {
   /// Get the address of the given index.
   @override
   String getAddress(int addressIndex, {bool isChange = false}) {
-    String pubkey = _keyStore.getPublicKey(addressIndex, isChange: isChange);
+    String pubkey;
+    if (addressType == AddressType.p2tr) {
+      pubkey = keyStore.getPublicKey(addressIndex,
+          isChange: isChange, isShnorr: true);
+    } else {
+      pubkey = _keyStore.getPublicKey(addressIndex, isChange: isChange);
+    }
     return _addressType.getAddress(pubkey);
   }
 

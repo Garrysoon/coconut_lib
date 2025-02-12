@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:coconut_lib/src/cryptography/converter.dart';
 import 'package:coconut_lib/src/cryptography/hash.dart';
 import 'package:test/test.dart';
 
@@ -269,6 +270,20 @@ void main() {
         final result = Hash.pbkdf2('password', 'salt');
         expect(result,
             '91be23564f09fc855c82ce84a223ebe7d63d8b49d69372593a0d9ed39e143c83e1ab2f722a5ddb969feefc88403f7e2afe1afb8b2f0e6b20add0fb7b28368807');
+      });
+    });
+    group('getHashTapTweak', () {
+      test('Get hash tap tweak', () {
+        Uint8List hash = Hash.hashTapTweak(
+            'TapTweak',
+            Converter.hexToBytes(
+                'cc8a4bc64d897bddc5fbc2f670f7a8ba0b386779106cf1223c6fc5d7cd6fc115'),
+            null);
+        expect(Converter.bytesToHex(hash),
+            '2ca01ed85cf6b6526f73d39a1111cd80333bfdc00ce98992859848a90a6f0258');
+      });
+      test('Get hash tap tweak with merkle root', () {
+        //TODO :
       });
     });
   });

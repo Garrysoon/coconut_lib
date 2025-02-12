@@ -29,10 +29,14 @@ class TransactionOutput {
         address.startsWith('m') ||
         address.startsWith('n')) {
       return TransactionOutput(amountBytes, ScriptPublicKey.p2pkh(address));
-    } else if (address.startsWith('bc1') ||
-        address.startsWith('tb1') ||
-        address.startsWith('bcrt1')) {
+    } else if (address.startsWith('bc1q') ||
+        address.startsWith('tb1q') ||
+        address.startsWith('bcrt1q')) {
       return TransactionOutput(amountBytes, ScriptPublicKey.p2wpkh(address));
+    } else if (address.startsWith('bc1p') ||
+        address.startsWith('tb1p') ||
+        address.startsWith('bcrt1p')) {
+      return TransactionOutput(amountBytes, ScriptPublicKey.p2tr(address));
     }
     throw Exception('AddressType not supported');
   }

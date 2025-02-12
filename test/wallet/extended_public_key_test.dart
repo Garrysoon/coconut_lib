@@ -37,6 +37,12 @@ void main() {
         expect(vault.keyStore.extendedPublicKey.serialize(),
             'vpub5ZZ1q76vi2LR9PeQDoV13u8TZwsyqKa7yBfD3GnPPvBjVU9ZnBTMkwzCHCVBZaPHDKJNEdMKo8MTyrQ9234idzSG9nHFD6hsUB8HJ14NBg7');
       });
+
+      test('Serialise extended public key to xpub', () {
+        SingleSignatureVault vault = MockFactory.createP2wpkhVault();
+        expect(vault.keyStore.extendedPublicKey.serialize(toXpub: true),
+            'xpub6DDYSSSm1PRNqz2dtX4FU5KTutAsiZZ7oQhec4aA9vwVbfn2HVnV15JUKcQMZPh82bXyjaYSiT4ZkRdGTRtkEToTtTg6NvLr1dFa55eay2L');
+      });
     });
 
     group('get hashCode', () {

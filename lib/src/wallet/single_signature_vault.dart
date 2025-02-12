@@ -5,7 +5,7 @@ class SingleSignatureVault extends SingleSignatureWalletBase {
   SingleSignatureVault._(
       KeyStore keyStore, AddressType addressType, String derivationPath)
       : super(keyStore, addressType, derivationPath, true) {
-    if (addressType.isMultisig) {
+    if (addressType == AddressType.p2sh || addressType == AddressType.p2wsh) {
       throw Exception("Address type is not for single signature vault");
     }
   }

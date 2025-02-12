@@ -56,6 +56,16 @@ class ScriptPublicKey extends Script {
     ]);
   }
 
+  factory ScriptPublicKey.p2tr(String address) {
+    var codec = bech32m.Bech32mCodec().decode(address);
+    codec.data.removeAt(0);
+    var data8Bits = Converter.convertBits(codec.data, 5, 8, pad: false);
+    return ScriptPublicKey([
+      0x51,
+      Uint8List.fromList(data8Bits),
+    ]);
+  }
+
   String _getSegwitHrp() {
     String hrp;
     bool isTestnet = NetworkType.currentNetworkType.isTestnet;
