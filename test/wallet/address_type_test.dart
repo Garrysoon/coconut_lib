@@ -1,8 +1,8 @@
 @Tags(['unit'])
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:coconut_lib/coconut_lib.dart';
+import 'package:coconut_lib/src/cryptography/converter.dart';
 import 'package:test/test.dart';
 import 'package:crypto/crypto.dart';
 
@@ -90,7 +90,7 @@ void main() {
         test('getP2trSingleSignatureAddress', () {
           NetworkType.setNetworkType(NetworkType.mainnet);
           expect(
-              AddressType.getP2trAddress(
+              AddressType.getP2trSingleSignatureAddress(
                   'cc8a4bc64d897bddc5fbc2f670f7a8ba0b386779106cf1223c6fc5d7cd6fc115'),
               'bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr');
           expect(
@@ -98,7 +98,50 @@ void main() {
                   '83dfe85a3151d2517290da461fe2815591ef69f2b18a2ce63f01697a8b313145'),
               'bc1p4qhjn9zdvkux4e44uhx8tc55attvtyu358kutcqkudyccelu0was9fqzwh');
         });
+        test('getP2trScriptPathMultisignatureAddress', () {
+          NetworkType.setNetworkType(NetworkType.mainnet);
+          expect(
+              AddressType.getP2trScriptPathMultisignatureAddress([
+                'febe583fa77e49089f89b78fa8c116710715d6e40cc5f5a075ef1681550dd3c4',
+                'd0fa46cb883e940ac3dc5421f05b03859972639f51ed2eccbf3dc5a62e2e1b15'
+              ], 2,
+                  '2e44c9e47eaeb4bb313adecd11012dfad435cd72ce71f525329f24d75c5b9432'),
+              'bc1p9l9dw3cz09jje30c3wysseuddax40t6kyuvrkqlusszvknskmzys00k7zm');
+          //TX Hash : 905ecdf95a84804b192f4dc221cfed4d77959b81ed66013a7e41a6e61e7ed530
+          //Script : 20febe583fa77e49089f89b78fa8c116710715d6e40cc5f5a075ef1681550dd3c4ad20d0fa46cb883e940ac3dc5421f05b03859972639f51ed2eccbf3dc5a62e2e1b15ac
+          //Leaf version : c0
+          //Internal Key : 2e44c9e47eaeb4bb313adecd11012dfad435cd72ce71f525329f24d75c5b9432
+          //Merkle Proof : 774e148e9209baf3f1656a46986d5f38ddf4e20912c6ac28f48d6bf747469fb1
+        });
       });
+      group('getTaprootAddress', () {
+        test('Get Taproot address with empty merkle root', () {
+          NetworkType.setNetworkType(NetworkType.mainnet);
+          expect(
+              AddressType.getTaprootAddress(
+                  'd6889cb081036e0faefa3a35157ad71086b123b2b144b649798b494c300a961d',
+                  ''),
+              'bc1p2wsldez5mud2yam29q22wgfh9439spgduvct83k3pm50fcxa5dps59h4z5');
+        });
+
+        test('Get Taproot address with script (case 1)', () {
+          NetworkType.setNetworkType(NetworkType.mainnet);
+          expect(
+              AddressType.getTaprootAddress(
+                  '187791b6f712a8ea41c8ecdd0ee77fab3e85263b37e1ec18a3651926b3a6cf27',
+                  '5b75adecf53548f3ec6ad7d78383bf84cc57b55a3127c72b9a2481752dd88b21'),
+              'bc1pz37fc4cn9ah8anwm4xqqhvxygjf9rjf2resrw8h8w4tmvcs0863sa2e586');
+        });
+        test('Get Taproot address with script (case 2)', () {
+          NetworkType.setNetworkType(NetworkType.mainnet);
+          expect(
+              AddressType.getTaprootAddress(
+                  '93478e9488f956df2396be2ce6c5cced75f900dfa18e7dabd2428aae78451820',
+                  'c525714a7f49c28aedbbba78c005931a81c234b2f6c99a73e4d06082adc8bf2b'),
+              'bc1punvppl2stp38f7kwv2u2spltjuvuaayuqsthe34hd2dyy5w4g58qqfuag5');
+        });
+      });
+
       group('getMultisignatureAddress', () {
         test('getP2shAddress', () {
           NetworkType.setNetworkType(NetworkType.mainnet);

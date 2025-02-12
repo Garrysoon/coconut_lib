@@ -44,6 +44,14 @@ main() {
             'tb1qd22redun2rm8mt4zxjazks5mr8dxxdjnk57hhgf2fw2ghmarjahqm9g672');
       });
     });
+    group('ScriptPublicKey.p2tr', () {
+      test('Generate p2tr script public key', () {
+        ScriptPublicKey script = ScriptPublicKey.p2tr(
+            'bc1pygap4c2n4ufddtte9jnf4ju4a8yj6mm0x3dgd3qmv5cvflp2xrasqk4x9z');
+        expect(script.serialize(),
+            '225120223a1ae153af12d6ad792ca69acb95e9c92d6f6f345a86c41b6530c4fc2a30fb');
+      });
+    });
     group('getAddress', () {
       test('Get p2wpkh address', () {
         String script = '160014cb325c29ac1d9f9c56ab77c7f659f6a304a7bd02';

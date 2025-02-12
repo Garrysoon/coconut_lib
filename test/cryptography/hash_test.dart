@@ -275,6 +275,7 @@ void main() {
     group('getHashTapTweak', () {
       test('Get hash tap tweak', () {
         Uint8List hash = Hash.hashTapTweak(
+            'TapTweak',
             Converter.hexToBytes(
                 'cc8a4bc64d897bddc5fbc2f670f7a8ba0b386779106cf1223c6fc5d7cd6fc115'),
             null);
@@ -282,7 +283,7 @@ void main() {
             '2ca01ed85cf6b6526f73d39a1111cd80333bfdc00ce98992859848a90a6f0258');
       });
       test('Get hash tap tweak with merkle root', () {
-        //TODO : Implement test
+        //TODO :
       });
     });
   });

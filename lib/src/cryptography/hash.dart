@@ -57,10 +57,10 @@ class Hash {
     return array.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join('');
   }
 
-  static Uint8List hashTapTweak(Uint8List pubkey, Uint8List? merkleRoot) {
-    // var tag = sha256.convert(utf8.encode("TapTweak")).bytes;
-    var tag = sha256fromByte(utf8.encode("TapTweak"));
-    var tagHash = Uint8List.fromList(tag + tag);
+  static Uint8List hashTapTweak(
+      String tag, Uint8List pubkey, Uint8List? merkleRoot) {
+    var tagByte = sha256fromByte(utf8.encode(tag));
+    var tagHash = Uint8List.fromList(tagByte + tagByte);
     Uint8List combined;
     if (merkleRoot == null) {
       combined = Uint8List.fromList(pubkey);

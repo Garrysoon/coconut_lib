@@ -924,7 +924,8 @@ class Transaction {
   static int _getDustThreshold(AddressType addressType) {
     if (addressType == AddressType.p2wpkh) {
       return 294;
-    } else if (addressType == AddressType.p2wsh) {
+    } else if (addressType == AddressType.p2wsh ||
+        addressType == AddressType.p2tr) {
       return 330;
     } else if (addressType == AddressType.p2pkh) {
       return 546;

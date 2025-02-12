@@ -91,8 +91,17 @@ class AddressType {
   static AddressType p2wsh = AddressType._('p2wsh', 48, 'bc1', 'P2WSH', true,
       true, 0x02aa7ed3, 0x02575483, getWrongAddress, getP2wshAddress);
 
-  static AddressType p2tr = AddressType._('p2tr', 86, 'bc1', 'P2TR', true, true,
-      0x04b2430c, 0x044a5262, getP2trAddress, getWrongMultisigatureAddress);
+  static AddressType p2tr = AddressType._(
+      'p2tr',
+      86,
+      'bc1',
+      'P2TR',
+      true,
+      true,
+      0x04b2430c,
+      0x044a5262,
+      getP2trSingleSignatureAddress,
+      getWrongMultisigatureAddress);
 
   /// List of all address types.
   static List<AddressType> get values =>
@@ -259,31 +268,113 @@ class AddressType {
     return address;
   }
 
-  static String getP2trAddress(String publicKey) {
-    Uint8List internalKey = Converter.hexToBytes(publicKey);
-    if (internalKey.length != 32) {
-      throw ArgumentError("Public Key must be a 32-byte x-only public key.");
+  static String getP2trSingleSignatureAddress(String publicKey) {
+    return getTaprootAddress(publicKey, '');
+  }
+
+  static String getP2trScriptPathMultisignatureAddress(
+      List<String> publicKeyList, int requiredSignature, String internalKey) {
+    if (requiredSignature > 3) {
+      throw Exception("requiredSignature cannot be greater than 3");
     }
+    if (requiredSignature > publicKeyList.length) {
+      throw Exception(
+          "requiredSignature cannot be greater than the number of pubkeys");
+    }
+    for (var publicKey in publicKeyList) {
+      if (Converter.hexToBytes(publicKey).length != 32) {
+        throw Exception("Public Key must be a 32-byte x-only public key.");
+      }
+    }
+    List<Uint8List> pubList =
+        publicKeyList.map((hex) => Converter.hexToBytes(hex)).toList();
+
+    List<int> tapscript = [];
+    if (publicKeyList.length == requiredSignature) {
+      for (var i = 0; i < pubList.length - 1; i++) {
+        tapscript.add(pubList[i].length); // 공개키 길이 추가
+        tapscript.addAll(pubList[i]); // 공개키 추가
+        tapscript.add(0xad); // OP_CHECKSIGVERIFY
+      }
+      tapscript.add(pubList.last.length); // 공개키 길이 추가
+      tapscript.addAll(pubList.last); // 필요한 서명 개수
+      tapscript.add(0xac); // OP_CHECKSIG
+    } else {
+      for (var i = 0; i < pubList.length; i++) {
+        tapscript.addAll(pubList[i]); // 공개키 추가
+        tapscript.add(0xac); // OP_CHECKSIGADD
+      }
+      tapscript.add(requiredSignature); // 필요한 서명 개수
+      tapscript.add(0x87); // OP_NUMEQUAL
+    }
+
+    print(Converter.bytesToHex(tapscript));
+
+    Uint8List merkleRoot =
+        _getTapleafHash(0xc0, Converter.bytesToHex(tapscript));
+
+    return getTaprootAddress(internalKey, Converter.bytesToHex(merkleRoot));
+  }
+
+  static String getTaprootAddress(String internalKey, String merkleRoot) {
+    Uint8List internalKeyBytes = Converter.hexToBytes(internalKey);
+    Uint8List merkleRootBytes = Converter.hexToBytes(merkleRoot);
+    Uint8List hashTapTweek =
+        Hash.hashTapTweak('TapTweak', internalKeyBytes, merkleRootBytes);
+
+    print("hashTapTweek: ${Converter.bytesToHex(hashTapTweek)}");
 
     Uint8List compressedPubKey = Uint8List(33);
     compressedPubKey[0] = 0x02;
-    compressedPubKey.setRange(1, 33, internalKey);
+    compressedPubKey.setRange(1, 33, internalKeyBytes);
 
-    Uint8List hashTapTweek = Hash.hashTapTweak(internalKey, null);
-
-    Uint8List outputKey =
+    Uint8List tweakPubkey =
         ecc.pointAddScalar(compressedPubKey, hashTapTweek, true)!.sublist(1);
 
+    print("tweakPubkey: ${Converter.bytesToHex(tweakPubkey)}");
+
     var data5Bits =
-        Converter.convertBits(Uint8List.fromList(outputKey), 8, 5, pad: true);
+        Converter.convertBits(Uint8List.fromList(tweakPubkey), 8, 5, pad: true);
 
     bech32m.Bech32mCodec codec = bech32m.Bech32mCodec();
     return codec.encode(bech32m.Bech32m(_getSegwitHrp(), [0x01] + data5Bits));
   }
 
-  /// @nodoc
   static String getWrongAddress(String publicKey) {
     throw Exception('Use getMultisigAddress for multisig address type.');
+  }
+
+  static Uint8List _getTapleafHash(int version, String script) {
+    Uint8List scriptBytes = Converter.hexToBytes(script);
+    Uint8List scriptSize = _encodeCompactSize(scriptBytes.length);
+    Uint8List tapleafHash = _taggedHash(
+        "TapLeaf", Uint8List.fromList([version] + scriptSize + scriptBytes));
+    return tapleafHash;
+  }
+
+  static Uint8List _encodeCompactSize(int size) {
+    if (size < 0xfd) {
+      return Uint8List.fromList([size]);
+    } else if (size <= 0xffff) {
+      return Uint8List.fromList([0xfd, size & 0xff, (size >> 8) & 0xff]);
+    } else if (size <= 0xffffffff) {
+      return Uint8List.fromList([
+        0xfe,
+        size & 0xff,
+        (size >> 8) & 0xff,
+        (size >> 16) & 0xff,
+        (size >> 24) & 0xff
+      ]);
+    } else {
+      throw ArgumentError("CompactSize encoding supports up to 4 bytes.");
+    }
+  }
+
+  static Uint8List _taggedHash(String tag, Uint8List data) {
+    Uint8List tagHash =
+        Hash.sha256fromByte(Uint8List.fromList(utf8.encode(tag)));
+    Uint8List prefix = Uint8List.fromList(tagHash + tagHash);
+    return Hash.sha256fromByte(Uint8List.fromList(prefix + data));
   }
 
   /// @nodoc
