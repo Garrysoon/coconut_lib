@@ -298,19 +298,19 @@ class AddressType {
     List<int> tapscript = [];
     if (publicKeys.length == requiredSignature) {
       for (var i = 0; i < pubList.length - 1; i++) {
-        tapscript.add(pubList[i].length); // 공개키 길이 추가
-        tapscript.addAll(pubList[i]); // 공개키 추가
+        tapscript.add(pubList[i].length);
+        tapscript.addAll(pubList[i]);
         tapscript.add(0xad); // OP_CHECKSIGVERIFY
       }
-      tapscript.add(pubList.last.length); // 공개키 길이 추가
-      tapscript.addAll(pubList.last); // 필요한 서명 개수
+      tapscript.add(pubList.last.length);
+      tapscript.addAll(pubList.last);
       tapscript.add(0xac); // OP_CHECKSIG
     } else {
       for (var i = 0; i < pubList.length; i++) {
-        tapscript.addAll(pubList[i]); // 공개키 추가
+        tapscript.addAll(pubList[i]);
         tapscript.add(0xac); // OP_CHECKSIGADD
       }
-      tapscript.add(requiredSignature); // 필요한 서명 개수
+      tapscript.add(requiredSignature);
       tapscript.add(0x87); // OP_NUMEQUAL
     }
 

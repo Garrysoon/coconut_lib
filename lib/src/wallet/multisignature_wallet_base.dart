@@ -17,7 +17,7 @@ abstract class MultisignatureWalletBase extends WalletBase {
   /// @nodoc
   MultisignatureWalletBase(this._requiredSignature, AddressType _addressType,
       String derivationPath, this._keyStoreList)
-      : super(_addressType, derivationPath) {
+      : super(_addressType, derivationPath, true) {
     if (!_addressType.isMultisig) {
       throw Exception('Use Vault or Wallet class for single signature.');
     }

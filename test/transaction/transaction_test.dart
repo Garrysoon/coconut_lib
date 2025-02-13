@@ -242,6 +242,16 @@ void main() {
             utxos, receiveAddress, changeAddress, 4200, 1, vault);
         expect(tx.estimateVirtualByte(AddressType.p2wpkh), 412.75);
       });
+      test('Get estimated virtyal byte in p2tr', () {
+        SingleSignatureVault vault = MockFactory.createP2trVault();
+        List<Utxo> utxos = MockFactory.createUtxoList(count: 1);
+        Transaction tx = Transaction.forSweep(
+            utxos,
+            'bc1p5fdr2ht0y4rjckn869skpml7pulm8wx6lu4c5eezwngx3c3uupzssx4myf',
+            1,
+            vault);
+        expect(tx.estimateVirtualByte(AddressType.p2tr), 111.25);
+      });
     });
     group('estimateFee', () {
       test('Get estimated fee', () {

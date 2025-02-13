@@ -102,16 +102,14 @@ class Transaction {
     // print("Input : ${tx.inputs.length}, Output : ${tx.outputs.length}");
 
     double vByte = 0.0;
-    if (wallet.addressType == AddressType.p2wpkh) {
+    if (!wallet.isMultisignature) {
       vByte = tx.estimateVirtualByte(wallet.addressType);
-    } else if (wallet.addressType == AddressType.p2wsh) {
+    } else {
       MultisignatureWalletBase multisignatureWallet =
           wallet as MultisignatureWalletBase;
       vByte = tx.estimateVirtualByte(wallet.addressType,
           requiredSignature: multisignatureWallet.requiredSignature,
           totalSigner: multisignatureWallet.totalSigner);
-    } else {
-      throw Exception('Unsupported Address Type');
     }
 
     int fee = (vByte * feeRate).ceil();
@@ -225,16 +223,14 @@ class Transaction {
         version: version, lockTime: lockTime);
 
     double vByte = 0.0;
-    if (wallet.addressType == AddressType.p2wpkh) {
+    if (!wallet.isMultisignature) {
       vByte = transaction.estimateVirtualByte(wallet.addressType);
-    } else if (wallet.addressType == AddressType.p2wsh) {
+    } else {
       MultisignatureWalletBase multisignatureWallet =
           wallet as MultisignatureWalletBase;
       vByte = transaction.estimateVirtualByte(wallet.addressType,
           requiredSignature: multisignatureWallet.requiredSignature,
           totalSigner: multisignatureWallet.totalSigner);
-    } else {
-      throw Exception('Unsupported Address Type');
     }
 
     int fee = (vByte * feeRate).ceil();
@@ -708,9 +704,12 @@ class Transaction {
 
     double vByte = getVirtualByte();
 
-    const int sigSize = 73; // 72 + 1(length)
-    const int pubKeySize = 34; // 33 + 1(length)
-
+    int sigSize = 73; // 72 + 1(length)
+    int pubKeySize = 34; // 33 + 1(length)
+    if (addressType == AddressType.p2tr) {
+      sigSize = 65; // 64 + 1(length)
+      pubKeySize = 0; // 32 + 1(length)
+    }
     // int baseSize = Converter.hexToBytes(serializeSegwit()).length;
     int additionalWitnessSize = 0;
 
@@ -718,7 +717,8 @@ class Transaction {
     // witnessSize += 2; //marker + flag
     // witnessSize += 1; //num of witness
 
-    if (addressType == AddressType.p2wpkh) {
+    if (addressType == AddressType.p2wpkh ||
+        (addressType == AddressType.p2tr && requiredSignature == null)) {
       int emptyWitness = 0;
       for (TransactionInput input in inputs) {
         if (input.witnessList.isEmpty) {
@@ -752,7 +752,6 @@ class Transaction {
     }
 
     vByte = vByte + (additionalWitnessSize / 4);
-
     return vByte;
   }
 
