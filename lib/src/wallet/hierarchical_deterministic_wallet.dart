@@ -162,8 +162,12 @@ class HDWallet {
   }
 
   /// @nodoc
-  Uint8List sign(Uint8List hash) {
-    return ecc.sign(hash, privateKey!);
+  Uint8List sign(Uint8List hash, {isShnorr = false}) {
+    if (isShnorr) {
+      return ecc.signSchnorr(hash, privateKey!);
+    } else {
+      return ecc.sign(hash, privateKey!);
+    }
   }
 
   /// @nodoc

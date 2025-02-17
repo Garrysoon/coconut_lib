@@ -112,12 +112,13 @@ class KeyStore {
 
 //sign.
   String sign(String message, int addressIndex,
-      {bool isChange = false, bool isDer = true}) {
+      {bool isChange = false, isSchnorr = false}) {
     if (!hasSeed) throw Exception('No private key in this key store');
     HDWallet child = getChildHdWallet(isChange).derive(addressIndex);
-    Uint8List signature = child.sign(Uint8List.fromList(HEX.decode(message)));
+    Uint8List signature = child.sign(Uint8List.fromList(HEX.decode(message)),
+        isShnorr: isSchnorr);
     String sig;
-    if (isDer) {
+    if (!isSchnorr) {
       String r = Encoder.encodeHex(signature.sublist(0, 32));
       if (signature[0] & 0x80 != 0) {
         r = '00$r';
@@ -130,20 +131,20 @@ class KeyStore {
     } else {
       sig = Encoder.encodeHex(signature);
     }
-
     return sig;
   }
 
 //sign with derivation path.
   String signWithDerivationPath(String message, String derivationPath,
-      {bool isDer = true}) {
+      {bool isSchnorr = false}) {
     if (!WalletUtility.validateDerivationPath(derivationPath)) {
       throw Exception('Invalid derivation path');
     }
     List<String> pathList = derivationPath.split('/');
     int index = int.parse(pathList.last);
     int changeIndex = int.parse(pathList[pathList.length - 2]);
-    return sign(message, index, isChange: changeIndex == 1, isDer: isDer);
+    return sign(message, index,
+        isChange: changeIndex == 1, isSchnorr: isSchnorr);
   }
 
   /// Get the public key of the key store using index.
@@ -173,13 +174,13 @@ class KeyStore {
 
   /// Validate the signatured from this key store.
   bool validateSignature(String signature, String message, int addressIndex,
-      {bool isChange = false, bool isDer = true}) {
+      {bool isChange = false, bool isSchnorr = false}) {
     Uint8List sig = Encoder.decodeHex(signature);
     Uint8List msg = Encoder.decodeHex(message);
 
     HDWallet child = getChildHdWallet(isChange).derive(addressIndex);
 
-    if (isDer) {
+    if (!isSchnorr) {
       //DER decoding
       int rLen = sig[3];
       Uint8List r = sig.sublist(4, 4 + rLen);
@@ -190,6 +191,7 @@ class KeyStore {
 
       return child.verify(msg, rs);
     } else {
+      //TODO: Schnorr
       return child.verify(msg, sig);
     }
   }
@@ -197,12 +199,12 @@ class KeyStore {
   /// Validate the signatured from this key store with derivation path.
   bool validateSignatureWithDerivationPath(
       String signature, String message, String derivationPath,
-      {bool isDer = true}) {
+      {bool isSchnorr = false}) {
     List<String> pathList = derivationPath.split('/');
     int index = int.parse(pathList.last);
     int changeIndex = int.parse(pathList[pathList.length - 2]);
     return validateSignature(signature, message, index,
-        isChange: changeIndex == 1, isDer: isDer);
+        isChange: changeIndex == 1, isSchnorr: isSchnorr);
   }
 
   ///Check if the PSBT can be signed from this vault.
@@ -233,8 +235,13 @@ class KeyStore {
       throw Exception('Vault : This vault can not sign this PSBT');
     }
 
-    List<String> utxoScriptPubKeys = [];
+    bool isSchnorr = false;
     if (addressType == AddressType.p2tr) {
+      isSchnorr = true;
+    }
+
+    List<String> utxoScriptPubKeys = [];
+    if (isSchnorr) {
       for (int i = 0; i < psbtObject.unsignedTransaction!.inputs.length; i++) {
         utxoScriptPubKeys.add(psbtObject.inputs[i].witnessUtxo!.serialize());
       }
@@ -260,7 +267,7 @@ class KeyStore {
         String? witnessScript = thisInput.witnessScript!.rawSerialize();
         sigHash = psbtObject.unsignedTransaction!
             .getSigHash(i, utxo, addressType, witnessScript: witnessScript);
-      } else if (addressType == AddressType.p2tr) {
+      } else if (isSchnorr) {
         sigHash = psbtObject.unsignedTransaction!
             .getTaprootSigHash(i, utxoScriptPubKeys);
       } else {
@@ -276,9 +283,11 @@ class KeyStore {
         String publicKey = getPublicKeyWithDerivationPath(
             thisInput.derivationPathList[j].path);
         String signature = signWithDerivationPath(
-            sigHash, thisInput.derivationPathList[j].path);
+            sigHash, thisInput.derivationPathList[j].path,
+            isSchnorr: isSchnorr);
         if (validateSignatureWithDerivationPath(
-            signature, sigHash, thisInput.derivationPathList[j].path)) {}
+            signature, sigHash, thisInput.derivationPathList[j].path,
+            isSchnorr: isSchnorr)) {}
         psbtObject.addSignature(i, signature, publicKey);
       }
       // String publicKey =

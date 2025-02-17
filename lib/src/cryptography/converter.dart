@@ -61,6 +61,10 @@ class Converter {
     return int.parse(hexString, radix: 16);
   }
 
+  static BigInt hexToBigDec(String hexString) {
+    return BigInt.parse(hexString, radix: 16);
+  }
+
   static String hexToBin(String hexString) {
     String binary = '';
     for (int i = 0; i < hexString.length; i++) {

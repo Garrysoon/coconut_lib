@@ -378,6 +378,11 @@ void main() {
         expect(() => sign(hash, tooLargePrivateKey), throwsArgumentError);
       });
     });
+    group('signSchnorr', () {
+      test('Get shnorr signature', () {
+        //TODO: implement test
+      });
+    });
     group('verify', () {
       test('Valid hash, public key, and signature', () {
         Uint8List hash = Encoder.decodeHex(

@@ -1,6 +1,10 @@
 // ignore_for_file: non_constant_identifier_names, constant_identifier_names
 
+import 'dart:math';
 import 'dart:typed_data';
+import 'package:coconut_lib/coconut_lib.dart';
+import 'package:coconut_lib/src/cryptography/encoder.dart';
+import 'package:coconut_lib/src/cryptography/hash.dart';
 import 'package:hex/hex.dart';
 import "package:pointycastle/ecc/curves/secp256k1.dart";
 import "package:pointycastle/api.dart"
@@ -149,6 +153,40 @@ Uint8List sign(Uint8List hash, Uint8List x) {
   return buffer;
 }
 
+Uint8List signSchnorr(Uint8List hash, Uint8List x) {
+  if (!isPrivate(x)) throw ArgumentError(THROW_BAD_PRIVATE);
+
+  //generate random K
+  final random = Random.secure();
+  Uint8List bytes = Uint8List(32);
+  for (int i = 0; i < 32; i++) {
+    bytes[i] = random.nextInt(256);
+  }
+  BigInt k = BigInt.parse(
+          bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(),
+          radix: 16) %
+      n;
+  // ECPoint R = G * k;
+  Uint8List? rX =
+      pointFromScalar(Encoder.decodeHex(Converter.bigDecToHex(k)), true)!
+          .sublist(1);
+
+  Uint8List? pubKeyX = pointFromScalar(x, true)!.sublist(1);
+
+  Uint8List eBytes = Encoder.decodeHex(Hash.taggedHash(
+      "BIP0340", Uint8List.fromList([...rX, ...pubKeyX, ...hash])));
+  BigInt e =
+      BigInt.parse(eBytes.map((b) => b.toRadixString(16)).join(), radix: 16) %
+          n;
+
+  BigInt s = (k + e * Converter.hexToBigDec(Encoder.encodeHex(x))) % n;
+
+  List<int> sByte = s.toRadixString(16).padLeft(64, '0').codeUnits;
+
+  Uint8List signature = Uint8List.fromList([...rX, ...sByte]);
+  return signature;
+}
+
 bool verify(Uint8List hash, Uint8List q, Uint8List signature) {
   if (!isScalar(hash)) throw ArgumentError(THROW_BAD_HASH);
   if (!isPoint(q)) throw ArgumentError(THROW_BAD_POINT);
@@ -222,7 +260,6 @@ ECSignature deterministicGenerateK(Uint8List hash, Uint8List x) {
   final signer = ECDSASigner(null, HMac(SHA256Digest(), 64));
   var pkp = PrivateKeyParameter(ECPrivateKey(_decodeBigInt(x), secp256k1));
   signer.init(true, pkp);
-//  signer.init(false, new PublicKeyParameter(new ECPublicKey(secp256k1.curve.decodePoint(x), secp256k1)));
   return signer.generateSignature(hash) as ECSignature;
 }
 
