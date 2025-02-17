@@ -20,7 +20,7 @@ class ExtendedPublicKey {
   Uint8List get parentFingerprintByte => _parentFingerprint;
 
   /// The parent fingerprint of the extended public key.
-  String get parentFingerprint => Converter.bytesToHex(_parentFingerprint);
+  String get parentFingerprint => Encoder.encodeHex(_parentFingerprint);
 
   /// The index of the extended public key.
   int get index => _index;

@@ -61,18 +61,6 @@ void main() {
         expect(Converter.bytesToBin(bytes), '10101101');
       });
     });
-    group('bytesToHex', () {
-      test('Get hexadecimal from bytes', () {
-        List<int> bytes = [173];
-        expect(Converter.bytesToHex(bytes), 'ad');
-      });
-    });
-    group('hexToBytes', () {
-      test('Get bytes from hexadecimal', () {
-        String hexString = 'ad';
-        expect(Converter.hexToBytes(hexString), [173]);
-      });
-    });
     group('intToLittleEndianBytes', () {
       test('Get little endian from integer', () {
         int value = 10;

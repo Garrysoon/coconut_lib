@@ -14,7 +14,7 @@ class Transaction {
   late List<Utxo> _utxoList = [];
 
   /// Get the version of the transaction.
-  String get version => Converter.bytesToHex(_version);
+  String get version => Encoder.encodeHex(_version);
 
   /// Get the inputs of the transaction.
   List<TransactionInput> get inputs => _inputs;
@@ -23,7 +23,7 @@ class Transaction {
   List<TransactionOutput> get outputs => _outputs;
 
   /// Get the lock time of the transaction.
-  String get lockTime => Converter.bytesToHex(_lockTime);
+  String get lockTime => Encoder.encodeHex(_lockTime);
 
   /// Get the transaction hash.
   String get transactionHash {
@@ -125,18 +125,7 @@ class Transaction {
         tx.outputs.remove(changeOutput);
       }
     }
-    // int dust = _getDustThreshold(wallet.addressType);
 
-    // if (changeAmount <= dust) {
-    //   for (TransactionOutput output in tx.outputs) {
-    //     if (output.scriptPubKey.getAddress() == changeAddress) {
-    //       tx.outputs.remove(output);
-    //       break;
-    //     }
-    //   }
-    // } else {
-    //   changeOutput.setAmount(changeAmount);
-    // }
     tx.sendingAmount = amount;
     tx.receiveAddress = receiveAddress;
     tx.changeAddress = changeAddress;
@@ -251,7 +240,7 @@ class Transaction {
   /// Parse the transaction.
   factory Transaction.parse(String transaction,
       {bool isEmptySignature = false}) {
-    Uint8List txBytes = Converter.hexToBytes(transaction);
+    Uint8List txBytes = Encoder.decodeHex(transaction);
 
     Uint8List sublist = txBytes.sublist(4);
     bool isSegwit = sublist[0] == 0x00;
@@ -281,7 +270,7 @@ class Transaction {
     //print(Converter.bytesToHex(txBytes.sublist(offset)));
     for (int i = 0; i < numInputs; i++) {
       TransactionInput input =
-          TransactionInput.parse(Converter.bytesToHex(txBytes.sublist(offset)));
+          TransactionInput.parse(Encoder.encodeHex(txBytes.sublist(offset)));
       inputs.add(input);
       int size = input.serialize().length ~/ 2;
       //print("size:" + size.toString());
@@ -292,8 +281,8 @@ class Transaction {
     //print(numOutputs);
     List<TransactionOutput> outputs = [];
     for (int i = 0; i < numOutputs; i++) {
-      TransactionOutput output = TransactionOutput.parse(
-          Converter.bytesToHex(txBytes.sublist(offset)));
+      TransactionOutput output =
+          TransactionOutput.parse(Encoder.encodeHex(txBytes.sublist(offset)));
       outputs.add(output);
       int size = output.serialize().length ~/ 2;
       offset += size;
@@ -318,7 +307,7 @@ class Transaction {
         if (item == 0) {
           txIn.witnessList.add('00');
         } else {
-          txIn.witnessList.add(Converter.bytesToHex(item));
+          txIn.witnessList.add(Encoder.encodeHex(item));
         }
       }
     }
@@ -340,7 +329,7 @@ class Transaction {
     List<TransactionInput> inputs = [];
     for (int i = 0; i < numInputs; i++) {
       TransactionInput input =
-          TransactionInput.parse(Converter.bytesToHex(txBytes.sublist(offset)));
+          TransactionInput.parse(Encoder.encodeHex(txBytes.sublist(offset)));
       // print("input : ${input.serialize()}");
       inputs.add(input);
       int size = input.serialize().length ~/ 2;
@@ -355,8 +344,8 @@ class Transaction {
     // print("numOutputs : $numOutputs");
     List<TransactionOutput> outputs = [];
     for (int i = 0; i < numOutputs; i++) {
-      TransactionOutput output = TransactionOutput.parse(
-          Converter.bytesToHex(txBytes.sublist(offset)));
+      TransactionOutput output =
+          TransactionOutput.parse(Encoder.encodeHex(txBytes.sublist(offset)));
       outputs.add(output);
       int size = output.serialize().length ~/ 2;
       offset += size;
@@ -368,7 +357,7 @@ class Transaction {
   /// Parse the unsigned transaction. (for PSBT)
   factory Transaction.parseUnsignedTransaction(String transaction) {
     int offset = 0;
-    Uint8List txBytes = Converter.hexToBytes(transaction);
+    Uint8List txBytes = Encoder.decodeHex(transaction);
     Uint8List version = txBytes.sublist(0, 4);
     offset += 4;
 
@@ -378,7 +367,7 @@ class Transaction {
 
     for (int i = 0; i < numInputs; i++) {
       TransactionInput input = TransactionInput.parseForPsbt(
-          Converter.bytesToHex(txBytes.sublist(offset)));
+          Encoder.encodeHex(txBytes.sublist(offset)));
       inputs.add(input);
       int size = input.serialize().length ~/ 2;
       //print("size:" + size.toString());
@@ -393,8 +382,8 @@ class Transaction {
     offset += 1;
     List<TransactionOutput> outputs = [];
     for (int i = 0; i < numOutputs; i++) {
-      TransactionOutput output = TransactionOutput.parse(
-          Converter.bytesToHex(txBytes.sublist(offset)));
+      TransactionOutput output =
+          TransactionOutput.parse(Encoder.encodeHex(txBytes.sublist(offset)));
       outputs.add(output);
       int size = output.serialize().length ~/ 2;
       offset += size;
@@ -424,19 +413,19 @@ class Transaction {
     serialized += version;
     serialized += '0001';
     serialized +=
-        Converter.bytesToHex(Encoder.encodeVariableInteger(inputs.length));
+        Encoder.encodeHex(Encoder.encodeVariableInteger(inputs.length));
     for (int i = 0; i < inputs.length; i++) {
       serialized += inputs[i].serialize();
     }
     serialized +=
-        Converter.bytesToHex(Encoder.encodeVariableInteger(outputs.length));
+        Encoder.encodeHex(Encoder.encodeVariableInteger(outputs.length));
     for (int i = 0; i < outputs.length; i++) {
       serialized += outputs[i].serialize();
     }
 
     //serialize witness
     for (int i = 0; i < inputs.length; i++) {
-      serialized += Converter.bytesToHex(
+      serialized += Encoder.encodeHex(
           Encoder.encodeVariableInteger(inputs[i].witnessList.length));
 
       //if the script is p2wpkh or else
@@ -461,12 +450,12 @@ class Transaction {
     String serialized = '';
     serialized += version;
     serialized +=
-        Converter.bytesToHex(Encoder.encodeVariableInteger(inputs.length));
+        Encoder.encodeHex(Encoder.encodeVariableInteger(inputs.length));
     for (int i = 0; i < inputs.length; i++) {
       serialized += inputs[i].serialize();
     }
     serialized +=
-        Converter.bytesToHex(Encoder.encodeVariableInteger(outputs.length));
+        Encoder.encodeHex(Encoder.encodeVariableInteger(outputs.length));
     //print(Converter.bytesToHex(Varints.encode(outputs.length)));
     for (int i = 0; i < outputs.length; i++) {
       serialized += outputs[i].serialize();
@@ -510,7 +499,7 @@ class Transaction {
       }
     }
     String type =
-        Converter.bytesToHex(Converter.intToLittleEndianBytes(hashType, 4));
+        Encoder.encodeHex(Converter.intToLittleEndianBytes(hashType, 4));
     String sigHash = forSig.serialize() + type;
     return Hash.sha256(sigHash);
   }
@@ -528,44 +517,80 @@ class Transaction {
     TransactionOutput prevUtxo = TransactionOutput.parse(utxo);
     if (addressType == AddressType.p2wpkh) {
       sigHash +=
-          "1976a914${Converter.bytesToHex(prevUtxo.scriptPubKey.commands[1])}88ac";
+          "1976a914${Encoder.encodeHex(prevUtxo.scriptPubKey.commands[1])}88ac";
     } else if (addressType == AddressType.p2wsh) {
       if (witnessScript == null) {
         throw ArgumentError('witnessScript is required for p2wsh');
       }
       int length = witnessScript.length ~/ 2;
-      sigHash += Converter.bytesToHex(Encoder.encodeVariableInteger(length));
+      sigHash += Encoder.encodeHex(Encoder.encodeVariableInteger(length));
       sigHash += witnessScript;
     } else {
       sigHash += prevUtxo.scriptPubKey.serialize();
     }
 
-    sigHash += Converter.bytesToHex(
-        Converter.intToLittleEndianBytes(prevUtxo.amount, 8));
-    sigHash += Converter.bytesToHex(
+    sigHash +=
+        Encoder.encodeHex(Converter.intToLittleEndianBytes(prevUtxo.amount, 8));
+    sigHash += Encoder.encodeHex(
         Converter.intToLittleEndianBytes(inputs[index].sequence, 4));
     sigHash += _getHashOutputs();
     sigHash += lockTime;
-    sigHash +=
-        Converter.bytesToHex(Converter.intToLittleEndianBytes(hashType, 4));
+    sigHash += Encoder.encodeHex(Converter.intToLittleEndianBytes(hashType, 4));
 
     return Hash.sha256fromHex(Hash.sha256fromHex(sigHash));
+  }
+
+  //BIP341
+  String getTaprootSigHash(int index, List<String> utxoList,
+      {int hashType = 1, String spendType = '00'}) {
+    String sigHash = '';
+    sigHash += Encoder.encodeHex(Converter.intToLittleEndianBytes(hashType, 1));
+    sigHash += version;
+    sigHash += lockTime;
+    sigHash += _getHashPrevOuts();
+    sigHash += _getHashAmounts(utxoList);
+    sigHash += _getHashScriptPubkeys(utxoList);
+    sigHash += _getHashSequence();
+    sigHash += _getHashOutputs();
+    sigHash += spendType;
+    sigHash += Encoder.encodeHex(Converter.intToLittleEndianBytes(index, 4));
+
+    return Hash.taggedHash("TapSighash", Encoder.decodeHex(sigHash));
   }
 
   String _getHashPrevOuts() {
     String prevouts = '';
     for (TransactionInput input in inputs) {
-      prevouts += Converter.bytesToHex(input._transactionHash) +
-          Converter.bytesToHex(input._index);
+      prevouts += Encoder.encodeHex(input._transactionHash) +
+          Encoder.encodeHex(input._index);
     }
     //print("prevouts : " + prevouts);
     return Hash.sha256fromHex(Hash.sha256fromHex(prevouts));
   }
 
+  String _getHashAmounts(List<String> utxoList) {
+    List<int> buffer = [];
+    for (String utxo in utxoList) {
+      buffer.addAll(Converter.intToLittleEndianBytes(
+          TransactionOutput.parse(utxo).amount, 8));
+    }
+    return Hash.sha256fromHex(Encoder.encodeHex(buffer));
+  }
+
+  String _getHashScriptPubkeys(List<String> utxoList) {
+    List<int> buffer = [];
+    for (String utxo in utxoList) {
+      buffer.addAll((Encoder.encodeVariableInteger(utxo.length ~/ 2)).toList());
+      buffer.addAll(Encoder.decodeHex(
+          TransactionOutput.parse(utxo).scriptPubKey.serialize()));
+    }
+    return Hash.sha256fromHex(Encoder.encodeHex(buffer));
+  }
+
   String _getHashSequence() {
     String sequences = '';
     for (TransactionInput input in inputs) {
-      sequences += Converter.bytesToHex(input._sequence);
+      sequences += Encoder.encodeHex(input._sequence);
     }
     String hashSequence = Hash.sha256fromHex(Hash.sha256fromHex(sequences));
     return hashSequence;
@@ -581,8 +606,8 @@ class Transaction {
 
   String _getOutPoint(int index) {
     String outpoint = '';
-    outpoint += Converter.bytesToHex(inputs[index]._transactionHash) +
-        Converter.bytesToHex(inputs[index]._index);
+    outpoint += Encoder.encodeHex(inputs[index]._transactionHash) +
+        Encoder.encodeHex(inputs[index]._index);
     //print(outpoint);
     return outpoint;
   }
@@ -602,19 +627,19 @@ class Transaction {
     } else {
       throw Exception('Unsupported Address Type');
     }
-    Uint8List msg = Converter.hexToBytes(sigHash);
+    Uint8List msg = Encoder.decodeHex(sigHash);
 
     if (addressType == AddressType.p2wsh) {
       String script = inputs[inputIndex].witnessList.last;
-      String size = Converter.bytesToHex(
-          Encoder.encodeVariableInteger(script.length ~/ 2));
+      String size =
+          Encoder.encodeHex(Encoder.encodeVariableInteger(script.length ~/ 2));
       MultisignatureScript witnessScript =
           MultisignatureScript.parse(size + script);
 
       List<Uint8List> signatures = [];
 
       for (int i = 1; i < inputs[inputIndex].witnessList.length - 1; i++) {
-        signatures.add(Converter.hexToBytes(inputs[inputIndex].witnessList[i]));
+        signatures.add(Encoder.decodeHex(inputs[inputIndex].witnessList[i]));
       }
 
       List<Uint8List> pubKeys = witnessScript.getPublicKeys();
@@ -651,8 +676,8 @@ class Transaction {
       signature = inputs[inputIndex].witnessList[0];
       publicKey = inputs[inputIndex].witnessList[1];
 
-      Uint8List sig = Converter.hexToBytes(signature);
-      Uint8List pub = Converter.hexToBytes(publicKey);
+      Uint8List sig = Encoder.decodeHex(signature);
+      Uint8List pub = Encoder.decodeHex(publicKey);
 
       int rLen = sig[3];
       Uint8List r = sig.sublist(4, 4 + rLen);
@@ -669,7 +694,7 @@ class Transaction {
 
   /// Get the virtual byte size of the transaction.
   double getVirtualByte() {
-    double totalByte = (Converter.hexToBytes(serialize()).length) * 1.0;
+    double totalByte = (Encoder.decodeHex(serialize()).length) * 1.0;
     double witnessByte = 0;
     for (TransactionInput input in inputs) {
       for (int i = 0; i < input.witnessList.length; i++) {

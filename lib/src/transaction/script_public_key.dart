@@ -6,7 +6,7 @@ class ScriptPublicKey extends Script {
 
   /// Parse the script from the given script hex.
   factory ScriptPublicKey.parse(String script) {
-    return ScriptPublicKey(Script.parseToCommand(Converter.hexToBytes(script)));
+    return ScriptPublicKey(Script.parseToCommand(Encoder.decodeHex(script)));
   }
 
   /// Generate P2PKH script public key from given address.

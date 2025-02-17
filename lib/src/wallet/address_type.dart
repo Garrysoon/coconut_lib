@@ -215,7 +215,7 @@ class AddressType {
     bool isTestnet = NetworkType.currentNetworkType.isTestnet;
     publicKeys.sort();
     List<Uint8List> pubKeysBytes =
-        publicKeys.map((key) => Converter.hexToBytes(key)).toList();
+        publicKeys.map((key) => Encoder.decodeHex(key)).toList();
     var redeemScript = <int>[];
     redeemScript.add(0x50 + requiredSignatures); // <m>
     for (var pubKey in pubKeysBytes) {
@@ -242,7 +242,7 @@ class AddressType {
     publicKeys.sort();
 
     List<Uint8List> pubKeys =
-        publicKeys.map((hex) => Converter.hexToBytes(hex)).toList();
+        publicKeys.map((hex) => Encoder.decodeHex(hex)).toList();
 
     var redeemScript = <int>[];
     redeemScript.add(0x50 + requiredSignatures);
@@ -283,15 +283,15 @@ class AddressType {
     }
     publicKeys.sort();
     for (var publicKey in publicKeys) {
-      if (Converter.hexToBytes(publicKey).length != 32) {
+      if (Encoder.decodeHex(publicKey).length != 32) {
         throw Exception("Public Key must be a 32-byte x-only public key.");
       }
     }
     List<Uint8List> pubList =
-        publicKeys.map((hex) => Converter.hexToBytes(hex)).toList();
+        publicKeys.map((hex) => Encoder.decodeHex(hex)).toList();
 
     String concatenedPubkeys =
-        pubList.map((e) => Converter.bytesToHex(e)).join('');
+        pubList.map((e) => Encoder.encodeHex(e)).join('');
 
     String internalKey = Hash.sha256fromHex(concatenedPubkeys);
 
@@ -316,15 +316,14 @@ class AddressType {
 
     // print(Converter.bytesToHex(tapscript));
 
-    Uint8List merkleRoot =
-        _getTapleafHash(0xc0, Converter.bytesToHex(tapscript));
+    Uint8List merkleRoot = _getTapleafHash(0xc0, Encoder.encodeHex(tapscript));
 
-    return getTaprootAddress(internalKey, Converter.bytesToHex(merkleRoot));
+    return getTaprootAddress(internalKey, Encoder.encodeHex(merkleRoot));
   }
 
   static String getTaprootAddress(String internalKey, String merkleRoot) {
-    Uint8List internalKeyBytes = Converter.hexToBytes(internalKey);
-    Uint8List merkleRootBytes = Converter.hexToBytes(merkleRoot);
+    Uint8List internalKeyBytes = Encoder.decodeHex(internalKey);
+    Uint8List merkleRootBytes = Encoder.decodeHex(merkleRoot);
     Uint8List hashTapTweek =
         _hashTapTweak('TapTweak', internalKeyBytes, merkleRootBytes);
 
@@ -352,23 +351,18 @@ class AddressType {
 
   static Uint8List _hashTapTweak(
       String tag, Uint8List pubkey, Uint8List? merkleRoot) {
-    var tagByte = Hash.sha256fromByte(utf8.encode(tag));
-    var tagHash = Uint8List.fromList(tagByte + tagByte);
-    Uint8List combined;
+    List<int> combined;
     if (merkleRoot == null) {
-      combined = Uint8List.fromList(pubkey);
+      combined = pubkey;
     } else {
-      combined = Uint8List.fromList(pubkey + merkleRoot);
+      combined = pubkey + merkleRoot;
     }
-    // var tweakHash =
-    //     sha256.convert(Uint8List.fromList(tagHash + combined)).bytes;
-
-    var tweakHash = Hash.sha256fromByte(Uint8List.fromList(tagHash + combined));
-    return Uint8List.fromList(tweakHash);
+    String taggedHash = Hash.taggedHash(tag, combined);
+    return Encoder.decodeHex(taggedHash);
   }
 
   static Uint8List _getTapleafHash(int version, String script) {
-    Uint8List scriptBytes = Converter.hexToBytes(script);
+    Uint8List scriptBytes = Encoder.decodeHex(script);
     Uint8List scriptSize = _encodeCompactSize(scriptBytes.length);
     Uint8List tapleafHash = _taggedHash(
         "TapLeaf", Uint8List.fromList([version] + scriptSize + scriptBytes));

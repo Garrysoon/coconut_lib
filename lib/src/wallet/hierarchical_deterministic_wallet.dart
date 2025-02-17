@@ -213,14 +213,14 @@ class HDWallet {
   String toJson() {
     if (privateKey != null) {
       return jsonEncode({
-        'privateKey': Converter.bytesToHex(privateKey!),
-        'publicKey': Converter.bytesToHex(publicKey),
-        'chainCode': Converter.bytesToHex(chainCode),
+        'privateKey': Encoder.encodeHex(privateKey!),
+        'publicKey': Encoder.encodeHex(publicKey),
+        'chainCode': Encoder.encodeHex(chainCode),
       });
     } else {
       return jsonEncode({
-        'publicKey': Converter.bytesToHex(publicKey),
-        'chainCode': Converter.bytesToHex(chainCode),
+        'publicKey': Encoder.encodeHex(publicKey),
+        'chainCode': Encoder.encodeHex(chainCode),
       });
     }
   }
@@ -230,12 +230,12 @@ class HDWallet {
     Map<String, dynamic> map = jsonDecode(json);
     if (map.containsKey('privateKey')) {
       return HDWallet(
-          Converter.hexToBytes(map['privateKey']),
-          Converter.hexToBytes(map['publicKey']),
-          Converter.hexToBytes(map['chainCode']));
+          Encoder.decodeHex(map['privateKey']),
+          Encoder.decodeHex(map['publicKey']),
+          Encoder.decodeHex(map['chainCode']));
     } else {
-      return HDWallet.fromPublicKey(Converter.hexToBytes(map['publicKey']),
-          Converter.hexToBytes(map['chainCode']));
+      return HDWallet.fromPublicKey(Encoder.decodeHex(map['publicKey']),
+          Encoder.decodeHex(map['chainCode']));
     }
   }
 }

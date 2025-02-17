@@ -6,6 +6,18 @@ import 'package:test/test.dart';
 
 void main() {
   group('Encoder', () {
+    group('encodeHex', () {
+      test('Get hexadecimal from bytes', () {
+        List<int> bytes = [173];
+        expect(Encoder.encodeHex(bytes), 'ad');
+      });
+    });
+    group('decodeHex', () {
+      test('Get bytes from hexadecimal', () {
+        String hexString = 'ad';
+        expect(Encoder.decodeHex(hexString), [173]);
+      });
+    });
     group('decodeVariableInteger', () {
       test('1-byte integer (0x00 ~ 0xfc)', () {
         for (int i = 0; i <= 0xfc; i++) {

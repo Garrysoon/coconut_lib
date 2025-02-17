@@ -98,7 +98,7 @@ class Script {
   }
 
   String rawSerialize() {
-    return Converter.bytesToHex(_rawSerialize());
+    return Encoder.encodeHex(_rawSerialize());
   }
 
   /// Serialize the script.
@@ -109,12 +109,12 @@ class Script {
     Uint8List raw = _rawSerialize();
     if (raw[0] == 0x00 && raw.length == 1) {
       //segwit
-      return Converter.bytesToHex(raw);
+      return Encoder.encodeHex(raw);
     }
 
     String serialized =
-        Converter.bytesToHex(Encoder.encodeVariableInteger(raw.length)) +
-            Converter.bytesToHex(raw);
+        Encoder.encodeHex(Encoder.encodeVariableInteger(raw.length)) +
+            Encoder.encodeHex(raw);
 
     return serialized;
   }

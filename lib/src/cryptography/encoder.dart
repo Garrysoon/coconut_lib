@@ -4,6 +4,26 @@ import 'package:coconut_lib/src/cryptography/hash.dart';
 
 class Encoder {
   Encoder._();
+
+  static Uint8List decodeHex(String hexString) {
+    List<int> bytes = [];
+    for (int i = 0; i < hexString.length; i += 2) {
+      String byte = hexString.substring(i, i + 2);
+      int decimal = int.parse(byte, radix: 16);
+      bytes.add(decimal);
+    }
+
+    return Uint8List.fromList(bytes);
+  }
+
+  static String encodeHex(List<int> byteList) {
+    StringBuffer buffer = StringBuffer();
+    for (int byte in byteList) {
+      buffer.write(byte.toRadixString(16).padLeft(2, '0'));
+    }
+    return buffer.toString();
+  }
+
   static int decodeVariableInteger(Uint8List s, int offset) {
     final firstByte = s[offset];
     if (firstByte < 0xfd) {

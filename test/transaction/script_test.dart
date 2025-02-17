@@ -2,6 +2,7 @@
 import 'dart:typed_data';
 
 import 'package:coconut_lib/coconut_lib.dart';
+import 'package:coconut_lib/src/cryptography/encoder.dart';
 import 'package:test/test.dart';
 
 main() {
@@ -9,14 +10,14 @@ main() {
     group('get length', () {
       test('Get length of script', () {
         String scriptText = '1600143c5e7ce7108e9c0fd8845cc124ea60d30a635e95';
-        Uint8List script = Converter.hexToBytes(scriptText);
+        Uint8List script = Encoder.decodeHex(scriptText);
         expect(Script(Script.parseToCommand(script)).length, 23);
       });
     });
     group('parseToCommand', () {
       test('Generate scrip from script text', () {
         String scriptText = '1600143c5e7ce7108e9c0fd8845cc124ea60d30a635e95';
-        Uint8List script = Converter.hexToBytes(scriptText);
+        Uint8List script = Encoder.decodeHex(scriptText);
         expect(Script(Script.parseToCommand(script)), isA<Script>());
       });
       test('Single-byte push', () {
@@ -72,7 +73,7 @@ main() {
     group('rawSerialize', () {
       test('Serialize script without length', () {
         String scriptText = '1600143c5e7ce7108e9c0fd8845cc124ea60d30a635e95';
-        Uint8List script = Converter.hexToBytes(scriptText);
+        Uint8List script = Encoder.decodeHex(scriptText);
         expect(Script(Script.parseToCommand(script)).rawSerialize(),
             '00143c5e7ce7108e9c0fd8845cc124ea60d30a635e95');
       });
@@ -80,7 +81,7 @@ main() {
     group('serialize', () {
       test('Serialize script without length', () {
         String scriptText = '1600143c5e7ce7108e9c0fd8845cc124ea60d30a635e95';
-        Uint8List script = Converter.hexToBytes(scriptText);
+        Uint8List script = Encoder.decodeHex(scriptText);
         expect(Script(Script.parseToCommand(script)).serialize(), scriptText);
       });
     });
@@ -88,9 +89,9 @@ main() {
       test('Check equal operation', () {
         String scriptText = '1600143c5e7ce7108e9c0fd8845cc124ea60d30a635e95';
         Script targetScript =
-            Script(Script.parseToCommand(Converter.hexToBytes(scriptText)));
+            Script(Script.parseToCommand(Encoder.decodeHex(scriptText)));
         Script matchedScript =
-            Script(Script.parseToCommand(Converter.hexToBytes(scriptText)));
+            Script(Script.parseToCommand(Encoder.decodeHex(scriptText)));
         expect(targetScript == matchedScript, true);
       });
     });
@@ -98,7 +99,7 @@ main() {
       test('Get hash code', () {
         String scriptText = '1600143c5e7ce7108e9c0fd8845cc124ea60d30a635e95';
         Script script =
-            Script(Script.parseToCommand(Converter.hexToBytes(scriptText)));
+            Script(Script.parseToCommand(Encoder.decodeHex(scriptText)));
         expect(script.hashCode, 88687450);
       });
     });

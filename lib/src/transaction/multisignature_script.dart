@@ -5,7 +5,7 @@ class MultisignatureScript extends Script {
 
   /// Parse the script from the given script hex.
   factory MultisignatureScript.parse(String script) {
-    List<dynamic> cmds = Script.parseToCommand(Converter.hexToBytes(script));
+    List<dynamic> cmds = Script.parseToCommand(Encoder.decodeHex(script));
     _validateScript(cmds);
     return MultisignatureScript(cmds);
   }

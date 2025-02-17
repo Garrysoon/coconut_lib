@@ -2,6 +2,7 @@
 import 'dart:typed_data';
 
 import 'package:coconut_lib/coconut_lib.dart';
+import 'package:coconut_lib/src/cryptography/encoder.dart';
 import 'package:coconut_lib/src/cryptography/hash.dart';
 import 'package:test/test.dart';
 
@@ -9,9 +10,9 @@ void main() {
   group('HDWallet', () {
     late HDWallet hdWallet;
     setUpAll(() {
-      Uint8List privateKey = Converter.hexToBytes(
+      Uint8List privateKey = Encoder.decodeHex(
           '6a8c473974ffabbf2bac36adadd328baabf8b6d7a269b69bb808d80d64f17f41');
-      Uint8List chainCode = Converter.hexToBytes(
+      Uint8List chainCode = Encoder.decodeHex(
           '4cfac59caf9be1428410291697177b2efc8373a29f7ad4a34694163686a4d20b');
       hdWallet = HDWallet.fromPrivateKey(privateKey, chainCode);
     });
@@ -71,7 +72,7 @@ void main() {
     group('sign', () {
       test('Get signature', () {
         String hex = Hash.sha256("Message");
-        expect(Converter.bytesToHex(hdWallet.sign(Converter.hexToBytes(hex))),
+        expect(Encoder.encodeHex(hdWallet.sign(Encoder.decodeHex(hex))),
             'ea10cba17d4603d90deeb5bee645ac362d2e88da75aff555a66db12df132939b73c0e4d7e78ae921fc3e929cec58b70fed71166618bea91c81c64df652dac028');
       });
     });
@@ -80,8 +81,8 @@ void main() {
         String hex = Hash.sha256("Message");
         expect(
             hdWallet.verify(
-                Converter.hexToBytes(hex),
-                Converter.hexToBytes(
+                Encoder.decodeHex(hex),
+                Encoder.decodeHex(
                     'ea10cba17d4603d90deeb5bee645ac362d2e88da75aff555a66db12df132939b73c0e4d7e78ae921fc3e929cec58b70fed71166618bea91c81c64df652dac028')),
             true);
       });
@@ -89,8 +90,8 @@ void main() {
         String hex = Hash.sha256("Message");
         expect(
             hdWallet.verify(
-                Converter.hexToBytes(hex),
-                Converter.hexToBytes(
+                Encoder.decodeHex(hex),
+                Encoder.decodeHex(
                     'ea10cba17d4603d90deeb5bee645ac362d2e88da75aff555a66db12df132939b73c0e4d7e78ae921fc3e929cec58b70fed71166618bea91c81c64df652dac027')),
             false);
       });
@@ -98,36 +99,36 @@ void main() {
 
     group('HDWallet.fromPublicKey', () {
       test('Generate HDWallet from public key', () {
-        Uint8List publicKey = Converter.hexToBytes(
+        Uint8List publicKey = Encoder.decodeHex(
             '03f8f8a1412b9e56dd9576f49ae0a6499757ea592bd491f910c8f519ef0ea7cf3c');
-        Uint8List chainCode = Converter.hexToBytes(
+        Uint8List chainCode = Encoder.decodeHex(
             '4cfac59caf9be1428410291697177b2efc8373a29f7ad4a34694163686a4d20b');
         expect(
-            Converter.bytesToHex(
+            Encoder.encodeHex(
                 HDWallet.fromPublicKey(publicKey, chainCode).fingerprint),
             'a56d9844');
       });
     });
     group('HDWallet.fromPrivateKey', () {
       test('Generate HDwallet from private key', () {
-        Uint8List privateKey = Converter.hexToBytes(
+        Uint8List privateKey = Encoder.decodeHex(
             '6a8c473974ffabbf2bac36adadd328baabf8b6d7a269b69bb808d80d64f17f41');
-        Uint8List chainCode = Converter.hexToBytes(
+        Uint8List chainCode = Encoder.decodeHex(
             '4cfac59caf9be1428410291697177b2efc8373a29f7ad4a34694163686a4d20b');
         HDWallet.fromPrivateKey(privateKey, chainCode);
         expect(
-            Converter.bytesToHex(
+            Encoder.encodeHex(
                 HDWallet.fromPrivateKey(privateKey, chainCode).fingerprint),
             'a56d9844');
       });
 
       test('Private key length exception', () {
-        Uint8List privateKey = Converter.hexToBytes(
+        Uint8List privateKey = Encoder.decodeHex(
             '6a8c473974ffabbf2bac36adadd328baabf8b6d7a269b69bb808d80d64f17f41');
         List<int> removedList = privateKey.toList();
         removedList.removeLast();
         Uint8List removedPrivateKey = Uint8List.fromList(removedList);
-        Uint8List chainCode = Converter.hexToBytes(
+        Uint8List chainCode = Encoder.decodeHex(
             '4cfac59caf9be1428410291697177b2efc8373a29f7ad4a34694163686a4d20b');
         expect(() => HDWallet.fromPrivateKey(removedPrivateKey, chainCode),
             throwsException);
@@ -137,8 +138,7 @@ void main() {
       test('Generate HDwallet from root seed', () {
         String rootSeed =
             'ae6a87214c18fb91824b34b4e027f46d51061fdece2b3042ca51bf9b80f5d075fddb304fd9857ff1e147f9d0147bdc3116572657d9e2232540e6fc962a11a254';
-        expect(
-            Converter.bytesToHex(HDWallet.fromRootSeed(rootSeed).fingerprint),
+        expect(Encoder.encodeHex(HDWallet.fromRootSeed(rootSeed).fingerprint),
             '98c7d774');
       });
       test('Too long Root seed length exception', () {
@@ -172,13 +172,13 @@ void main() {
         String json =
             '''{"privateKey":"6a8c473974ffabbf2bac36adadd328baabf8b6d7a269b69bb808d80d64f17f41","publicKey":"03f8f8a1412b9e56dd9576f49ae0a6499757ea592bd491f910c8f519ef0ea7cf3c","chainCode":"4cfac59caf9be1428410291697177b2efc8373a29f7ad4a34694163686a4d20b"}''';
         HDWallet target = HDWallet.fromJson(json);
-        expect(Converter.bytesToHex(target.fingerprint), 'a56d9844');
+        expect(Encoder.encodeHex(target.fingerprint), 'a56d9844');
       });
       test('Generate HDwallet with public key from json', () {
         String json =
             '''{"publicKey":"03f8f8a1412b9e56dd9576f49ae0a6499757ea592bd491f910c8f519ef0ea7cf3c","chainCode":"4cfac59caf9be1428410291697177b2efc8373a29f7ad4a34694163686a4d20b"}''';
         HDWallet target = HDWallet.fromJson(json);
-        expect(Converter.bytesToHex(target.fingerprint), 'a56d9844');
+        expect(Encoder.encodeHex(target.fingerprint), 'a56d9844');
       });
     });
   });

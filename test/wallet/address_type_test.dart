@@ -80,12 +80,13 @@ void main() {
           KeyStore keyStore = KeyStore.fromMnemonic(
               "machine crack daughter fish credit glare raven fever tunnel delay fish record",
               AddressType.p2tr);
-          SingleSignatureVault vault =
-              SingleSignatureVault.fromKeyStore(keyStore);
-          print(vault.derivationPath);
-          print(keyStore.getPublicKey(0, isShnorr: true));
-          print(AddressType.p2tr
-              .getAddress(keyStore.getPublicKey(2, isShnorr: true)));
+
+          // print(vault.derivationPath);
+          // print(keyStore.getPublicKey(0, isSchnorr: true));
+          expect(
+              AddressType.p2tr
+                  .getAddress(keyStore.getPublicKey(2, isSchnorr: true)),
+              'bc1p4trvc4y8hu4cyj93vytg57dx5853d9qjrs9w7ctamn5gn6frgawqtkpnv8');
         });
         test('getWrondAddress', () {
           NetworkType.setNetworkType(NetworkType.mainnet);

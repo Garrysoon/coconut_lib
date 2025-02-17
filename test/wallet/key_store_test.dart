@@ -129,8 +129,8 @@ void main() {
         expect(keyStore.getPublicKey(0, isChange: true),
             '035d49eccd54d0099e43676277c7a6d4625d611da88a5df49bf9517a7791a777a5');
       });
-      test('Get public key for shnorr', () {
-        expect(keyStore.getPublicKey(0, isChange: false, isShnorr: true),
+      test('Get public key for schnorr', () {
+        expect(keyStore.getPublicKey(0, isChange: false, isSchnorr: true),
             'e7ab2537b5d49e970309aae06e9e49f36ce1c9febbd44ec8e0d1cca0b4f9c319');
       });
     });
@@ -139,10 +139,10 @@ void main() {
         expect(keyStore.getPublicKeyWithDerivationPath("m/84'/1'/0'/0/0"),
             '02e7ab2537b5d49e970309aae06e9e49f36ce1c9febbd44ec8e0d1cca0b4f9c319');
       });
-      test('Get public key from derivation path for shnorr', () {
+      test('Get public key from derivation path for schnorr', () {
         expect(
             keyStore.getPublicKeyWithDerivationPath("m/84'/1'/0'/0/0",
-                isShnorr: true),
+                isSchnorr: true),
             'e7ab2537b5d49e970309aae06e9e49f36ce1c9febbd44ec8e0d1cca0b4f9c319');
       });
     });
@@ -210,7 +210,6 @@ void main() {
         Psbt unsignedPsbt = MockFactory.createP2wpkhUnsignedPsbt();
         String signedPsbtText = MockFactory.createP2wpkhVault()
             .addSignatureToPsbt(unsignedPsbt.serialize());
-        print(signedPsbtText.hashCode);
         expect(signedPsbtText.hashCode, 862890113);
       });
     });

@@ -72,7 +72,7 @@ abstract class MultisignatureWalletBase extends WalletBase {
       List<Uint8List> publicKeys = [];
       for (KeyStore keyStore in keyStoreList) {
         String pub = keyStore.getPublicKeyWithDerivationPath(derivationPath);
-        publicKeys.add(Converter.hexToBytes(pub));
+        publicKeys.add(Encoder.decodeHex(pub));
       }
 
       MultisignatureScript script = MultisignatureScript.forP2wsh(

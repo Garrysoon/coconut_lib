@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:coconut_lib/src/cryptography/encoder.dart';
 import 'package:coconut_lib/src/cryptography/hash.dart';
 import 'package:test/test.dart';
 
@@ -269,6 +270,14 @@ void main() {
         final result = Hash.pbkdf2('password', 'salt');
         expect(result,
             '91be23564f09fc855c82ce84a223ebe7d63d8b49d69372593a0d9ed39e143c83e1ab2f722a5ddb969feefc88403f7e2afe1afb8b2f0e6b20add0fb7b28368807');
+      });
+    });
+    group('taggedHash', () {
+      test('Get tagged hash', () {
+        final result =
+            Hash.taggedHash('tag', Encoder.decodeHex(Hash.sha256('salt')));
+        expect(result,
+            '8a38cdedb7e8e90315ef4d169732c89e7dbfe24e28a7467d43841c5e74c04aec');
       });
     });
   });

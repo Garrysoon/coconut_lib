@@ -42,7 +42,7 @@ class TransactionOutput {
   }
 
   bool isDustOutput(bool isSegwit, {int dustRelayFee = 3}) {
-    int outputScriptSize = Converter.hexToBytes(serialize()).length;
+    int outputScriptSize = Encoder.decodeHex(serialize()).length;
     late int inputSize;
     if (isSegwit) {
       inputSize = (32 + 4 + 1 + (107 / 4).floor() + 4);
@@ -59,12 +59,12 @@ class TransactionOutput {
 
   /// Parse the transaction output from the given output hex.
   factory TransactionOutput.parse(String output) {
-    Uint8List bytes = Converter.hexToBytes(output);
+    Uint8List bytes = Encoder.decodeHex(output);
 
     var amount = bytes.sublist(0, 8);
     var script = bytes.sublist(8, bytes.length);
     ScriptPublicKey scriptPubKey =
-        ScriptPublicKey.parse(Converter.bytesToHex(script));
+        ScriptPublicKey.parse(Encoder.encodeHex(script));
 
     return TransactionOutput(amount, scriptPubKey);
   }
@@ -74,7 +74,7 @@ class TransactionOutput {
     //print("amount : " + Converter.bytesToHex(_amount));
     //print(amount);
     //print("scriptPubKey : " + _scriptPubKey.serialize());
-    return Converter.bytesToHex(_amount) + _scriptPubKey.serialize();
+    return Encoder.encodeHex(_amount) + _scriptPubKey.serialize();
   }
 
   /// Get the address of the transaction output.

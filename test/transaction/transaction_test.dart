@@ -204,6 +204,11 @@ void main() {
             'b895e8018fe25df450f604c6cd93db1bbf4b1a4eefc3a67ebd2de68a0b908236');
       });
     });
+    group('getTaprootSigHash', () {
+      test('Get taproot sighash', () {
+        //TODO: Implement test
+      });
+    });
     group('validateSignature', () {
       test('Validate signature of transaction', () {
         String transactionText =

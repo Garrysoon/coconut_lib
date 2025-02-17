@@ -157,12 +157,12 @@ class Seed {
   @override
   bool operator ==(Object other) {
     if (other is Seed) {
-      return Converter.bytesToHex(_getRootSeed()) ==
-          Converter.bytesToHex(other._getRootSeed());
+      return Encoder.encodeHex(_getRootSeed()) ==
+          Encoder.encodeHex(other._getRootSeed());
     }
     return false;
   }
 
   @override
-  int get hashCode => Converter.bytesToHex(_getRootSeed()).hashCode;
+  int get hashCode => Encoder.encodeHex(_getRootSeed()).hashCode;
 }

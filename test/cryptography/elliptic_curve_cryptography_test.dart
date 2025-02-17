@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-import 'package:coconut_lib/src/cryptography/converter.dart';
+import 'package:coconut_lib/src/cryptography/encoder.dart';
 import 'package:coconut_lib/src/cryptography/elliptic_curve_cryptography.dart';
 import 'package:test/test.dart';
 
@@ -380,11 +380,11 @@ void main() {
     });
     group('verify', () {
       test('Valid hash, public key, and signature', () {
-        Uint8List hash = Converter.hexToBytes(
+        Uint8List hash = Encoder.decodeHex(
             '9f990c2cd1b7655c411450d01611b79070f50e1f01e18d59eb55e16f4433a1a6');
-        Uint8List q = Converter.hexToBytes(
+        Uint8List q = Encoder.decodeHex(
             '0246c18ea7c5624b87e5f65a60842c9a22b27ae7e3630a95abeb35455259761824');
-        Uint8List signature = Converter.hexToBytes(
+        Uint8List signature = Encoder.decodeHex(
             'de494cd0a05a5621d8303a024130fc43550af2ec456de026174c542dfb1706e537f358ddba9025abc70d19693014304158eda80877e00f4b9cea86d18d4fad98');
         expect(
             verify(Uint8List.fromList(hash), Uint8List.fromList(q),
@@ -433,11 +433,11 @@ void main() {
       });
 
       test('Invalid: Incorrect signature should return false', () {
-        Uint8List hash = Converter.hexToBytes(
+        Uint8List hash = Encoder.decodeHex(
             '9f990c2cd1b7655c411450d01611b79070f50e1f01e18d59eb55e16f4433a1a6');
-        Uint8List q = Converter.hexToBytes(
+        Uint8List q = Encoder.decodeHex(
             '0246c18ea7c5624b87e5f65a60842c9a22b27ae7e3630a95abeb35455259761824');
-        Uint8List signature = Converter.hexToBytes(
+        Uint8List signature = Encoder.decodeHex(
             'de494cd0a05a5621d8303a024130fc43550af2ec456de026174c542dfb1706e537f358ddba9025abc70d19693014304158eda80877e00f4b9cea86d18d4fad23');
         expect(
             verify(Uint8List.fromList(hash), Uint8List.fromList(q),
@@ -446,10 +446,10 @@ void main() {
       });
 
       test('Invalid: Incorrect public key should return false', () {
-        Uint8List hash = Converter.hexToBytes(
+        Uint8List hash = Encoder.decodeHex(
             '9f990c2cd1b7655c411450d01611b79070f50e1f01e18d59eb55e16f4433a1a6');
         Uint8List q = Uint8List.fromList([0x02] + List.filled(32, 0x01));
-        Uint8List signature = Converter.hexToBytes(
+        Uint8List signature = Encoder.decodeHex(
             'de494cd0a05a5621d8303a024130fc43550af2ec456de026174c542dfb1706e537f358ddba9025abc70d19693014304158eda80877e00f4b9cea86d18d4fad98');
         expect(
             verify(Uint8List.fromList(hash), q, Uint8List.fromList(signature)),

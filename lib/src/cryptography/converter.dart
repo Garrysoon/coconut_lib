@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'encoder.dart';
 
 class Converter {
   Converter._();
@@ -87,13 +88,6 @@ class Converter {
       String hexDigit = decimal.toRadixString(16).toUpperCase();
       hex += hexDigit;
     }
-    // int decimalValue = int.parse(binString, radix: 2);
-
-    // String hexString = decimalValue.toRadixString(16).toUpperCase();
-
-    // int length = binString.length ~/ 4;
-    // String paddedHexString = hexString.padLeft(length, '0');
-
     return hex;
   }
 
@@ -119,27 +113,8 @@ class Converter {
     return binary;
   }
 
-  static String bytesToHex(List<int> byteList) {
-    StringBuffer buffer = StringBuffer();
-    for (int byte in byteList) {
-      buffer.write(byte.toRadixString(16).padLeft(2, '0'));
-    }
-    return buffer.toString();
-  }
-
   static int bytesToDec(Uint8List byteList) {
-    return int.parse(bytesToHex(byteList), radix: 16);
-  }
-
-  static Uint8List hexToBytes(String hexString) {
-    List<int> bytes = [];
-    for (int i = 0; i < hexString.length; i += 2) {
-      String byte = hexString.substring(i, i + 2);
-      int decimal = int.parse(byte, radix: 16);
-      bytes.add(decimal);
-    }
-
-    return Uint8List.fromList(bytes);
+    return int.parse(Encoder.encodeHex(byteList), radix: 16);
   }
 
   static Uint8List intToLittleEndianBytes(int value, int length) {
@@ -172,13 +147,13 @@ class Converter {
   }
 
   static BigInt littleEndianToBigInt(Uint8List bytes) {
-    return BigInt.parse(bytesToHex(bytes), radix: 16);
+    return BigInt.parse(Encoder.encodeHex(bytes), radix: 16);
   }
 
   static String toLittleEndian(String hexString) {
-    List<int> bytes = hexToBytes(hexString).toList();
+    List<int> bytes = Encoder.decodeHex(hexString).toList();
     bytes = bytes.reversed.toList();
-    return bytesToHex(Uint8List.fromList(bytes));
+    return Encoder.encodeHex(Uint8List.fromList(bytes));
   }
 
   static List<int> convertBits(List<int> data, int from, int to,

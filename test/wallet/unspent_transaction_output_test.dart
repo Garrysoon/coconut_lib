@@ -13,7 +13,6 @@ void main() {
     });
     group('get transactionHash', () {
       test('Get transaction hash', () {
-        print(utxo.transactionHash.hashCode);
         expect(utxo.transactionHash.hashCode, 1052119297);
       });
     });

@@ -44,7 +44,7 @@ class KeyStore {
     bool isTestnet = NetworkType.currentNetworkType.isTestnet;
     HDWallet rootWallet = HDWallet.fromRootSeed(seed.rootSeed);
     String fingerprint =
-        Converter.bytesToHex(rootWallet.fingerprint).toUpperCase();
+        Encoder.encodeHex(rootWallet.fingerprint).toUpperCase();
 
     String derivationPath =
         WalletUtility.getDerivationPath(addressType, accountIndex);
@@ -118,17 +118,17 @@ class KeyStore {
     Uint8List signature = child.sign(Uint8List.fromList(HEX.decode(message)));
     String sig;
     if (isDer) {
-      String r = Converter.bytesToHex(signature.sublist(0, 32));
+      String r = Encoder.encodeHex(signature.sublist(0, 32));
       if (signature[0] & 0x80 != 0) {
         r = '00$r';
       }
       String rLength = Converter.decToHex(r.length ~/ 2);
-      String s = Converter.bytesToHex(signature.sublist(32, 64));
+      String s = Encoder.encodeHex(signature.sublist(32, 64));
       String sLength = Converter.decToHex(s.length ~/ 2);
       String rs = '02$rLength${r}02$sLength$s';
       sig = '30${Converter.decToHex(rs.length ~/ 2)}${rs}01';
     } else {
-      sig = Converter.bytesToHex(signature);
+      sig = Encoder.encodeHex(signature);
     }
 
     return sig;
@@ -148,9 +148,9 @@ class KeyStore {
 
   /// Get the public key of the key store using index.
   String getPublicKey(int addressIndex,
-      {bool isChange = false, isShnorr = false}) {
+      {bool isChange = false, isSchnorr = false}) {
     HDWallet child = getChildHdWallet(isChange).derive(addressIndex).neutered();
-    if (isShnorr) {
+    if (isSchnorr) {
       return HEX.encode((child.publicKey).sublist(1));
     } else {
       return HEX.encode((child.publicKey).toList());
@@ -158,13 +158,13 @@ class KeyStore {
   }
 
   /// Get the public key of the key store using derivation path.
-  String getPublicKeyWithDerivationPath(String path, {isShnorr = false}) {
+  String getPublicKeyWithDerivationPath(String path, {isSchnorr = false}) {
     List<String> pathList = path.split('/');
     int index = int.parse(pathList.last);
     int changeIndex = int.parse(pathList[pathList.length - 2]);
     HDWallet child =
         getChildHdWallet(changeIndex == 1).derive(index).neutered();
-    if (isShnorr) {
+    if (isSchnorr) {
       return HEX.encode((child.publicKey).sublist(1));
     } else {
       return HEX.encode((child.publicKey).toList());
@@ -174,8 +174,8 @@ class KeyStore {
   /// Validate the signatured from this key store.
   bool validateSignature(String signature, String message, int addressIndex,
       {bool isChange = false, bool isDer = true}) {
-    Uint8List sig = Converter.hexToBytes(signature);
-    Uint8List msg = Converter.hexToBytes(message);
+    Uint8List sig = Encoder.decodeHex(signature);
+    Uint8List msg = Encoder.decodeHex(message);
 
     HDWallet child = getChildHdWallet(isChange).derive(addressIndex);
 
@@ -232,6 +232,14 @@ class KeyStore {
     if (canSignToPsbt(psbtObject.serialize()) == false) {
       throw Exception('Vault : This vault can not sign this PSBT');
     }
+
+    List<String> utxoScriptPubKeys = [];
+    if (addressType == AddressType.p2tr) {
+      for (int i = 0; i < psbtObject.unsignedTransaction!.inputs.length; i++) {
+        utxoScriptPubKeys.add(psbtObject.inputs[i].witnessUtxo!.serialize());
+      }
+    }
+
     for (int i = 0; i < psbtObject.unsignedTransaction!.inputs.length; i++) {
       PsbtInput thisInput = psbtObject.inputs[i];
 
@@ -252,6 +260,9 @@ class KeyStore {
         String? witnessScript = thisInput.witnessScript!.rawSerialize();
         sigHash = psbtObject.unsignedTransaction!
             .getSigHash(i, utxo, addressType, witnessScript: witnessScript);
+      } else if (addressType == AddressType.p2tr) {
+        sigHash = psbtObject.unsignedTransaction!
+            .getTaprootSigHash(i, utxoScriptPubKeys);
       } else {
         sigHash =
             psbtObject.unsignedTransaction!.getSigHash(i, utxo, addressType);
