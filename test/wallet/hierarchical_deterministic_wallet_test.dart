@@ -76,6 +76,16 @@ void main() {
             'ea10cba17d4603d90deeb5bee645ac362d2e88da75aff555a66db12df132939b73c0e4d7e78ae921fc3e929cec58b70fed71166618bea91c81c64df652dac028');
       });
     });
+    group('getTweakPrivateKey', () {
+      test('Get tweak private key', () {
+        //TODO: implement test
+      });
+    });
+    group('getTweakPublicKey', () {
+      test('Get tweak public key', () {
+        //TODO: implement test
+      });
+    });
     group('verify', () {
       test('Verify success', () {
         String hex = Hash.sha256("Message");

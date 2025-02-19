@@ -231,6 +231,11 @@ void main() {
         expect(tx.validateSignature(0, utxo, AddressType.p2wpkh), false);
       });
     });
+    group('validateTaprootSignature', () {
+      test('Validate taproot signature of transaction', () {
+        //TODO: Implement test
+      });
+    });
     group('getVirtualByte', () {
       test('Get virtual byte', () {
         expect(legacyTransaction.getVirtualByte(), 188.0);
@@ -247,15 +252,16 @@ void main() {
             utxos, receiveAddress, changeAddress, 4200, 1, vault);
         expect(tx.estimateVirtualByte(AddressType.p2wpkh), 412.75);
       });
-      test('Get estimated virtyal byte in p2tr', () {
-        SingleSignatureVault vault = MockFactory.createP2trVault();
+      test('Get estimated virtual byte in p2tr', () {
+        SingleSignatureVault vault =
+            MockFactory.createP2trKeyPathSpendingVault();
         List<Utxo> utxos = MockFactory.createUtxoList(count: 1);
         Transaction tx = Transaction.forSweep(
             utxos,
             'bc1p5fdr2ht0y4rjckn869skpml7pulm8wx6lu4c5eezwngx3c3uupzssx4myf',
             1,
             vault);
-        expect(tx.estimateVirtualByte(AddressType.p2tr), 111.25);
+        expect(tx.estimateVirtualByte(AddressType.p2trKeyPathSpending), 111.25);
       });
     });
     group('estimateFee', () {

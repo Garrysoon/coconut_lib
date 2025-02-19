@@ -164,10 +164,32 @@ class HDWallet {
   /// @nodoc
   Uint8List sign(Uint8List hash, {isShnorr = false}) {
     if (isShnorr) {
-      return ecc.signSchnorr(hash, privateKey!);
+      return ecc.sign(hash, getTweakPrivateKey(Uint8List.fromList([])),
+          isSchnorr: isShnorr);
     } else {
-      return ecc.sign(hash, privateKey!);
+      return ecc.sign(hash, privateKey!, isSchnorr: isShnorr);
     }
+  }
+
+  /// Returns the tweaked private key for Taproot/MuSig2.
+  Uint8List getTweakPrivateKey(Uint8List merkleRoot,
+      {Uint8List? aggregatedPublicKey}) {
+    if (privateKey == null) {
+      throw Exception("HDWallet: Private key is not available.");
+    }
+    Uint8List keyToTweak = aggregatedPublicKey ?? publicKey;
+    Uint8List hashTapTweak =
+        Hash.hashTapTweak('TapTweak', keyToTweak, merkleRoot);
+    return ecc.privateAdd(privateKey!, hashTapTweak)!;
+  }
+
+  /// Returns the tweaked public key for Taproot/MuSig2.
+  Uint8List getTweakPublicKey(Uint8List merkleRoot,
+      {Uint8List? aggregatedPublicKey}) {
+    Uint8List keyToTweak = aggregatedPublicKey ?? publicKey;
+    Uint8List hashTapTweak =
+        Hash.hashTapTweak('TapTweak', keyToTweak, merkleRoot);
+    return ecc.pointAddScalar(keyToTweak, hashTapTweak, true)!;
   }
 
   /// @nodoc

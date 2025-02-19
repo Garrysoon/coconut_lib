@@ -63,4 +63,16 @@ class Hash {
     var taggedHash = Hash.sha256fromByte(Uint8List.fromList(tagHash + data));
     return Encoder.encodeHex(taggedHash);
   }
+
+  static Uint8List hashTapTweak(
+      String tag, Uint8List pubkey, Uint8List? merkleRoot) {
+    List<int> combined;
+    if (merkleRoot == null) {
+      combined = pubkey;
+    } else {
+      combined = pubkey + merkleRoot;
+    }
+    String hashTapTweak = taggedHash(tag, combined);
+    return Encoder.decodeHex(hashTapTweak);
+  }
 }

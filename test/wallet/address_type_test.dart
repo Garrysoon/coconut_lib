@@ -14,8 +14,6 @@ void main() {
             AddressType.p2wpkh);
         expect(AddressType.getAddressTypeFromScriptType('p2wsh'),
             AddressType.p2wsh);
-        expect(
-            AddressType.getAddressTypeFromScriptType('p2tr'), AddressType.p2tr);
       });
 
       group('isTestnetVersion', () {
@@ -79,12 +77,12 @@ void main() {
           NetworkType.setNetworkType(NetworkType.mainnet);
           KeyStore keyStore = KeyStore.fromMnemonic(
               "machine crack daughter fish credit glare raven fever tunnel delay fish record",
-              AddressType.p2tr);
+              AddressType.p2trKeyPathSpending);
 
           // print(vault.derivationPath);
           // print(keyStore.getPublicKey(0, isSchnorr: true));
           expect(
-              AddressType.p2tr
+              AddressType.p2trKeyPathSpending
                   .getAddress(keyStore.getPublicKey(2, isSchnorr: true)),
               'bc1p4trvc4y8hu4cyj93vytg57dx5853d9qjrs9w7ctamn5gn6frgawqtkpnv8');
         });
@@ -99,11 +97,11 @@ void main() {
         test('getP2trSingleSignatureAddress', () {
           NetworkType.setNetworkType(NetworkType.mainnet);
           expect(
-              AddressType.getP2trSingleSignatureAddress(
+              AddressType.getP2trKeyPathSpendingAddress(
                   'cc8a4bc64d897bddc5fbc2f670f7a8ba0b386779106cf1223c6fc5d7cd6fc115'),
               'bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr');
           expect(
-              AddressType.p2tr.getAddress(
+              AddressType.p2trKeyPathSpending.getAddress(
                   '83dfe85a3151d2517290da461fe2815591ef69f2b18a2ce63f01697a8b313145'),
               'bc1p4qhjn9zdvkux4e44uhx8tc55attvtyu358kutcqkudyccelu0was9fqzwh');
         });
@@ -111,7 +109,7 @@ void main() {
           //TODO : need to validate the address
           NetworkType.setNetworkType(NetworkType.mainnet);
           expect(
-              AddressType.getP2trScriptPathMultisignatureAddress([
+              AddressType.getP2trScriptPathSpendingAddress([
                 'febe583fa77e49089f89b78fa8c116710715d6e40cc5f5a075ef1681550dd3c4',
                 'd0fa46cb883e940ac3dc5421f05b03859972639f51ed2eccbf3dc5a62e2e1b15'
               ], 2),

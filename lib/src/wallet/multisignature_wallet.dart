@@ -13,11 +13,10 @@ class MultisignatureWallet extends MultisignatureWalletBase {
     if (descriptorObject.scriptType == "sh-wpkh") {
       addressType = AddressType.p2wpkhInP2sh;
     } else {
-      addressType = AddressType.getAddressTypeFromScriptType(
-          'P2${descriptorObject.scriptType}');
+      addressType = descriptorObject.addressType;
     }
 
-    if (!addressType.isMultisig) {
+    if (!addressType.isMultisignature) {
       throw Exception('Use ${addressType.getAddress} is not multisig script.');
     }
 

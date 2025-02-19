@@ -615,6 +615,7 @@ class Transaction {
   /// check if the signature is valid in the transaction.
   bool validateSignature(int inputIndex, String utxo, AddressType addressType,
       {String? witnessScript}) {
+    // 1. Generate sigHash
     String sigHash;
     if (addressType == AddressType.p2wpkh) {
       sigHash = getSigHash(inputIndex, utxo, addressType);
@@ -629,6 +630,7 @@ class Transaction {
     }
     Uint8List msg = Encoder.decodeHex(sigHash);
 
+    // 2.Validate signature
     if (addressType == AddressType.p2wsh) {
       String script = inputs[inputIndex].witnessList.last;
       String size =
@@ -692,6 +694,16 @@ class Transaction {
     }
   }
 
+  /// Validate taproot signature
+  bool validateTaprootSignature(int inputIndex, List<String> utxoList) {
+    Uint8List sigHash =
+        Encoder.decodeHex(getTaprootSigHash(inputIndex, utxoList));
+    Uint8List publicKey = Encoder.decodeHex(
+        "02${TransactionOutput.parse(utxoList[inputIndex]).scriptPubKey.commands[1]}");
+    Uint8List signature = Encoder.decodeHex(inputs[inputIndex].witnessList[0]);
+    return ecc.verify(sigHash, publicKey, signature);
+  }
+
   /// Get the virtual byte size of the transaction.
   double getVirtualByte() {
     double totalByte = (Encoder.decodeHex(serialize()).length) * 1.0;
@@ -731,7 +743,7 @@ class Transaction {
 
     int sigSize = 73; // 72 + 1(length)
     int pubKeySize = 34; // 33 + 1(length)
-    if (addressType == AddressType.p2tr) {
+    if (addressType.isTaproot) {
       sigSize = 65; // 64 + 1(length)
       pubKeySize = 0; // 32 + 1(length)
     }
@@ -743,7 +755,7 @@ class Transaction {
     // witnessSize += 1; //num of witness
 
     if (addressType == AddressType.p2wpkh ||
-        (addressType == AddressType.p2tr && requiredSignature == null)) {
+        addressType == AddressType.p2trKeyPathSpending) {
       int emptyWitness = 0;
       for (TransactionInput input in inputs) {
         if (input.witnessList.isEmpty) {
@@ -948,8 +960,7 @@ class Transaction {
   static int _getDustThreshold(AddressType addressType) {
     if (addressType == AddressType.p2wpkh) {
       return 294;
-    } else if (addressType == AddressType.p2wsh ||
-        addressType == AddressType.p2tr) {
+    } else if (addressType == AddressType.p2wsh || addressType.isTaproot) {
       return 330;
     } else if (addressType == AddressType.p2pkh) {
       return 546;

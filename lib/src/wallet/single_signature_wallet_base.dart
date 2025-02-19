@@ -32,7 +32,7 @@ abstract class SingleSignatureWalletBase extends WalletBase {
   @override
   String getAddress(int addressIndex, {bool isChange = false}) {
     String pubkey;
-    if (addressType == AddressType.p2tr) {
+    if (addressType == AddressType.p2trKeyPathSpending) {
       pubkey = keyStore.getPublicKey(addressIndex,
           isChange: isChange, isSchnorr: true);
     } else {
@@ -48,7 +48,7 @@ abstract class SingleSignatureWalletBase extends WalletBase {
     }
 
     bool isSchnorr = false;
-    if (addressType == AddressType.p2tr) {
+    if (addressType.isTaproot) {
       isSchnorr = true;
     }
     String pubkey = _keyStore.getPublicKeyWithDerivationPath(derivationPath,

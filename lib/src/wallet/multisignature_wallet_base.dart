@@ -18,8 +18,8 @@ abstract class MultisignatureWalletBase extends WalletBase {
   MultisignatureWalletBase(this._requiredSignature, AddressType _addressType,
       String derivationPath, this._keyStoreList)
       : super(_addressType, derivationPath, true) {
-    if (!_addressType.isMultisig) {
-      throw Exception('Use Vault or Wallet class for single signature.');
+    if (!_addressType.isMultisignature) {
+      throw Exception('Use Vault or Wallet class for multisignature.');
     }
 
     if (_keyStoreList.length < requiredSignature) {

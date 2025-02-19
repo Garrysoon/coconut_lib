@@ -1,5 +1,6 @@
 // ignore_for_file: non_constant_identifier_names, constant_identifier_names
 
+import 'dart:ffi';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:coconut_lib/coconut_lib.dart';
@@ -137,7 +138,15 @@ Uint8List? privateAdd(Uint8List d, Uint8List tweak) {
   return dt;
 }
 
-Uint8List sign(Uint8List hash, Uint8List x) {
+Uint8List sign(Uint8List hash, Uint8List x, {isSchnorr = false}) {
+  if (isSchnorr) {
+    return _signSchnorr(hash, x);
+  } else {
+    return _signECDSA(hash, x);
+  }
+}
+
+Uint8List _signECDSA(Uint8List hash, Uint8List x) {
   if (!isScalar(hash)) throw ArgumentError(THROW_BAD_HASH);
   if (!isPrivate(x)) throw ArgumentError(THROW_BAD_PRIVATE);
   ECSignature sig = deterministicGenerateK(hash, x);
@@ -153,7 +162,7 @@ Uint8List sign(Uint8List hash, Uint8List x) {
   return buffer;
 }
 
-Uint8List signSchnorr(Uint8List hash, Uint8List x) {
+Uint8List _signSchnorr(Uint8List hash, Uint8List x) {
   if (!isPrivate(x)) throw ArgumentError(THROW_BAD_PRIVATE);
 
   //generate random K

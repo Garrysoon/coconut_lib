@@ -14,6 +14,9 @@ class Descriptor {
   /// Script type of the descriptor.
   String get scriptType => _scriptType;
 
+  AddressType get addressType =>
+      AddressType.getAddressTypeFromScriptType("p2$scriptType");
+
   /// Create a descriptor for a single signature.
   factory Descriptor.forSingleSignature(String scriptType, String publicKey,
       String derivationPath, String fingerprint) {

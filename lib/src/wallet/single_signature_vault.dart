@@ -78,8 +78,8 @@ class SingleSignatureVault extends SingleSignatureWalletBase {
     if (keyStore.hasSeed == false) {
       throw Exception('Use seed to create signer.');
     }
-    if (!targetAddressType.isMultisig) {
-      throw Exception('Use Multisig address type.');
+    if (!targetAddressType.isMultisignature) {
+      throw Exception('Use multisignature address type.');
     }
 
     KeyStore multisigKeyStore =
@@ -99,7 +99,7 @@ class SingleSignatureVault extends SingleSignatureWalletBase {
   String toJson() {
     return jsonEncode({
       "keyStore": keyStore.toJson(),
-      "addressType": addressType.scriptType,
+      "addressTypeName": addressType.name,
       "derivationPath": derivationPath
     });
   }
@@ -109,7 +109,7 @@ class SingleSignatureVault extends SingleSignatureWalletBase {
     Map<String, dynamic> map = jsonDecode(json);
     return SingleSignatureVault._(
         KeyStore.fromJson(map['keyStore']),
-        AddressType.getAddressTypeFromScriptType(map['addressType']),
+        AddressType.getAddressTypeFromName(map['addressTypeName']),
         map['derivationPath']);
   }
 }

@@ -15,10 +15,21 @@ class AddressType {
   final String scriptType;
 
   /// Check if the address type is segwit.
-  final bool isSegwit;
+  bool get isSegwit =>
+      scriptType.contains('P2W') || scriptType.contains('P2TR');
 
   /// Check if the address type is for multisig.
-  final bool isMultisig;
+  bool get isMultisignature =>
+      name == 'p2sh' ||
+      name == 'p2wsh' ||
+      name == 'p2trMusig2' ||
+      name == 'p2trScriptPathSpending';
+
+  /// Check if the address type is for single signature.
+  bool get isSingleSignature => !isMultisignature;
+
+  // Check if the address type is for taproot.
+  bool get isTaproot => name.startsWith('p2tr');
 
   /// @nodoc
   final int versionForMainnet;
@@ -37,38 +48,18 @@ class AddressType {
       this.purposeIndex,
       this.prefix,
       this.scriptType,
-      this.isSegwit,
-      this.isMultisig,
       this.versionForMainnet,
       this.versionForTestnet,
       this.getAddress,
       this.getMultisignatureAddress);
 
   /// Address type for P2PKH(Legacy) address.
-  static AddressType p2pkh = AddressType._(
-      'legacy',
-      44,
-      '1',
-      'P2PKH',
-      false,
-      false,
-      0x0488b21e,
-      0x043587cf,
-      getP2pkhAddress,
-      getWrongMultisigatureAddress);
+  static AddressType p2pkh = AddressType._('legacy', 44, '1', 'P2PKH',
+      0x0488b21e, 0x043587cf, getP2pkhAddress, getWrongMultisigatureAddress);
 
   /// Address type for P2WPKH(Native Segwit) address.
-  static AddressType p2wpkh = AddressType._(
-      'nativeSegwit',
-      84,
-      'bc1',
-      'P2WPKH',
-      true,
-      false,
-      0x04b24746,
-      0x045f1cf6,
-      getP2wpkhAddress,
-      getWrongMultisigatureAddress);
+  static AddressType p2wpkh = AddressType._('nativeSegwit', 84, 'bc1', 'P2WPKH',
+      0x04b24746, 0x045f1cf6, getP2wpkhAddress, getWrongMultisigatureAddress);
 
   /// Address type for P2WSH-in-P2SH(Nested Segwit) address.
   static AddressType p2wpkhInP2sh = AddressType._(
@@ -76,41 +67,76 @@ class AddressType {
       49,
       '3',
       'P2WSH-in-P2SH',
-      true,
-      false,
       0x049d7cb2,
       0x044a5262,
       getP2wpkhInP2shAddress,
       getWrongMultisigatureAddress);
 
   /// Address type for P2SH(Legacy Multisig) address.
-  static AddressType p2sh = AddressType._('p2sh', 45, '3', 'P2SH', false, true,
-      0x0488b21e, 0x043587cf, getWrongAddress, getP2shAddress);
+  static AddressType p2sh = AddressType._('p2sh', 45, '3', 'P2SH', 0x0488b21e,
+      0x043587cf, getWrongAddress, getP2shAddress);
 
   /// Address type for P2WSH(Segwit Multisig) address.
-  static AddressType p2wsh = AddressType._('p2wsh', 48, 'bc1', 'P2WSH', true,
-      true, 0x02aa7ed3, 0x02575483, getWrongAddress, getP2wshAddress);
+  static AddressType p2wsh = AddressType._('p2wsh', 48, 'bc1', 'P2WSH',
+      0x02aa7ed3, 0x02575483, getWrongAddress, getP2wshAddress);
 
-  static AddressType p2tr = AddressType._(
-      'p2tr',
+  /// Address type for P2TR key path (single signature) address.
+  static AddressType p2trKeyPathSpending = AddressType._(
+      'p2trKeyPathSpending',
       86,
       'bc1',
       'P2TR',
-      true,
-      true,
       0x04b2430c,
       0x044a5262,
-      getP2trSingleSignatureAddress,
+      getP2trKeyPathSpendingAddress,
       getWrongMultisigatureAddress);
 
+  static AddressType p2trMusig2 = AddressType._(
+      'p2trMusig2',
+      86,
+      'bc1',
+      'P2TR',
+      0x04b2430c,
+      0x044a5262,
+      getWrongAddress,
+      //TODO: get musig 2 address()
+      getWrongMultisigatureAddress);
+
+  static AddressType p2trScriptPathSpending = AddressType._(
+      'p2trScriptPathSpending',
+      86,
+      'bc1',
+      'P2TR',
+      0x04b2430c,
+      0x044a5262,
+      getWrongAddress,
+      getP2trScriptPathSpendingAddress);
+
   /// List of all address types.
-  static List<AddressType> get values =>
-      [p2pkh, p2wpkh, p2wpkhInP2sh, p2sh, p2wsh, p2tr];
+  static List<AddressType> get values => [
+        p2pkh,
+        p2wpkh,
+        p2wpkhInP2sh,
+        p2sh,
+        p2wsh,
+        p2trKeyPathSpending,
+        p2trMusig2,
+        p2trScriptPathSpending
+      ];
 
   /// Get the address type from the script type.(P2PKH, P2WPKH, P2WSH-in-P2SH, P2SH, P2WSH)
   static AddressType getAddressTypeFromScriptType(String addressType) {
     for (AddressType type in values) {
-      if (type.scriptType == addressType.toUpperCase()) {
+      if (type.scriptType.toUpperCase() == addressType.toUpperCase()) {
+        return type;
+      }
+    }
+    throw Exception("Not supported address type.");
+  }
+
+  static AddressType getAddressTypeFromName(String name) {
+    for (AddressType type in values) {
+      if (type.name.toUpperCase() == name.toUpperCase()) {
         return type;
       }
     }
@@ -268,11 +294,11 @@ class AddressType {
     return address;
   }
 
-  static String getP2trSingleSignatureAddress(String publicKey) {
+  static String getP2trKeyPathSpendingAddress(String publicKey) {
     return getTaprootAddress(publicKey, '');
   }
 
-  static String getP2trScriptPathMultisignatureAddress(
+  static String getP2trScriptPathSpendingAddress(
       List<String> publicKeys, int requiredSignature) {
     if (requiredSignature > 3) {
       throw Exception("requiredSignature cannot be greater than 3");
@@ -325,7 +351,7 @@ class AddressType {
     Uint8List internalKeyBytes = Encoder.decodeHex(internalKey);
     Uint8List merkleRootBytes = Encoder.decodeHex(merkleRoot);
     Uint8List hashTapTweek =
-        _hashTapTweak('TapTweak', internalKeyBytes, merkleRootBytes);
+        Hash.hashTapTweak('TapTweak', internalKeyBytes, merkleRootBytes);
 
     // print("hashTapTweek: ${Converter.bytesToHex(hashTapTweek)}");
 
@@ -347,18 +373,6 @@ class AddressType {
 
   static String getWrongAddress(String publicKey) {
     throw Exception('Use getMultisigAddress for multisig address type.');
-  }
-
-  static Uint8List _hashTapTweak(
-      String tag, Uint8List pubkey, Uint8List? merkleRoot) {
-    List<int> combined;
-    if (merkleRoot == null) {
-      combined = pubkey;
-    } else {
-      combined = pubkey + merkleRoot;
-    }
-    String taggedHash = Hash.taggedHash(tag, combined);
-    return Encoder.decodeHex(taggedHash);
   }
 
   static Uint8List _getTapleafHash(int version, String script) {

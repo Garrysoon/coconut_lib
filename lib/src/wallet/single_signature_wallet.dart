@@ -19,11 +19,10 @@ class SingleSignatureWallet extends SingleSignatureWalletBase {
     if (descriptorObject.scriptType == "sh-wpkh") {
       addressType = AddressType.p2wpkhInP2sh;
     } else {
-      addressType = AddressType.getAddressTypeFromScriptType(
-          'P2${descriptorObject.scriptType}');
+      addressType = descriptorObject.addressType;
     }
 
-    if (addressType.isMultisig && addressType != AddressType.p2tr) {
+    if (addressType.isMultisignature) {
       throw Exception(
           '${addressType.getAddress} is multisig script. Use MultsignatureVault Class.');
     }

@@ -7,8 +7,7 @@ import 'package:coconut_lib/src/cryptography/hash.dart';
 import 'mock_factory.dart';
 
 void main() {
-  print(getHashScriptPubkeys());
-  getA();
+  print(Encoder.decodeHex(''));
 }
 
 String getHashScriptPubkeys() {
@@ -47,7 +46,7 @@ void takeScenario() {
 // Receive address : bc1p5fdr2ht0y4rjckn869skpml7pulm8wx6lu4c5eezwngx3c3uupzssx4myf
 
   NetworkType.setNetworkType(NetworkType.mainnet);
-  SingleSignatureVault trVault = MockFactory.createP2trVault();
+  SingleSignatureVault trVault = MockFactory.createP2trKeyPathSpendingVault();
 // print(vault.descriptor);
   print(trVault.getAddress(0));
 

@@ -61,7 +61,7 @@ void main() {
     group('toJson', () {
       test('Get json text', () {
         int hash = vault.toJson().hashCode;
-        expect(hash, 185281785);
+        expect(hash, 1025753301);
       });
     });
     group('MultisignatureVault.fromJson', () {

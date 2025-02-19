@@ -191,7 +191,6 @@ class KeyStore {
 
       return child.verify(msg, rs);
     } else {
-      //TODO: Schnorr
       return child.verify(msg, sig);
     }
   }
@@ -236,15 +235,8 @@ class KeyStore {
     }
 
     bool isSchnorr = false;
-    if (addressType == AddressType.p2tr) {
+    if (addressType.isTaproot) {
       isSchnorr = true;
-    }
-
-    List<String> utxoScriptPubKeys = [];
-    if (isSchnorr) {
-      for (int i = 0; i < psbtObject.unsignedTransaction!.inputs.length; i++) {
-        utxoScriptPubKeys.add(psbtObject.inputs[i].witnessUtxo!.serialize());
-      }
     }
 
     for (int i = 0; i < psbtObject.unsignedTransaction!.inputs.length; i++) {
@@ -254,41 +246,57 @@ class KeyStore {
         continue;
       }
 
-      String utxo = '';
-      if (thisInput.witnessUtxo == null) {
-        utxo = thisInput.previousTransaction!
-            .outputs[psbtObject.unsignedTransaction!.inputs[i].index]
-            .serialize();
-      } else {
-        utxo = thisInput.witnessUtxo!.serialize();
-      }
+      // Generate sig hash
       String sigHash;
-      if (addressType == AddressType.p2wsh) {
-        String? witnessScript = thisInput.witnessScript!.rawSerialize();
-        sigHash = psbtObject.unsignedTransaction!
-            .getSigHash(i, utxo, addressType, witnessScript: witnessScript);
-      } else if (isSchnorr) {
+      if (isSchnorr) {
+        List<String> utxoScriptPubKeys = [];
+        for (int i = 0;
+            i < psbtObject.unsignedTransaction!.inputs.length;
+            i++) {
+          utxoScriptPubKeys.add(psbtObject.inputs[i].witnessUtxo!.serialize());
+        }
         sigHash = psbtObject.unsignedTransaction!
             .getTaprootSigHash(i, utxoScriptPubKeys);
       } else {
-        sigHash =
-            psbtObject.unsignedTransaction!.getSigHash(i, utxo, addressType);
+        String utxo = '';
+        if (thisInput.witnessUtxo == null) {
+          utxo = thisInput.previousTransaction!
+              .outputs[psbtObject.unsignedTransaction!.inputs[i].index]
+              .serialize();
+        } else {
+          utxo = thisInput.witnessUtxo!.serialize();
+        }
+        if (addressType == AddressType.p2wsh) {
+          String? witnessScript = thisInput.witnessScript!.rawSerialize();
+          sigHash = psbtObject.unsignedTransaction!
+              .getSigHash(i, utxo, addressType, witnessScript: witnessScript);
+        } else {
+          sigHash =
+              psbtObject.unsignedTransaction!.getSigHash(i, utxo, addressType);
+        }
       }
 
+      //Add signature
       for (int j = 0; j < thisInput.derivationPathList.length; j++) {
         if (thisInput.derivationPathList[j].masterFingerprint !=
             masterFingerprint) {
           continue;
         }
         String publicKey = getPublicKeyWithDerivationPath(
-            thisInput.derivationPathList[j].path);
+            thisInput.derivationPathList[j].path,
+            isSchnorr: isSchnorr);
         String signature = signWithDerivationPath(
             sigHash, thisInput.derivationPathList[j].path,
             isSchnorr: isSchnorr);
         if (validateSignatureWithDerivationPath(
             signature, sigHash, thisInput.derivationPathList[j].path,
             isSchnorr: isSchnorr)) {}
-        psbtObject.addSignature(i, signature, publicKey);
+        if (addressType == AddressType.p2trKeyPathSpending ||
+            addressType == AddressType.p2trMusig2) {
+          psbtObject.addTaprootSignature(i, signature);
+        } else {
+          psbtObject.addSignature(i, signature, publicKey);
+        }
       }
       // String publicKey =
       //     getPublicKeyWithDerivationPath(thisInput.derivationPathList!.path);

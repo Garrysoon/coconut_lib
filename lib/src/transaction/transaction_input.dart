@@ -91,7 +91,7 @@ class TransactionInput {
       throw Exception("No signature found.");
     }
 
-    if (!addressType.isMultisig && signatureList.length > 1) {
+    if (!addressType.isMultisignature && signatureList.length > 1) {
       throw Exception(
           "Only one signature is allowed for single signature address.");
     }
@@ -120,6 +120,10 @@ class TransactionInput {
     } else {
       throw ArgumentError('Not supported address type');
     }
+  }
+
+  void setTaprootKeyPathSpendingSignature(String signature) {
+    witnessList.add(signature);
   }
 
   /// Check if the transaction input has signature.

@@ -70,6 +70,7 @@ class Psbt {
       List<DerivationPath> inputDerivationPathList = [];
       List<Signature> partialSigList = [];
       MultisignatureScript? witnessScript;
+      String? taprootKeyPathSpendingSignature;
 
       psbtMap["inputs"][i].keys.forEach((key) {
         // 06 : BIP32_DERIVATION
@@ -94,10 +95,17 @@ class Psbt {
               Encoder.encodeVariableInteger(script.length ~/ 2));
           witnessScript = MultisignatureScript.parse(size + script);
         }
+        // 19 : TAP_KEY_SIG
+        if (key.startsWith('13')) {
+          taprootKeyPathSpendingSignature = psbtMap["inputs"][i][key];
+        }
       });
-      inputs.add(PsbtInput(
+
+      // Set psbt input
+      inputs.add(PsbtInput.forSegwit(
           prevTx, witnessUtxo, inputDerivationPathList, partialSigList,
-          witnessScript: witnessScript));
+          witnessScript: witnessScript,
+          taprootKeyPathSpendingSignature: taprootKeyPathSpendingSignature));
     }
 
     for (int i = 0; i < psbtMap["outputs"].length; i++) {
@@ -239,6 +247,17 @@ class Psbt {
             .getWitnessScript(tx.utxoList[i].derivationPath);
         inputData[witnessScriptKey] = witnessScript;
       }
+
+      if (wallet.addressType == AddressType.p2trKeyPathSpending ||
+          wallet.addressType == AddressType.p2trMusig2) {
+        if (tx.inputs[i].witnessList.length == 1) {
+          String taprootKeySpendSignature =
+              getKeyType(inputKeyType, 'PSBT_IN_TAP_KEY_SIG');
+          inputData[taprootKeySpendSignature] = tx.inputs[i].witnessList[0];
+        } else {
+          throw Exception('Script path spending signature is not supported');
+        }
+      }
       psbtData["inputs"].add(inputData);
     }
 
@@ -361,6 +380,11 @@ class Psbt {
   void addSignature(int inputIndex, String signature, String publicKey) {
     inputs[inputIndex].addSignature(signature, publicKey);
     psbtMap["inputs"][inputIndex]["02$publicKey"] = signature;
+  }
+
+  void addTaprootSignature(int inputIndex, String signature) {
+    inputs[inputIndex].addTaprootKeyPathSpendingSignature(signature);
+    psbtMap["inputs"][inputIndex]["19"] = signature;
   }
 
   bool isSigned(KeyStore keyStore) {
@@ -536,6 +560,23 @@ class Psbt {
           throw Exception('Invalid Signatures');
         }
       }
+    } else if (addressType.isTaproot) {
+      List<String> utxoList = [];
+      for (int i = 0; i < inputs.length; i++) {
+        utxoList.add(inputs[i].witnessUtxo!.serialize());
+      }
+
+      for (int i = 0; i < inputs.length; i++) {
+        if (inputs[i].taprootKeyPathSpendingSignature != null) {
+          signedTransaction.inputs[i].setTaprootKeyPathSpendingSignature(
+              inputs[i].taprootKeyPathSpendingSignature!);
+          if (signedTransaction.validateTaprootSignature(i, utxoList)) {
+            continue;
+          } else {
+            throw Exception('Invalid Signatures');
+          }
+        }
+      }
     } else {
       throw Exception('Unsupported Address Type');
     }
@@ -560,7 +601,6 @@ class Psbt {
     } else {
       throw Exception("Not supported address type.");
     }
-
     return (vByte * feeRate).ceil();
   }
 }
@@ -571,12 +611,14 @@ class PsbtInput {
   final TransactionOutput? _witnessUtxo;
   final List<DerivationPath> _derivationPathList;
   final List<Signature> _partialSigList;
-  final MultisignatureScript? witnessScript;
+  late String? taprootKeyPathSpendingSignature;
+  late MultisignatureScript? witnessScript;
 
   Transaction? get previousTransaction => _previousTransaction;
   TransactionOutput? get witnessUtxo => _witnessUtxo;
   List<DerivationPath> get derivationPathList => _derivationPathList;
   List<Signature> get partialSigList => _partialSigList;
+
   int get requiredSignature {
     if (witnessScript == null) {
       return 1;
@@ -589,12 +631,16 @@ class PsbtInput {
     return derivationPathList.length;
   }
 
-  PsbtInput(this._previousTransaction, this._witnessUtxo,
+  PsbtInput.forSegwit(this._previousTransaction, this._witnessUtxo,
       this._derivationPathList, this._partialSigList,
-      {this.witnessScript});
+      {this.witnessScript, this.taprootKeyPathSpendingSignature});
 
   addSignature(String signature, String publicKey) {
     _partialSigList.add(Signature(signature, publicKey));
+  }
+
+  addTaprootKeyPathSpendingSignature(String signature) {
+    taprootKeyPathSpendingSignature = signature;
   }
 }
 

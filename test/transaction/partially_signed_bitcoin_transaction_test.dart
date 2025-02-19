@@ -105,6 +105,11 @@ void main() {
         unsignedPsbt = MockFactory.createP2wshUnsignedPsbt();
       });
     });
+    group('addTaprootKeyPathSpendingSignature', () {
+      test('Add signature for tap root key path spending to psbt', () {
+        //TODO: Add tap root add signature test
+      });
+    });
     group('getKeyType', () {
       test('Get key type for psbt', () {
         expect(Psbt.getKeyType(Psbt.inputKeyType, 'WITNESS_UTXO'), '01');

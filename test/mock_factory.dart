@@ -26,14 +26,14 @@ abstract class MockFactory {
     return vault!;
   }
 
-  static SingleSignatureVault createP2trVault(
+  static SingleSignatureVault createP2trKeyPathSpendingVault(
       {TestWalletType testWalletType = TestWalletType.forNormal,
       String passphrase = ''}) {
     SingleSignatureVault? vault;
     if (testWalletType == TestWalletType.forNormal) {
       vault = SingleSignatureVault.fromMnemonic(
           'machine crack daughter fish credit glare raven fever tunnel delay fish record',
-          addressType: AddressType.p2tr,
+          addressType: AddressType.p2trKeyPathSpending,
           passphrase: passphrase);
     } else if (testWalletType == TestWalletType.random) {
       vault = SingleSignatureVault.random();

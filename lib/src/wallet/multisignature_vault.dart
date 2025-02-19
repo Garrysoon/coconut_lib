@@ -52,8 +52,7 @@ class MultisignatureVault extends MultisignatureWalletBase {
 
     return MultisignatureVault.fromKeyStoreList(
         keyStores, descriptor.requiredSignatures,
-        addressType: AddressType.getAddressTypeFromScriptType(
-            "p2${descriptor.scriptType}"));
+        addressType: descriptor.addressType);
   }
 
   void bindSeedToKeyStore(Seed seed, {int accountIndex = 0}) {
@@ -73,7 +72,7 @@ class MultisignatureVault extends MultisignatureWalletBase {
     return jsonEncode({
       "keyStores": keyStoreList.map((e) => e.toJson()).toList(),
       "requiredSignature": requiredSignature,
-      "addressType": addressType.scriptType,
+      "addressTypeName": addressType.name,
       "derivationPath": derivationPath
     });
   }
@@ -88,7 +87,7 @@ class MultisignatureVault extends MultisignatureWalletBase {
     return MultisignatureVault.fromKeyStoreList(
         keyStores, json['requiredSignature'],
         addressType:
-            AddressType.getAddressTypeFromScriptType(json['addressType']),
+            AddressType.getAddressTypeFromName(json['addressTypeName']),
         accountIndex: 0);
   }
 }
