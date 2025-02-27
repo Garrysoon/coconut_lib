@@ -294,8 +294,9 @@ class AddressType {
     return address;
   }
 
-  static String getP2trKeyPathSpendingAddress(String publicKey) {
-    return getTaprootAddress(publicKey, '');
+  //BIP0086
+  static String getP2trKeyPathSpendingAddress(String tweakedPubKey) {
+    return getTaprootAddress(tweakedPubKey);
   }
 
   static String getP2trScriptPathSpendingAddress(
@@ -344,28 +345,15 @@ class AddressType {
 
     Uint8List merkleRoot = _getTapleafHash(0xc0, Encoder.encodeHex(tapscript));
 
-    return getTaprootAddress(internalKey, Encoder.encodeHex(merkleRoot));
+    return getTaprootAddress(internalKey);
   }
 
-  static String getTaprootAddress(String internalKey, String merkleRoot) {
-    Uint8List internalKeyBytes = Encoder.decodeHex(internalKey);
-    Uint8List merkleRootBytes = Encoder.decodeHex(merkleRoot);
-    Uint8List hashTapTweek =
-        Hash.hashTapTweak('TapTweak', internalKeyBytes, merkleRootBytes);
+  static String getTaprootAddress(String tweakedPubKey) {
+    Uint8List tweakedPubKeyBytes = Encoder.decodeHex(tweakedPubKey);
 
-    // print("hashTapTweek: ${Converter.bytesToHex(hashTapTweek)}");
-
-    Uint8List compressedPubKey = Uint8List(33);
-    compressedPubKey[0] = 0x02;
-    compressedPubKey.setRange(1, 33, internalKeyBytes);
-
-    Uint8List tweakPubkey =
-        ecc.pointAddScalar(compressedPubKey, hashTapTweek, true)!.sublist(1);
-
-    // print("tweakPubkey: ${Converter.bytesToHex(tweakPubkey)}");
-
-    var data5Bits =
-        Converter.convertBits(Uint8List.fromList(tweakPubkey), 8, 5, pad: true);
+    var data5Bits = Converter.convertBits(
+        Uint8List.fromList(tweakedPubKeyBytes), 8, 5,
+        pad: true);
 
     bech32m.Bech32mCodec codec = bech32m.Bech32mCodec();
     return codec.encode(bech32m.Bech32m(_getSegwitHrp(), [0x01] + data5Bits));

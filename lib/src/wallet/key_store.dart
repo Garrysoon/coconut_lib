@@ -103,11 +103,20 @@ class KeyStore {
   }
 
   /// Get the private key of the key store using index.
-  String getPrivateKey(int index, {bool isChange = false}) {
+  String getPrivateKey(int index,
+      {bool isChange = false,
+      bool isSchnorr = false,
+      Uint8List? merkleRoot,
+      Uint8List? aggregatedPublicKey}) {
     if (!hasSeed) throw Exception('No private key in this key store');
     HDWallet child = getChildHdWallet(isChange).derive(index);
-    //print("priv : " + Converter.bytesToHex(child.privateKey!.toList()));
-    return child.getMasterPrivateKey();
+    if (isSchnorr) {
+      return Encoder.encodeHex(child.getTweakedPrivateKey(
+          merkleRoot: merkleRoot, aggregatedPublicKey: aggregatedPublicKey));
+    } else {
+      //print("priv : " + Converter.bytesToHex(child.privateKey!.toList()));
+      return child.getMasterPrivateKey();
+    }
   }
 
 //sign.
@@ -149,28 +158,27 @@ class KeyStore {
 
   /// Get the public key of the key store using index.
   String getPublicKey(int addressIndex,
-      {bool isChange = false, isSchnorr = false}) {
+      {bool isChange = false,
+      isSchnorr = false,
+      Uint8List? merkleRoot,
+      Uint8List? aggregatedPublicKey}) {
     HDWallet child = getChildHdWallet(isChange).derive(addressIndex).neutered();
     if (isSchnorr) {
-      return HEX.encode((child.publicKey).sublist(1));
+      return HEX.encode((child.getTweakedPublicKey(
+          merkleRoot: merkleRoot, aggregatedPublicKey: aggregatedPublicKey)));
     } else {
       return HEX.encode((child.publicKey).toList());
     }
   }
 
   /// Get the public key of the key store using derivation path.
-  String getPublicKeyWithDerivationPath(String path, {isSchnorr = false}) {
-    List<String> pathList = path.split('/');
-    int index = int.parse(pathList.last);
-    int changeIndex = int.parse(pathList[pathList.length - 2]);
-    HDWallet child =
-        getChildHdWallet(changeIndex == 1).derive(index).neutered();
-    if (isSchnorr) {
-      return HEX.encode((child.publicKey).sublist(1));
-    } else {
-      return HEX.encode((child.publicKey).toList());
-    }
-  }
+  // String getPublicKeyWithDerivationPath(String path, {isSchnorr = false}) {
+  //   List<String> pathList = path.split('/');
+  //   int index = int.parse(pathList.last);
+  //   int changeIndex = int.parse(pathList[pathList.length - 2]);
+  //   return getPublicKey(index,
+  //       isChange: changeIndex == 1, isSchnorr: isSchnorr);
+  // }
 
   /// Validate the signatured from this key store.
   bool validateSignature(String signature, String message, int addressIndex,
@@ -191,7 +199,7 @@ class KeyStore {
 
       return child.verify(msg, rs);
     } else {
-      return child.verify(msg, sig);
+      return child.verify(msg, sig, isShnorr: isSchnorr);
     }
   }
 
@@ -215,8 +223,8 @@ class KeyStore {
         if (thisInput.derivationPathList[j].masterFingerprint ==
                 masterFingerprint &&
             thisInput.derivationPathList[j].publicKey ==
-                getPublicKeyWithDerivationPath(
-                    thisInput.derivationPathList[j].path)) {
+                getPublicKey(thisInput.derivationPathList[j].accountIndex,
+                    isChange: thisInput.derivationPathList[j].isChange)) {
           return true;
         }
       }
@@ -249,22 +257,21 @@ class KeyStore {
       // Generate sig hash
       String sigHash;
       if (isSchnorr) {
-        List<String> utxoScriptPubKeys = [];
+        List<TransactionOutput> utxoList = [];
         for (int i = 0;
             i < psbtObject.unsignedTransaction!.inputs.length;
             i++) {
-          utxoScriptPubKeys.add(psbtObject.inputs[i].witnessUtxo!.serialize());
+          utxoList.add(psbtObject.inputs[i].witnessUtxo!);
         }
-        sigHash = psbtObject.unsignedTransaction!
-            .getTaprootSigHash(i, utxoScriptPubKeys);
+        sigHash =
+            psbtObject.unsignedTransaction!.getTaprootSigHash(i, utxoList);
       } else {
-        String utxo = '';
+        TransactionOutput utxo;
         if (thisInput.witnessUtxo == null) {
           utxo = thisInput.previousTransaction!
-              .outputs[psbtObject.unsignedTransaction!.inputs[i].index]
-              .serialize();
+              .outputs[psbtObject.unsignedTransaction!.inputs[i].index];
         } else {
-          utxo = thisInput.witnessUtxo!.serialize();
+          utxo = thisInput.witnessUtxo!;
         }
         if (addressType == AddressType.p2wsh) {
           String? witnessScript = thisInput.witnessScript!.rawSerialize();
@@ -282,15 +289,20 @@ class KeyStore {
             masterFingerprint) {
           continue;
         }
-        String publicKey = getPublicKeyWithDerivationPath(
-            thisInput.derivationPathList[j].path,
+        String publicKey = getPublicKey(
+            thisInput.derivationPathList[j].accountIndex,
+            isChange: thisInput.derivationPathList[j].isChange,
             isSchnorr: isSchnorr);
         String signature = signWithDerivationPath(
             sigHash, thisInput.derivationPathList[j].path,
             isSchnorr: isSchnorr);
-        if (validateSignatureWithDerivationPath(
+
+        // Validate signature
+        if (!validateSignatureWithDerivationPath(
             signature, sigHash, thisInput.derivationPathList[j].path,
-            isSchnorr: isSchnorr)) {}
+            isSchnorr: isSchnorr)) {
+          throw Exception('Invalid signature');
+        }
         if (addressType == AddressType.p2trKeyPathSpending ||
             addressType == AddressType.p2trMusig2) {
           psbtObject.addTaprootSignature(i, signature);

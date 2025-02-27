@@ -31,6 +31,16 @@ class Utxo {
   /// Get the derivation path of the UTXO.
   String get derivationPath => _derivationPath;
 
+  // Get account index from derivation path.
+  int get accountIndex {
+    return WalletUtility.getAccountIndexFromDerivationPath(_derivationPath);
+  }
+
+  // Is this UTXO is a change output.
+  bool get isChange {
+    return WalletUtility.isChangeFromDerivationPath(_derivationPath);
+  }
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;

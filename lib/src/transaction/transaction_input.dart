@@ -123,7 +123,7 @@ class TransactionInput {
   }
 
   void setTaprootKeyPathSpendingSignature(String signature) {
-    witnessList.add(signature);
+    witnessList = [signature];
   }
 
   /// Check if the transaction input has signature.

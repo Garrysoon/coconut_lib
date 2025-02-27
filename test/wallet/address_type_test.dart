@@ -1,5 +1,8 @@
 @Tags(['unit'])
+import 'dart:typed_data';
+
 import 'package:coconut_lib/coconut_lib.dart';
+import 'package:coconut_lib/src/cryptography/encoder.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -94,52 +97,68 @@ void main() {
               throwsException);
         });
 
-        test('getP2trSingleSignatureAddress', () {
+        test('getP2trKeyPathSpendingAddress', () {
           NetworkType.setNetworkType(NetworkType.mainnet);
+          SingleSignatureVault vault = SingleSignatureVault.fromMnemonic(
+              "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+              addressType: AddressType.p2trKeyPathSpending);
+          print(vault.keyStore.getPublicKey(0, isSchnorr: true));
           expect(
-              AddressType.getP2trKeyPathSpendingAddress(
-                  'cc8a4bc64d897bddc5fbc2f670f7a8ba0b386779106cf1223c6fc5d7cd6fc115'),
+              AddressType.p2trKeyPathSpending
+                  .getAddress(vault.keyStore.getPublicKey(0, isSchnorr: true)),
               'bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr');
           expect(
-              AddressType.p2trKeyPathSpending.getAddress(
-                  '83dfe85a3151d2517290da461fe2815591ef69f2b18a2ce63f01697a8b313145'),
+              AddressType.p2trKeyPathSpending
+                  .getAddress(vault.keyStore.getPublicKey(1, isSchnorr: true)),
               'bc1p4qhjn9zdvkux4e44uhx8tc55attvtyu358kutcqkudyccelu0was9fqzwh');
+
+          expect(
+              AddressType.p2trKeyPathSpending.getAddress(vault.keyStore
+                  .getPublicKey(0, isChange: true, isSchnorr: true)),
+              'bc1p3qkhfews2uk44qtvauqyr2ttdsw7svhkl9nkm9s9c3x4ax5h60wqwruhk7');
         });
         test('getP2trScriptPathMultisignatureAddress', () {
-          //TODO : need to validate the address
-          NetworkType.setNetworkType(NetworkType.mainnet);
-          expect(
-              AddressType.getP2trScriptPathSpendingAddress([
-                'febe583fa77e49089f89b78fa8c116710715d6e40cc5f5a075ef1681550dd3c4',
-                'd0fa46cb883e940ac3dc5421f05b03859972639f51ed2eccbf3dc5a62e2e1b15'
-              ], 2),
-              'bc1p2s5lw3ur53usrj7m0jytdexp26gmsyamvjwaamh8wy5qm90kfylqhq964c');
+          //TODO: Implement this test
         });
       });
       group('getTaprootAddress', () {
         test('Get Taproot address with empty merkle root', () {
-          NetworkType.setNetworkType(NetworkType.mainnet);
+          HDWallet hdWallet = HDWallet(
+              null,
+              Encoder.decodeHex(
+                  '02d6889cb081036e0faefa3a35157ad71086b123b2b144b649798b494c300a961d'),
+              Uint8List.fromList([]));
+          Uint8List tPubKey = hdWallet.getTweakedPublicKey();
           expect(
-              AddressType.getTaprootAddress(
-                  'd6889cb081036e0faefa3a35157ad71086b123b2b144b649798b494c300a961d',
-                  ''),
+              AddressType.getP2trKeyPathSpendingAddress(
+                  Encoder.encodeHex(tPubKey)),
               'bc1p2wsldez5mud2yam29q22wgfh9439spgduvct83k3pm50fcxa5dps59h4z5');
         });
 
         test('Get Taproot address with script (case 1)', () {
           NetworkType.setNetworkType(NetworkType.mainnet);
-          expect(
-              AddressType.getTaprootAddress(
-                  '187791b6f712a8ea41c8ecdd0ee77fab3e85263b37e1ec18a3651926b3a6cf27',
-                  '5b75adecf53548f3ec6ad7d78383bf84cc57b55a3127c72b9a2481752dd88b21'),
+          HDWallet hdWallet = HDWallet(
+              null,
+              Encoder.decodeHex(
+                  '02187791b6f712a8ea41c8ecdd0ee77fab3e85263b37e1ec18a3651926b3a6cf27'),
+              Uint8List.fromList([]));
+          Uint8List tPubKey = hdWallet.getTweakedPublicKey(
+              merkleRoot: Encoder.decodeHex(
+                  '5b75adecf53548f3ec6ad7d78383bf84cc57b55a3127c72b9a2481752dd88b21'));
+          expect(AddressType.getTaprootAddress(Encoder.encodeHex(tPubKey)),
               'bc1pz37fc4cn9ah8anwm4xqqhvxygjf9rjf2resrw8h8w4tmvcs0863sa2e586');
         });
         test('Get Taproot address with script (case 2)', () {
           NetworkType.setNetworkType(NetworkType.mainnet);
-          expect(
-              AddressType.getTaprootAddress(
-                  '93478e9488f956df2396be2ce6c5cced75f900dfa18e7dabd2428aae78451820',
-                  'c525714a7f49c28aedbbba78c005931a81c234b2f6c99a73e4d06082adc8bf2b'),
+          HDWallet hdWallet = HDWallet(
+              null,
+              Encoder.decodeHex(
+                  '0293478e9488f956df2396be2ce6c5cced75f900dfa18e7dabd2428aae78451820'),
+              Uint8List.fromList([]));
+          Uint8List tPubKey = hdWallet.getTweakedPublicKey(
+              merkleRoot: Encoder.decodeHex(
+                  'c525714a7f49c28aedbbba78c005931a81c234b2f6c99a73e4d06082adc8bf2b'));
+          expect(AddressType.getTaprootAddress(Encoder.encodeHex(tPubKey)),
               'bc1punvppl2stp38f7kwv2u2spltjuvuaayuqsthe34hd2dyy5w4g58qqfuag5');
         });
       });

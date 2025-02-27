@@ -115,7 +115,7 @@ void main() {
       });
 
       test('Invalid: Too short (32 bytes)', () {
-        Uint8List shortKey = Uint8List.fromList(List.filled(32, 0x01));
+        Uint8List shortKey = Uint8List.fromList(List.filled(31, 0x01));
         expect(isPoint(shortKey), isFalse);
       });
 
@@ -127,7 +127,7 @@ void main() {
 
       test('Invalid: Compressed key but length is wrong', () {
         Uint8List wrongLengthKey =
-            Uint8List.fromList([0x02] + List.filled(31, 0x01));
+            Uint8List.fromList([0x02] + List.filled(30, 0x01));
         expect(isPoint(wrongLengthKey), isFalse);
       });
 
@@ -262,7 +262,7 @@ void main() {
       });
 
       test('Invalid: Non-point input should throw ArgumentError', () {
-        Uint8List invalidPoint = Uint8List.fromList(List.filled(32, 0x01));
+        Uint8List invalidPoint = Uint8List.fromList(List.filled(31, 0x01));
         Uint8List tweak = bigIntToUint8List(BigInt.from(5));
         expect(() => pointAddScalar(invalidPoint, tweak, true),
             throwsArgumentError);
@@ -377,12 +377,42 @@ void main() {
 
         expect(() => sign(hash, tooLargePrivateKey), throwsArgumentError);
       });
-    });
-    group('signSchnorr', () {
-      test('Get shnorr signature', () {
-        //TODO: implement test
+
+      test('Sign schnorr signature (case 1)', () {
+        Uint8List hash = Encoder.decodeHex(
+            '7E2D58D8B3BCDF1ABADEC7829054F90DDA9805AAB56C77333024B9D0A508B75C');
+        Uint8List privateKey = Encoder.decodeHex(
+            'C90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B14E5C9');
+        Uint8List auxRand = Encoder.decodeHex(
+            'C87AA53824B4D7AE2EB035A2B5BBBCCC080E76CDC6D1692C4B0B62D798E6D906');
+
+        String signature =
+            '5831aaeed7b44bb74e5eab94ba9d4294c49bcf2a60728d8b4c200f50dd313c1bab745879a5ad954a72c45a91c3a51d3c7adea98d82f8481e0e1e03674a6f3fb7';
+
+        expect(
+            Encoder.encodeHex(
+                sign(hash, privateKey, isSchnorr: true, auxRand: auxRand)),
+            signature);
+      });
+
+      test('Sign schnorr signature (case 2)', () {
+        Uint8List hash = Encoder.decodeHex(
+            '243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89');
+        Uint8List privateKey = Encoder.decodeHex(
+            'B7E151628AED2A6ABF7158809CF4F3C762E7160F38B4DA56A784D9045190CFEF');
+        Uint8List auxRand = Encoder.decodeHex(
+            '0000000000000000000000000000000000000000000000000000000000000001');
+
+        String signature =
+            '6896bd60eeae296db48a229ff71dfe071bde413e6d43f917dc8dcf8c78de33418906d11ac976abccb20b091292bff4ea897efcb639ea871cfa95f6de339e4b0a';
+
+        expect(
+            Encoder.encodeHex(
+                sign(hash, privateKey, isSchnorr: true, auxRand: auxRand)),
+            signature);
       });
     });
+
     group('verify', () {
       test('Valid hash, public key, and signature', () {
         Uint8List hash = Encoder.decodeHex(
@@ -459,6 +489,29 @@ void main() {
         expect(
             verify(Uint8List.fromList(hash), q, Uint8List.fromList(signature)),
             isFalse);
+      });
+
+      test('Verify schnorr signature', () {
+        Uint8List hash = Encoder.decodeHex(
+            '7E2D58D8B3BCDF1ABADEC7829054F90DDA9805AAB56C77333024B9D0A508B75C');
+        Uint8List publicKey = Encoder.decodeHex(
+            'DD308AFEC5777E13121FA72B9CC1B7CC0139715309B086C960E18FD969774EB8');
+        Uint8List signature = Encoder.decodeHex(
+            '5831AAEED7B44BB74E5EAB94BA9D4294C49BCF2A60728D8B4C200F50DD313C1BAB745879A5AD954A72C45A91C3A51D3C7ADEA98D82F8481E0E1E03674A6F3FB7');
+
+        expect(verify(hash, publicKey, signature, isSchnorr: true, parity: 0),
+            isTrue);
+      });
+      test('Verify schnorr signature (Case 2)', () {
+        Uint8List hash = Encoder.decodeHex(
+            '0d1079255571a05a742a22b0e544bd3888dd7e91ce04b5595167c6cda6e72927');
+        Uint8List publicKey = Encoder.decodeHex(
+            '45b451a396cbf8c3c94f8e9e871401bdbd4f38e8cf238165cb198d15c5093743');
+        Uint8List signature = Encoder.decodeHex(
+            '271500428ba10d1a3193eae8cd502071e65ee028bae9480dca50bb845be2e74523bcac026dabeabf808d734995a0b8eae73546a6588201444d729fd7ae1f5589');
+
+        expect(verify(hash, publicKey, signature, isSchnorr: true, parity: 0),
+            isTrue);
       });
     });
   });

@@ -162,39 +162,66 @@ class HDWallet {
   }
 
   /// @nodoc
-  Uint8List sign(Uint8List hash, {isShnorr = false}) {
+  Uint8List sign(Uint8List hash, {isShnorr = false, Uint8List? auxRand}) {
     if (isShnorr) {
-      return ecc.sign(hash, getTweakPrivateKey(Uint8List.fromList([])),
-          isSchnorr: isShnorr);
+      return ecc.sign(hash, getTweakedPrivateKey(),
+          isSchnorr: isShnorr, auxRand: auxRand);
     } else {
       return ecc.sign(hash, privateKey!, isSchnorr: isShnorr);
     }
   }
 
-  /// Returns the tweaked private key for Taproot/MuSig2.
-  Uint8List getTweakPrivateKey(Uint8List merkleRoot,
-      {Uint8List? aggregatedPublicKey}) {
+  // Returns the tweaked private key for Taproot/MuSig2.
+  Uint8List getTweakedPrivateKey(
+      {Uint8List? merkleRoot, Uint8List? aggregatedPublicKey}) {
     if (privateKey == null) {
       throw Exception("HDWallet: Private key is not available.");
     }
-    Uint8List keyToTweak = aggregatedPublicKey ?? publicKey;
+    merkleRoot ??= Uint8List(0);
+    Uint8List keyToTweak = aggregatedPublicKey ?? publicKey.sublist(1);
     Uint8List hashTapTweak =
         Hash.hashTapTweak('TapTweak', keyToTweak, merkleRoot);
-    return ecc.privateAdd(privateKey!, hashTapTweak)!;
+
+    Uint8List? evenPrivateKey = privateKey;
+
+    if (publicKey[0] == 0x03) {
+      evenPrivateKey = ecc.privateNegate(privateKey!)!;
+    }
+
+    Uint8List tweakedPrivateKey =
+        ecc.privateAdd(evenPrivateKey!, hashTapTweak)!;
+
+    return tweakedPrivateKey;
   }
 
-  /// Returns the tweaked public key for Taproot/MuSig2.
-  Uint8List getTweakPublicKey(Uint8List merkleRoot,
-      {Uint8List? aggregatedPublicKey}) {
-    Uint8List keyToTweak = aggregatedPublicKey ?? publicKey;
+  Uint8List getTweakedPublicKey(
+      {Uint8List? merkleRoot, Uint8List? aggregatedPublicKey}) {
+    Uint8List keyToTweak = aggregatedPublicKey ?? publicKey.sublist(1);
+    merkleRoot ??= Uint8List(0);
+
     Uint8List hashTapTweak =
         Hash.hashTapTweak('TapTweak', keyToTweak, merkleRoot);
-    return ecc.pointAddScalar(keyToTweak, hashTapTweak, true)!;
+
+    Uint8List evenPublicKey = publicKey;
+    if (publicKey[0] == 0x03) {
+      evenPublicKey = ecc.pointNegate(publicKey)!.sublist(1);
+    }
+    Uint8List tweakedPubKey =
+        ecc.pointAddScalar(evenPublicKey, hashTapTweak, true)!;
+    return tweakedPubKey.sublist(1);
   }
 
   /// @nodoc
-  verify(Uint8List hash, Uint8List signature) {
-    return ecc.verify(hash, publicKey, signature);
+  verify(Uint8List hash, Uint8List signature, {bool isShnorr = false}) {
+    if (isShnorr) {
+      Uint8List tweakedPublicKey = getTweakedPublicKey();
+      return ecc.verify(hash, tweakedPublicKey, signature,
+              isSchnorr: true, parity: 0) ||
+          ecc.verify(hash, tweakedPublicKey, signature,
+              isSchnorr: true, parity: 1);
+    } else {
+      return ecc.verify(hash, publicKey, signature);
+    }
   }
 
   /// @nodoc

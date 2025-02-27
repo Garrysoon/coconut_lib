@@ -70,20 +70,126 @@ void main() {
       });
     });
     group('sign', () {
-      test('Get signature', () {
+      test('Get signature with ecdsa', () {
         String hex = Hash.sha256("Message");
         expect(Encoder.encodeHex(hdWallet.sign(Encoder.decodeHex(hex))),
             'ea10cba17d4603d90deeb5bee645ac362d2e88da75aff555a66db12df132939b73c0e4d7e78ae921fc3e929cec58b70fed71166618bea91c81c64df652dac028');
       });
-    });
-    group('getTweakPrivateKey', () {
-      test('Get tweak private key', () {
-        //TODO: implement test
+      test('Get signature with schnorr', () {
+        //secret key = 'C90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B14E5C9'
+        //public key = 'DD308AFEC5777E13121FA72B9CC1B7CC0139715309B086C960E18FD969774EB8'
+        //random = 'C87AA53824B4D7AE2EB035A2B5BBBCCC080E76CDC6D1692C4B0B62D798E6D906'
+        //message = '7E2D58D8B3BCDF1ABADEC7829054F90DDA9805AAB56C77333024B9D0A508B75C'
+        //signature = '5831AAEED7B44BB74E5EAB94BA9D4294C49BCF2A60728D8B4C200F50DD313C1BAB745879A5AD954A72C45A91C3A51D3C7ADEA98D82F8481E0E1E03674A6F3FB7'
+        Uint8List internalPrivateKey = Encoder.decodeHex(
+            'C90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B14E5C9');
+        Uint8List hash = Encoder.decodeHex(
+            '7E2D58D8B3BCDF1ABADEC7829054F90DDA9805AAB56C77333024B9D0A508B75C');
+        Uint8List rand = Encoder.decodeHex(
+            'C87AA53824B4D7AE2EB035A2B5BBBCCC080E76CDC6D1692C4B0B62D798E6D906');
+        HDWallet hdWallet =
+            HDWallet(internalPrivateKey, null, Uint8List.fromList([]));
+        // print(Encoder.encodeHex(hdWallet.publicKey));
+        Uint8List signature =
+            hdWallet.sign(hash, isShnorr: true, auxRand: rand);
+        print(Encoder.encodeHex(signature));
+      });
+      test('Get signature with schnorr (case 2 : negate)', () {
+        //secret key = '0B432B2677937381AEF05BB02A66ECD012773062CF3FA2549E44F58ED2401710'
+        //public key = '25D1DFF95105F5253C4022F628A996AD3A0D95FBF21D468A1B33F8C160D8F517' //odd public key
+        //random = 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'
+        //message = 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'
+        //signature = '7EB0509757E246F19449885651611CB965ECC1A187DD51B64FDA1EDC9637D5EC97582B9CB13DB3933705B32BA982AF5AF25FD78881EBB32771FC5922EFC66EA3'
+
+        Uint8List internalPrivateKey = Encoder.decodeHex(
+            '0B432B2677937381AEF05BB02A66ECD012773062CF3FA2549E44F58ED2401710');
+        Uint8List hash = Encoder.decodeHex(
+            'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+        Uint8List rand = Encoder.decodeHex(
+            'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+        HDWallet hdWallet =
+            HDWallet(internalPrivateKey, null, Uint8List.fromList([]));
+        Uint8List signature =
+            hdWallet.sign(hash, isShnorr: true, auxRand: rand);
+        print(Encoder.encodeHex(signature));
       });
     });
-    group('getTweakPublicKey', () {
-      test('Get tweak public key', () {
-        //TODO: implement test
+    group('getTweakedPrivateKey', () {
+      test('Get tweak private key (case 1 : only private key)', () {
+        Uint8List matcherTweakPrivateKey = Encoder.decodeHex(
+            '2405b971772ad26915c8dcdf10f238753a9b837e5f8e6a86fd7c0cce5b7296d9');
+        Uint8List internalPrivKey = Encoder.decodeHex(
+            '6b973d88838f27366ed61c9ad6367663045cb456e28335c109e30717ae0c6baa');
+        HDWallet hdWallet =
+            HDWallet(internalPrivKey, null, Uint8List.fromList([]));
+        expect(hdWallet.getTweakedPrivateKey(), matcherTweakPrivateKey);
+      });
+      test('Get tweak private key (case 2 : with merkle root)', () {
+        Uint8List matcherTweakPrivateKey = Encoder.decodeHex(
+            'ea260c3b10e60f6de018455cd0278f2f5b7e454be1999572789e6a9565d26080');
+        Uint8List internalPrivKey = Encoder.decodeHex(
+            '1e4da49f6aaf4e5cd175fe08a32bb5cb4863d963921255f33d3bc31e1343907f');
+        Uint8List merkelRoot = Encoder.decodeHex(
+            '5b75adecf53548f3ec6ad7d78383bf84cc57b55a3127c72b9a2481752dd88b21');
+        HDWallet hdWallet =
+            HDWallet(internalPrivKey, null, Uint8List.fromList([]));
+        expect(hdWallet.getTweakedPrivateKey(merkleRoot: merkelRoot),
+            matcherTweakPrivateKey);
+      });
+      test('Get tweak private key (case 3 : negate)', () {
+        Uint8List internalPrivKey = Encoder.decodeHex(
+            'd3c7af07da2d54f7a7735d3d0fc4f0a73164db638b2f2f7c43f711f6d4aa7e64');
+        Uint8List merkelRoot = Encoder.decodeHex(
+            'c525714a7f49c28aedbbba78c005931a81c234b2f6c99a73e4d06082adc8bf2b');
+        HDWallet hdWallet =
+            HDWallet(internalPrivKey, null, Uint8List.fromList([]));
+        Uint8List matcherTweakPrivateKey = Encoder.decodeHex(
+            '97323385e57015b75b0339a549c56a948eb961555973f0951f555ae6039ef00d');
+        Uint8List targetTweakPrivateKey =
+            hdWallet.getTweakedPrivateKey(merkleRoot: merkelRoot);
+        expect(targetTweakPrivateKey, matcherTweakPrivateKey);
+      });
+      test('Get tweak private key (case 4)', () {
+        Uint8List matcherTweakPrivateKey = Encoder.decodeHex(
+            'a8e7aa924f0d58854185a490e6c41f6efb7b675c0f3331b7f14b549400b4d501');
+        Uint8List internalPrivKey = Encoder.decodeHex(
+            'f36bb07a11e469ce941d16b63b11b9b9120a84d9d87cff2c84a8d4affb438f4e');
+        Uint8List merkelRoot = Encoder.decodeHex(
+            'ccbd66c6f7e8fdab47b3a486f59d28262be857f30d4773f2d5ea47f7761ce0e2');
+        HDWallet hdWallet =
+            HDWallet(internalPrivKey, null, Uint8List.fromList([]));
+        expect(hdWallet.getTweakedPrivateKey(merkleRoot: merkelRoot),
+            matcherTweakPrivateKey);
+      });
+    });
+    group('getTweakedPublicKey', () {
+      //Test vector from : https://github.com/bitcoin/bips/blob/master/bip-0341/wallet-test-vectors.json
+      test('Get tweak public key (case 1 : normal)', () {
+        String internalPubKey =
+            '02d6889cb081036e0faefa3a35157ad71086b123b2b144b649798b494c300a961d';
+        String matcherTweakPublicKey =
+            '53a1f6e454df1aa2776a2814a721372d6258050de330b3c6d10ee8f4e0dda343';
+
+        HDWallet hdWallet = HDWallet(
+            null, Encoder.decodeHex(internalPubKey), Uint8List.fromList([]));
+        expect(hdWallet.getTweakedPublicKey(),
+            Encoder.decodeHex(matcherTweakPublicKey));
+      });
+      test('Get tweak public key (case 2 : negate & merkleRoot)', () {
+        String internalPubKey =
+            '0393478e9488f956df2396be2ce6c5cced75f900dfa18e7dabd2428aae78451820';
+        String matcherTweakPublicKey =
+            'e4d810fd50586274face62b8a807eb9719cef49c04177cc6b76a9a4251d5450e';
+        String merkelRoot =
+            'c525714a7f49c28aedbbba78c005931a81c234b2f6c99a73e4d06082adc8bf2b';
+
+        HDWallet hdWallet = HDWallet(
+            null, Encoder.decodeHex(internalPubKey), Uint8List.fromList([]));
+
+        expect(
+            hdWallet.getTweakedPublicKey(
+                merkleRoot: Encoder.decodeHex(merkelRoot)),
+            Encoder.decodeHex(matcherTweakPublicKey));
       });
     });
     group('verify', () {

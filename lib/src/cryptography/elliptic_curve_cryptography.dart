@@ -1,9 +1,6 @@
 // ignore_for_file: non_constant_identifier_names, constant_identifier_names
 
-import 'dart:ffi';
-import 'dart:math';
 import 'dart:typed_data';
-import 'package:coconut_lib/coconut_lib.dart';
 import 'package:coconut_lib/src/cryptography/encoder.dart';
 import 'package:coconut_lib/src/cryptography/hash.dart';
 import 'package:hex/hex.dart';
@@ -38,6 +35,9 @@ bool isPrivate(Uint8List x) {
 }
 
 bool isPoint(Uint8List p) {
+  if (p.length == 32) {
+    return _compare(p, ZERO32) != 0 && _compare(p, EC_P as Uint8List) < 0;
+  }
   if (p.length < 33) {
     return false;
   }
@@ -110,16 +110,40 @@ Uint8List? pointFromScalar(Uint8List d, bool compressed) {
 Uint8List? pointAddScalar(Uint8List p, Uint8List tweak, bool isCompressed) {
   if (!isPoint(p)) throw ArgumentError(THROW_BAD_POINT);
   if (!isOrderScalar(tweak)) throw ArgumentError(THROW_BAD_TWEAK);
-  bool compressed = assumeCompression(isCompressed, p);
-  ECPoint? pp = decodeFrom(p);
-  if (_compare(tweak, ZERO32) == 0) return getEncoded(pp, compressed);
-  BigInt tt = fromBuffer(tweak);
-  ECPoint qq = (G * tt) as ECPoint;
-  ECPoint uu = (pp! + qq) as ECPoint;
-  if (uu.isInfinity) return null;
-  Uint8List encoded = getEncoded(uu, compressed);
 
+  Uint8List adjustedP = (p.length == 32) ? Uint8List.fromList([0x02, ...p]) : p;
+  bool compressed = assumeCompression(isCompressed, adjustedP);
+
+  ECPoint? pp = decodeFrom(adjustedP);
+  if (pp == null || pp.isInfinity) throw ArgumentError("Invalid public key");
+
+  BigInt tt = fromBuffer(tweak);
+  if (tt == BigInt.zero) return getEncoded(pp, compressed);
+
+  ECPoint qq = (G * tt)!;
+  ECPoint uu = (pp + qq)!;
+  if (uu.isInfinity) return null;
+
+  Uint8List encoded = getEncoded(uu, compressed);
   return encoded;
+}
+
+Uint8List? pointNegate(Uint8List p) {
+  if (!isPoint(p)) throw ArgumentError(THROW_BAD_POINT);
+
+  BigInt order = fromBuffer(EC_GROUP_ORDER as Uint8List);
+
+  ECPoint? P = decodeFrom(p);
+  if (P == null || P.isInfinity) return null;
+
+  BigInt? x = P.x!.toBigInteger();
+  BigInt? y = P.y!.toBigInteger();
+  BigInt negY = (order - y!) % order;
+
+  ECPoint negP = secp256k1.curve.createPoint(x!, negY);
+
+  bool compressed = _isPointCompressed(p);
+  return getEncoded(negP, compressed);
 }
 
 Uint8List? privateAdd(Uint8List d, Uint8List tweak) {
@@ -138,9 +162,25 @@ Uint8List? privateAdd(Uint8List d, Uint8List tweak) {
   return dt;
 }
 
-Uint8List sign(Uint8List hash, Uint8List x, {isSchnorr = false}) {
+Uint8List? privateNegate(Uint8List d) {
+  if (!isOrderScalar(d)) throw ArgumentError(THROW_BAD_TWEAK);
+  BigInt dd = fromBuffer(EC_GROUP_ORDER as Uint8List);
+  BigInt tt = fromBuffer(d);
+  Uint8List dt = toBuffer((dd - tt) % n);
+
+  if (dt.length < 32) {
+    Uint8List padLeadingZero = Uint8List(32 - dt.length);
+    dt = Uint8List.fromList(padLeadingZero + dt);
+  }
+
+  if (!isPrivate(dt)) return null;
+  return dt;
+}
+
+Uint8List sign(Uint8List hash, Uint8List x,
+    {isSchnorr = false, Uint8List? auxRand}) {
   if (isSchnorr) {
-    return _signSchnorr(hash, x);
+    return _signSchnorr(hash, x, auxRand: auxRand);
   } else {
     return _signECDSA(hash, x);
   }
@@ -162,53 +202,120 @@ Uint8List _signECDSA(Uint8List hash, Uint8List x) {
   return buffer;
 }
 
-Uint8List _signSchnorr(Uint8List hash, Uint8List x) {
-  if (!isPrivate(x)) throw ArgumentError(THROW_BAD_PRIVATE);
-
-  //generate random K
-  final random = Random.secure();
-  Uint8List bytes = Uint8List(32);
-  for (int i = 0; i < 32; i++) {
-    bytes[i] = random.nextInt(256);
+//
+Uint8List _signSchnorr(Uint8List msg, Uint8List seckey, {Uint8List? auxRand}) {
+  if (!isPrivate(seckey)) throw ArgumentError(THROW_BAD_PRIVATE);
+  if (msg.length != 32) throw ArgumentError("Message must be 32 bytes");
+  if (auxRand != null && auxRand.length != 32) {
+    throw ArgumentError("auxRand must be 32 bytes");
   }
-  BigInt k = BigInt.parse(
-          bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(),
-          radix: 16) %
-      n;
-  // ECPoint R = G * k;
-  Uint8List? rX =
-      pointFromScalar(Encoder.decodeHex(Converter.bigDecToHex(k)), true)!
-          .sublist(1);
 
-  Uint8List? pubKeyX = pointFromScalar(x, true)!.sublist(1);
+  BigInt d0 = fromBuffer(seckey);
+  if (d0 <= BigInt.zero || d0 >= n) {
+    throw ArgumentError("Secret key out of range");
+  }
+
+  ECPoint? P = G * d0;
+  if (P == null || P.isInfinity) {
+    throw Exception("Failed to derive public key.");
+  }
+
+  Uint8List P_x = getEncoded(P, false).sublist(1, 33);
+
+  Uint8List aux = auxRand ?? Uint8List(32);
+  Uint8List t = Uint8List(32);
+  Uint8List hashAux = Encoder.decodeHex(Hash.taggedHash("BIP0340/aux", aux));
+  Uint8List dBytes = toBuffer(d0);
+  for (int i = 0; i < 32; i++) {
+    t[i] = dBytes[i] ^ hashAux[i];
+  }
+
+  Uint8List k0Bytes = Encoder.decodeHex(Hash.taggedHash(
+      "BIP0340/nonce", Uint8List.fromList([...t, ...P_x, ...msg])));
+  BigInt k0 = fromBuffer(k0Bytes) % n;
+  if (k0 == BigInt.zero) {
+    throw Exception("Failure. This happens only with negligible probability.");
+  }
+
+  ECPoint? R = G * k0;
+  if (R == null || R.isInfinity) throw Exception("Failed to generate R point.");
+
+  Uint8List R_x = getEncoded(R, false).sublist(1, 33);
 
   Uint8List eBytes = Encoder.decodeHex(Hash.taggedHash(
-      "BIP0340", Uint8List.fromList([...rX, ...pubKeyX, ...hash])));
-  BigInt e =
-      BigInt.parse(eBytes.map((b) => b.toRadixString(16)).join(), radix: 16) %
-          n;
+      "BIP0340/challenge", Uint8List.fromList([...R_x, ...P_x, ...msg])));
+  BigInt e = fromBuffer(eBytes) % n;
 
-  BigInt s = (k + e * Converter.hexToBigDec(Encoder.encodeHex(x))) % n;
+  BigInt s = (k0 + e * d0) % n;
 
-  List<int> sByte = s.toRadixString(16).padLeft(64, '0').codeUnits;
+  Uint8List sBytes = toBuffer(s);
+  if (sBytes.length < 32) {
+    Uint8List paddedS = Uint8List(32);
+    paddedS.setAll(32 - sBytes.length, sBytes);
+    sBytes = paddedS;
+  } else if (sBytes.length > 32) {
+    throw Exception("s value is too large!");
+  }
 
-  Uint8List signature = Uint8List.fromList([...rX, ...sByte]);
+  Uint8List signature = Uint8List.fromList([...R_x, ...sBytes]);
+
+  // print("Signature: ${Encoder.encodeHex(signature)}");
+  // print("Public Key: ${Encoder.encodeHex(getEncoded(P, true))}");
+  // print("Message: ${Encoder.encodeHex(msg)}");
+
+  if (!verify(msg, getEncoded(P, true).sublist(1), signature,
+          isSchnorr: true, parity: 0) &&
+      !verify(msg, getEncoded(P, true).sublist(1), signature,
+          isSchnorr: true, parity: 1)) {
+    throw Exception("The created signature does not pass verification.");
+  }
+
   return signature;
 }
 
-bool verify(Uint8List hash, Uint8List q, Uint8List signature) {
-  if (!isScalar(hash)) throw ArgumentError(THROW_BAD_HASH);
+bool verify(Uint8List msg, Uint8List q, Uint8List signature,
+    {bool isSchnorr = false, int? parity}) {
+  if (!isScalar(msg)) throw ArgumentError(THROW_BAD_HASH);
   if (!isPoint(q)) throw ArgumentError(THROW_BAD_POINT);
-  // 1.4.1 Enforce r and s are both integers in the interval [1, n − 1] (1, isSignature enforces '< n - 1')
   if (!isSignature(signature)) throw ArgumentError(THROW_BAD_SIGNATURE);
 
-  ECPoint? Q = decodeFrom(q);
-  BigInt r = fromBuffer(signature.sublist(0, 32));
-  BigInt s = fromBuffer(signature.sublist(32, 64));
+  if (isSchnorr) {
+    if (parity == null) {
+      throw ArgumentError(
+          "parity must be provided for schnorr signature verification");
+    }
+    Uint8List R_x = signature.sublist(0, 32);
+    Uint8List sBytes = signature.sublist(32, 64);
+    BigInt s = fromBuffer(sBytes);
+    if (s >= n) return false;
 
-  final signer = ECDSASigner(null, HMac(SHA256Digest(), 64));
-  signer.init(false, PublicKeyParameter(ECPublicKey(Q, secp256k1)));
-  return signer.verifySignature(hash, ECSignature(r, s));
+    Uint8List pubkeyWithPrefix = Uint8List.fromList([0x02, ...q]);
+    if (parity == 1) {
+      pubkeyWithPrefix = Uint8List.fromList([0x03, ...q]);
+    }
+    ECPoint? P = decodeFrom(pubkeyWithPrefix);
+    if (P == null || P.isInfinity) return false;
+
+    Uint8List eBytes = Encoder.decodeHex(Hash.taggedHash(
+        "BIP0340/challenge", Uint8List.fromList([...R_x, ...q, ...msg])));
+    BigInt e = fromBuffer(eBytes) % n;
+
+    ECPoint? R_prime = (G * s)! + (P * (n - e));
+    if (R_prime == null || R_prime.isInfinity) return false;
+
+    Uint8List R_prime_x = getEncoded(R_prime, false).sublist(1, 33);
+    bool isValid = R_prime_x.toString() == R_x.toString();
+    return isValid;
+  } else {
+    ECPoint? Q = decodeFrom(q);
+    BigInt r = fromBuffer(signature.sublist(0, 32));
+    BigInt s = fromBuffer(signature.sublist(32, 64));
+
+    final signer = ECDSASigner(null, HMac(SHA256Digest(), 64));
+    signer.init(false, PublicKeyParameter(ECPublicKey(Q, secp256k1)));
+
+    return signer.verifySignature(msg, ECSignature(r, s));
+  }
 }
 
 /// Decode a BigInt from bytes in big-endian encoding.

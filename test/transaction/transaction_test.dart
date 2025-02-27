@@ -184,8 +184,7 @@ void main() {
             ScriptPublicKey.parse(
                 '1600141d0f172a0ecb48aee1be1f2687d2963ae33f71a1'));
 
-        String sigHash2 =
-            tx.getSigHash(1, utxo2.serialize(), AddressType.p2wpkh);
+        String sigHash2 = tx.getSigHash(1, utxo2, AddressType.p2wpkh);
         expect(sigHash2,
             'c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670');
       });
@@ -198,8 +197,7 @@ void main() {
             ScriptPublicKey.parse(
                 '1976a91456c0bc2f50bc150d4ea122e66db7c48b01b9722988ac'));
 
-        String sigHash =
-            transaction.getSigHash(0, utxo1.serialize(), AddressType.p2pkh);
+        String sigHash = transaction.getSigHash(0, utxo1, AddressType.p2pkh);
         expect(sigHash,
             'b895e8018fe25df450f604c6cd93db1bbf4b1a4eefc3a67ebd2de68a0b908236');
       });
@@ -209,6 +207,7 @@ void main() {
         //TODO: Implement test
       });
     });
+
     group('validateSignature', () {
       test('Validate signature of transaction', () {
         String transactionText =
@@ -217,7 +216,7 @@ void main() {
         String prevTxText =
             '02000000000101b388ce3d349385311d8c6e90217e206a66d30acb191369145779c2700a4a3d850000000000fdffffff0223e7141200000000160014c9d118b800a191f330e805dde37906bd8f703a8f042d000000000000160014cb325c29ac1d9f9c56ab77c7f659f6a304a7bd020247304402206c32ce7dce76088fdb81c36bba110ae4add38ecebff7ae03c36308293a0df97902203f78de99e909195bf0a8149650aed533ebab61c98be4d6adb886463dd550e3ff012102c78711069178ff17d77be53a7acedbbacac4daca293e42c61f7303362108fd2265052b00';
         Transaction prevTx = Transaction.parse(prevTxText);
-        String utxo = prevTx.outputs[1].serialize();
+        TransactionOutput utxo = prevTx.outputs[1];
         expect(tx.validateSignature(0, utxo, AddressType.p2wpkh), true);
       });
       test('Validate signature of transaction (false)', () {
@@ -227,7 +226,7 @@ void main() {
         String prevTxText =
             '02000000000101670c2a20b939d70170af0fc3be6e4baecf9a003df9b25ac64d3b0d18b43dc12b0200000000fdffffff033f3fc0380000000022512051db6dd7e0ceb9a4b189078555bffbeebd589d6237813b9c74bc457997c21d60e803000000000000160014cb325c29ac1d9f9c56ab77c7f659f6a304a7bd02960f000000000000225120eabe98a28e805ba56a0bce762af410f3998ee10e4c919d964dc91cf096f5a9cf0140875bc3d6e6f00d6020c095f5cc20744a1bf6ebb7bd2dbee415b8346024c6db13b1389809468d2deb6ce221c27b5bdc58a38a4a91909b5f6ac3fea26abe184347570b2b00';
         Transaction prevTx = Transaction.parse(prevTxText);
-        String utxo = prevTx.outputs[1].serialize();
+        TransactionOutput utxo = prevTx.outputs[1];
         expect(tx.validateSignature(0, utxo, AddressType.p2wpkh), false);
       });
     });

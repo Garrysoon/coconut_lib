@@ -467,7 +467,7 @@ class Transaction {
   }
 
   /// Get the signature hash of the transaction.
-  String getSigHash(int index, String utxo, AddressType addressType,
+  String getSigHash(int index, TransactionOutput utxo, AddressType addressType,
       {int hashType = 1, String? witnessScript}) {
     if (hashType != 1) {
       throw Exception("Only SIGHASH_ALL supported.");
@@ -487,12 +487,12 @@ class Transaction {
     }
   }
 
-  String _getLegacySigHash(int index, String utxo, int hashType) {
+  String _getLegacySigHash(int index, TransactionOutput utxo, int hashType) {
     String thisTx = serialize();
     Transaction forSig = Transaction.parse(thisTx);
     for (int i = 0; i < forSig.inputs.length; i++) {
       if (i == index) {
-        String pubkey = TransactionOutput.parse(utxo).scriptPubKey.serialize();
+        String pubkey = utxo.scriptPubKey.serialize();
         forSig.inputs[i].scriptSig = ScriptSignature.parse(pubkey);
       } else {
         forSig.inputs[i].scriptSig = ScriptSignature.parse('00');
@@ -506,18 +506,17 @@ class Transaction {
 
   //BIP143
   String _getSegwitSigHash(
-      int index, String utxo, int hashType, AddressType addressType,
+      int index, TransactionOutput utxo, int hashType, AddressType addressType,
       {String? witnessScript}) {
     String sigHash = '';
     sigHash += version;
-    sigHash += _getHashPrevOuts();
+    sigHash += _getHashPrevOuts(false);
     //print("prevouts : " + _getHashPrevOuts());
-    sigHash += _getHashSequence();
+    sigHash += _getHashSequence(false);
     sigHash += _getOutPoint(index);
-    TransactionOutput prevUtxo = TransactionOutput.parse(utxo);
     if (addressType == AddressType.p2wpkh) {
       sigHash +=
-          "1976a914${Encoder.encodeHex(prevUtxo.scriptPubKey.commands[1])}88ac";
+          "1976a914${Encoder.encodeHex(utxo.scriptPubKey.commands[1])}88ac";
     } else if (addressType == AddressType.p2wsh) {
       if (witnessScript == null) {
         throw ArgumentError('witnessScript is required for p2wsh');
@@ -526,14 +525,14 @@ class Transaction {
       sigHash += Encoder.encodeHex(Encoder.encodeVariableInteger(length));
       sigHash += witnessScript;
     } else {
-      sigHash += prevUtxo.scriptPubKey.serialize();
+      sigHash += utxo.scriptPubKey.serialize();
     }
 
     sigHash +=
-        Encoder.encodeHex(Converter.intToLittleEndianBytes(prevUtxo.amount, 8));
+        Encoder.encodeHex(Converter.intToLittleEndianBytes(utxo.amount, 8));
     sigHash += Encoder.encodeHex(
         Converter.intToLittleEndianBytes(inputs[index].sequence, 4));
-    sigHash += _getHashOutputs();
+    sigHash += _getHashOutputs(false);
     sigHash += lockTime;
     sigHash += Encoder.encodeHex(Converter.intToLittleEndianBytes(hashType, 4));
 
@@ -541,67 +540,118 @@ class Transaction {
   }
 
   //BIP341
-  String getTaprootSigHash(int index, List<String> utxoList,
-      {int hashType = 1, String spendType = '00'}) {
-    String sigHash = '';
-    sigHash += Encoder.encodeHex(Converter.intToLittleEndianBytes(hashType, 1));
-    sigHash += version;
-    sigHash += lockTime;
-    sigHash += _getHashPrevOuts();
-    sigHash += _getHashAmounts(utxoList);
-    sigHash += _getHashScriptPubkeys(utxoList);
-    sigHash += _getHashSequence();
-    sigHash += _getHashOutputs();
-    sigHash += spendType;
-    sigHash += Encoder.encodeHex(Converter.intToLittleEndianBytes(index, 4));
+  String getTaprootSigHash(int index, List<TransactionOutput> utxoList,
+      {int hashType = 0,
+      bool isTapscript = false,
+      Uint8List? annexHash,
+      Uint8List? spentOutput,
+      Uint8List? prevout}) {
+    int outputType =
+        (hashType == 0) ? 1 : (hashType & 3); // Default is SIGHASH_ALL
+    if (outputType == 3) {
+      throw ArgumentError("Invalid hash type");
+    }
+    int inputType = hashType & 0x80;
+    if (!(hashType <= 0x03 || (hashType >= 0x81 && hashType <= 0x83))) {
+      throw ArgumentError("Invalid hash type");
+    }
 
-    return Hash.taggedHash("TapSighash", Encoder.decodeHex(sigHash));
+    final List<int> buffer = [];
+    buffer.add(0);
+    buffer.add(hashType);
+
+    buffer.addAll(_version);
+    buffer.addAll(_lockTime);
+    if (inputType != 0x80) {
+      //if not SIGHASH_ANYONECANPAY
+      buffer.addAll(Encoder.decodeHex(_getHashPrevOuts(true)));
+      buffer.addAll(Encoder.decodeHex(
+          getHashAmounts(utxoList.map((e) => e.amount).toList())));
+      buffer.addAll(Encoder.decodeHex(_getHashScriptPublicKey(utxoList
+          .map((e) => e.scriptPubKey.serialize())
+          .toList()))); //scriptPubkeys
+      buffer.addAll(Encoder.decodeHex(_getHashSequence(true)));
+    }
+    if (outputType == 1) {
+      //if SIGHASH_ALL
+      String outputsText = '';
+      outputs.map((e) => e.serialize()).forEach((element) {
+        outputsText += element;
+      });
+      buffer.addAll(Encoder.decodeHex(Hash.sha256fromHex(outputsText)));
+    }
+
+    int extFlag = isTapscript ? 1 : 0;
+    int haveAnnex = annexHash != null ? 1 : 0;
+    int spendType = (extFlag << 1) + haveAnnex;
+    buffer.add(spendType);
+
+    if (inputType == 0x80) {
+      //if SIGHASH_ANYONECANPAY
+      buffer.addAll(prevout!);
+      buffer.addAll(spentOutput!);
+    } else {
+      buffer.addAll(
+          Uint8List(4)..buffer.asByteData().setInt32(0, index, Endian.little));
+    }
+    if (haveAnnex == 1) {
+      buffer.addAll(annexHash!);
+    }
+    return Hash.taggedHash("TapSighash", buffer);
   }
 
-  String _getHashPrevOuts() {
+  String _getHashPrevOuts(bool isTaproot) {
     String prevouts = '';
     for (TransactionInput input in inputs) {
       prevouts += Encoder.encodeHex(input._transactionHash) +
           Encoder.encodeHex(input._index);
     }
     //print("prevouts : " + prevouts);
-    return Hash.sha256fromHex(Hash.sha256fromHex(prevouts));
+    if (isTaproot) {
+      return Hash.sha256fromHex(prevouts);
+    } else {
+      return Hash.sha256fromHex(Hash.sha256fromHex(prevouts));
+    }
   }
 
-  String _getHashAmounts(List<String> utxoList) {
+  String getHashAmounts(List<int> amountList) {
     List<int> buffer = [];
-    for (String utxo in utxoList) {
-      buffer.addAll(Converter.intToLittleEndianBytes(
-          TransactionOutput.parse(utxo).amount, 8));
+    for (int amount in amountList) {
+      buffer.addAll(Converter.intToLittleEndianBytes(amount, 8));
     }
     return Hash.sha256fromHex(Encoder.encodeHex(buffer));
   }
 
-  String _getHashScriptPubkeys(List<String> utxoList) {
-    List<int> buffer = [];
-    for (String utxo in utxoList) {
-      buffer.addAll((Encoder.encodeVariableInteger(utxo.length ~/ 2)).toList());
-      buffer.addAll(Encoder.decodeHex(
-          TransactionOutput.parse(utxo).scriptPubKey.serialize()));
+  String _getHashScriptPublicKey(List<String> scriptList) {
+    String buffer = '';
+    for (String script in scriptList) {
+      buffer += script;
     }
-    return Hash.sha256fromHex(Encoder.encodeHex(buffer));
+    return Hash.sha256fromHex(buffer);
   }
 
-  String _getHashSequence() {
+  String _getHashSequence(bool isTaproot) {
     String sequences = '';
     for (TransactionInput input in inputs) {
       sequences += Encoder.encodeHex(input._sequence);
     }
-    String hashSequence = Hash.sha256fromHex(Hash.sha256fromHex(sequences));
-    return hashSequence;
+    if (isTaproot) {
+      return Hash.sha256fromHex(sequences);
+    } else {
+      return Hash.sha256fromHex(Hash.sha256fromHex(sequences));
+    }
   }
 
-  String _getHashOutputs() {
+  String _getHashOutputs(bool isTaproot) {
     String outputs = '';
     for (TransactionOutput output in this.outputs) {
       outputs += output.serialize();
     }
-    return Hash.sha256fromHex(Hash.sha256fromHex(outputs));
+    if (isTaproot) {
+      return Hash.sha256fromHex(outputs);
+    } else {
+      return Hash.sha256fromHex(Hash.sha256fromHex(outputs));
+    }
   }
 
   String _getOutPoint(int index) {
@@ -613,7 +663,8 @@ class Transaction {
   }
 
   /// check if the signature is valid in the transaction.
-  bool validateSignature(int inputIndex, String utxo, AddressType addressType,
+  bool validateSignature(
+      int inputIndex, TransactionOutput utxo, AddressType addressType,
       {String? witnessScript}) {
     // 1. Generate sigHash
     String sigHash;
@@ -695,13 +746,18 @@ class Transaction {
   }
 
   /// Validate taproot signature
-  bool validateTaprootSignature(int inputIndex, List<String> utxoList) {
+  bool validateTaprootSignature(
+      int inputIndex, List<TransactionOutput> utxoList) {
     Uint8List sigHash =
         Encoder.decodeHex(getTaprootSigHash(inputIndex, utxoList));
-    Uint8List publicKey = Encoder.decodeHex(
-        "02${TransactionOutput.parse(utxoList[inputIndex]).scriptPubKey.commands[1]}");
+    // Uint8List publicKey = Encoder.decodeHex(
+    //     "02${TransactionOutput.parse(utxoList[inputIndex]).scriptPubKey.commands[1]}");
+    Uint8List publicKey = utxoList[inputIndex].scriptPubKey.commands[1];
     Uint8List signature = Encoder.decodeHex(inputs[inputIndex].witnessList[0]);
-    return ecc.verify(sigHash, publicKey, signature);
+    bool isValid = ecc.verify(sigHash, publicKey, signature,
+            isSchnorr: true, parity: 0) ||
+        ecc.verify(sigHash, publicKey, signature, isSchnorr: true, parity: 1);
+    return isValid;
   }
 
   /// Get the virtual byte size of the transaction.

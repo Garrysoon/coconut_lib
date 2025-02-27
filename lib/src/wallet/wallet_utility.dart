@@ -195,4 +195,14 @@ abstract class WalletUtility {
         .toDouble()
         .toInt();
   }
+
+  static int getAccountIndexFromDerivationPath(String derivationPath) {
+    List<String> pathList = derivationPath.split('/');
+    return int.parse(pathList.last);
+  }
+
+  static bool isChangeFromDerivationPath(String derivationPath) {
+    List<String> pathList = derivationPath.split('/');
+    return pathList[pathList.length - 2] == '1';
+  }
 }

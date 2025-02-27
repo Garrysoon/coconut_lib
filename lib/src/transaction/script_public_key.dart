@@ -58,6 +58,10 @@ class ScriptPublicKey extends Script {
     var codec = bech32m.Bech32mCodec().decode(address);
     codec.data.removeAt(0);
     var data8Bits = Converter.convertBits(codec.data, 5, 8, pad: false);
+    if (data8Bits.length != 32) {
+      throw Exception(
+          "Invalid Taproot address: data8Bits length is ${data8Bits.length}, expected 32.");
+    }
     return ScriptPublicKey([
       0x51,
       Uint8List.fromList(data8Bits),

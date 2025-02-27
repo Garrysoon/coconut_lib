@@ -217,8 +217,9 @@ class Psbt {
       String bip32DerivationKeyType =
           getKeyType(inputKeyType, 'BIP32_DERIVATION');
       if (wallet is SingleSignatureWalletBase) {
-        String publicKey = singleSignatureWallet.keyStore
-            .getPublicKeyWithDerivationPath(tx.utxoList[i].derivationPath);
+        String publicKey = singleSignatureWallet.keyStore.getPublicKey(
+            tx.utxoList[i].accountIndex,
+            isChange: tx.utxoList[i].isChange);
         String fingerPrint = singleSignatureWallet.keyStore.masterFingerprint;
 
         inputData[bip32DerivationKeyType + publicKey] = fingerPrint +
@@ -226,8 +227,9 @@ class Psbt {
                 _serializeDerivationPath(tx.utxoList[i].derivationPath));
       } else if (wallet is MultisignatureWalletBase) {
         for (KeyStore keyStore in multisignatureWallet.keyStoreList) {
-          String publicKey = keyStore
-              .getPublicKeyWithDerivationPath(tx.utxoList[i].derivationPath);
+          String publicKey = keyStore.getPublicKey(tx.utxoList[i].accountIndex,
+              isChange: tx.utxoList[i].isChange);
+
           String fingerPrint = keyStore.masterFingerprint;
           inputData[bip32DerivationKeyType + publicKey] = fingerPrint +
               Encoder.encodeHex(
@@ -239,23 +241,17 @@ class Psbt {
         String publicKey = tx.inputs[i].witnessList[0];
         String signature = tx.inputs[i].witnessList[1];
         inputData[partialSigKeyType + publicKey] = signature;
-      }
-
-      if (wallet.addressType == AddressType.p2wsh) {
+      } else if (wallet.addressType == AddressType.p2wsh) {
         String witnessScriptKey = getKeyType(inputKeyType, 'WITNESS_SCRIPT');
         String witnessScript = multisignatureWallet
             .getWitnessScript(tx.utxoList[i].derivationPath);
         inputData[witnessScriptKey] = witnessScript;
-      }
-
-      if (wallet.addressType == AddressType.p2trKeyPathSpending ||
+      } else if (wallet.addressType == AddressType.p2trKeyPathSpending ||
           wallet.addressType == AddressType.p2trMusig2) {
         if (tx.inputs[i].witnessList.length == 1) {
           String taprootKeySpendSignature =
               getKeyType(inputKeyType, 'PSBT_IN_TAP_KEY_SIG');
           inputData[taprootKeySpendSignature] = tx.inputs[i].witnessList[0];
-        } else {
-          throw Exception('Script path spending signature is not supported');
         }
       }
       psbtData["inputs"].add(inputData);
@@ -384,7 +380,7 @@ class Psbt {
 
   void addTaprootSignature(int inputIndex, String signature) {
     inputs[inputIndex].addTaprootKeyPathSpendingSignature(signature);
-    psbtMap["inputs"][inputIndex]["19"] = signature;
+    psbtMap["inputs"][inputIndex]["13"] = signature;
   }
 
   bool isSigned(KeyStore keyStore) {
@@ -393,7 +389,10 @@ class Psbt {
       for (DerivationPath path in input._derivationPathList) {
         if (keyStore.masterFingerprint == path.masterFingerprint) {
           isSigned = true;
-          String publicKey = keyStore.getPublicKeyWithDerivationPath(path.path);
+          String publicKey = keyStore.getPublicKey(
+              WalletUtility.getAccountIndexFromDerivationPath(path.path),
+              isChange: WalletUtility.isChangeFromDerivationPath(path.path));
+          // getPublicKeyWithDerivationPath(path.path);
           if (!input.partialSigList
               .any((element) => element.publicKey == publicKey)) {
             return false;
@@ -538,7 +537,7 @@ class Psbt {
             witnessScript: inputs[i].witnessScript);
 
         if (signedTransaction.validateSignature(
-            i, inputs[i].witnessUtxo!.serialize(), addressType,
+            i, inputs[i].witnessUtxo!, addressType,
             witnessScript: inputs[i].witnessScript!.rawSerialize())) {
           continue;
         } else {
@@ -554,16 +553,16 @@ class Psbt {
         signedTransaction.inputs[i]
             .setSignature(addressType, inputs[i].partialSigList);
         if (signedTransaction.validateSignature(
-            i, inputs[i].witnessUtxo!.serialize(), addressType)) {
+            i, inputs[i].witnessUtxo!, addressType)) {
           continue;
         } else {
           throw Exception('Invalid Signatures');
         }
       }
     } else if (addressType.isTaproot) {
-      List<String> utxoList = [];
+      List<TransactionOutput> utxoList = [];
       for (int i = 0; i < inputs.length; i++) {
-        utxoList.add(inputs[i].witnessUtxo!.serialize());
+        utxoList.add(inputs[i].witnessUtxo!);
       }
 
       for (int i = 0; i < inputs.length; i++) {
@@ -686,4 +685,11 @@ class DerivationPath {
   String get publicKey => _publicKey;
   String get masterFingerprint => _masterFingerprint.toUpperCase();
   String get path => _path;
+  int get accountIndex {
+    return WalletUtility.getAccountIndexFromDerivationPath(_path);
+  }
+
+  bool get isChange {
+    return WalletUtility.isChangeFromDerivationPath(_path);
+  }
 }

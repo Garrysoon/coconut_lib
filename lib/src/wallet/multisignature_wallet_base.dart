@@ -56,7 +56,9 @@ abstract class MultisignatureWalletBase extends WalletBase {
       throw Exception("Invalid derivation path (e.g., m/44'/0'/0'/0/0)");
     }
     List<String> pubkeys = _keyStoreList
-        .map((e) => e.getPublicKeyWithDerivationPath(derivationPath))
+        .map((e) => e.getPublicKey(
+            WalletUtility.getAccountIndexFromDerivationPath(derivationPath),
+            isChange: WalletUtility.isChangeFromDerivationPath(derivationPath)))
         .toList();
     return _addressType.getMultisignatureAddress(pubkeys, _requiredSignature);
   }
@@ -71,7 +73,9 @@ abstract class MultisignatureWalletBase extends WalletBase {
     if (addressType == AddressType.p2wsh) {
       List<Uint8List> publicKeys = [];
       for (KeyStore keyStore in keyStoreList) {
-        String pub = keyStore.getPublicKeyWithDerivationPath(derivationPath);
+        String pub = keyStore.getPublicKey(
+            WalletUtility.getAccountIndexFromDerivationPath(derivationPath),
+            isChange: WalletUtility.isChangeFromDerivationPath(derivationPath));
         publicKeys.add(Encoder.decodeHex(pub));
       }
 
