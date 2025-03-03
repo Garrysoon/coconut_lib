@@ -565,8 +565,11 @@ class Transaction {
     if (inputType != 0x80) {
       //if not SIGHASH_ANYONECANPAY
       buffer.addAll(Encoder.decodeHex(_getHashPrevOuts(true)));
+      // print("prevouts : " + _getHashPrevOuts(true));
       buffer.addAll(Encoder.decodeHex(
           getHashAmounts(utxoList.map((e) => e.amount).toList())));
+      // print("amounts : " +
+      //     getHashAmounts(utxoList.map((e) => e.amount).toList()));
       buffer.addAll(Encoder.decodeHex(_getHashScriptPublicKey(utxoList
           .map((e) => e.scriptPubKey.serialize())
           .toList()))); //scriptPubkeys
@@ -579,6 +582,7 @@ class Transaction {
         outputsText += element;
       });
       buffer.addAll(Encoder.decodeHex(Hash.sha256fromHex(outputsText)));
+      // print("outputs : " + Hash.sha256fromHex(outputsText));
     }
 
     int extFlag = isTapscript ? 1 : 0;
@@ -754,9 +758,8 @@ class Transaction {
     //     "02${TransactionOutput.parse(utxoList[inputIndex]).scriptPubKey.commands[1]}");
     Uint8List publicKey = utxoList[inputIndex].scriptPubKey.commands[1];
     Uint8List signature = Encoder.decodeHex(inputs[inputIndex].witnessList[0]);
-    bool isValid = ecc.verify(sigHash, publicKey, signature,
-            isSchnorr: true, parity: 0) ||
-        ecc.verify(sigHash, publicKey, signature, isSchnorr: true, parity: 1);
+    bool isValid = ecc.verify(sigHash, publicKey, signature, isSchnorr: true) ||
+        ecc.verify(sigHash, publicKey, signature, isSchnorr: true);
     return isValid;
   }
 

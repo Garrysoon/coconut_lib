@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:coconut_lib/coconut_lib.dart';
 import 'package:coconut_lib/src/cryptography/encoder.dart';
 import 'package:coconut_lib/src/cryptography/elliptic_curve_cryptography.dart';
 import 'package:test/test.dart';
@@ -491,7 +492,28 @@ void main() {
             isFalse);
       });
 
-      test('Verify schnorr signature', () {
+      // Test vector from https://github.com/bitcoin/bips/blob/master/bip-0340/test-vectors.csv
+      test('Verify schnorr signature (bip340 - index 0)', () {
+        Uint8List hash = Encoder.decodeHex(
+            '0000000000000000000000000000000000000000000000000000000000000000');
+        Uint8List publicKey = Encoder.decodeHex(
+            'F9308A019258C31049344F85F89D5229B531C845836F99B08601F113BCE036F9');
+        Uint8List signature = Encoder.decodeHex(
+            'E907831F80848D1069A5371B402410364BDF1C5F8307B0084C55F1CE2DCA821525F66A4A85EA8B71E482A74F382D2CE5EBEEE8FDB2172F477DF4900D310536C0');
+
+        expect(verify(hash, publicKey, signature, isSchnorr: true), isTrue);
+      });
+      test('Verify schnorr signature (bip340 - index 1)', () {
+        Uint8List hash = Encoder.decodeHex(
+            '243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89');
+        Uint8List publicKey = Encoder.decodeHex(
+            'DFF1D77F2A671C5F36183726DB2341BE58FEAE1DA2DECED843240F7B502BA659');
+        Uint8List signature = Encoder.decodeHex(
+            '6896BD60EEAE296DB48A229FF71DFE071BDE413E6D43F917DC8DCF8C78DE33418906D11AC976ABCCB20B091292BFF4EA897EFCB639EA871CFA95F6DE339E4B0A');
+
+        expect(verify(hash, publicKey, signature, isSchnorr: true), isTrue);
+      });
+      test('Verify schnorr signature (bip340 - index 2)', () {
         Uint8List hash = Encoder.decodeHex(
             '7E2D58D8B3BCDF1ABADEC7829054F90DDA9805AAB56C77333024B9D0A508B75C');
         Uint8List publicKey = Encoder.decodeHex(
@@ -499,18 +521,101 @@ void main() {
         Uint8List signature = Encoder.decodeHex(
             '5831AAEED7B44BB74E5EAB94BA9D4294C49BCF2A60728D8B4C200F50DD313C1BAB745879A5AD954A72C45A91C3A51D3C7ADEA98D82F8481E0E1E03674A6F3FB7');
 
-        expect(verify(hash, publicKey, signature, isSchnorr: true, parity: 0),
+        expect(verify(hash, publicKey, signature, isSchnorr: true), isTrue);
+      });
+      test('Verify schnorr signature (bip340 - index 3)', () {
+        Uint8List hash = Encoder.decodeHex(
+            'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF');
+        Uint8List publicKey = Encoder.decodeHex(
+            '25D1DFF95105F5253C4022F628A996AD3A0D95FBF21D468A1B33F8C160D8F517');
+        Uint8List signature = Encoder.decodeHex(
+            '7EB0509757E246F19449885651611CB965ECC1A187DD51B64FDA1EDC9637D5EC97582B9CB13DB3933705B32BA982AF5AF25FD78881EBB32771FC5922EFC66EA3');
+
+        expect(verify(hash, publicKey, signature, isSchnorr: true), isTrue);
+      });
+
+      //Test vector from https://github.com/bitcoin/bips/blob/master/bip-0341/wallet-test-vectors.json
+      test('Verify schnorr signature (bip341 - line 276)', () {
+        String internalPrivateKey =
+            '6b973d88838f27366ed61c9ad6367663045cb456e28335c109e30717ae0c6baa';
+        Uint8List sigHash = Encoder.decodeHex(
+            '2514a6272f85cfa0f45eb907fcb0d121b808ed37c6ea160a5a9046ed5526d555');
+        Uint8List signature = Encoder.decodeHex(
+            'ed7c1647cb97379e76892be0cacff57ec4a7102aa24296ca39af7541246d8ff14d38958d4cc1e2e478e4d4a764bbfd835b16d4e314b72937b29833060b87276c');
+
+        HDWallet hdWallet =
+            HDWallet(Encoder.decodeHex(internalPrivateKey), null, Uint8List(0));
+        // expect(Encoder.encodeHex(hdWallet.getTweakedPrivateKey()),
+        //     tweakedPrivateKey);
+        Uint8List tweakedPublicKey = hdWallet.getTweakedPublicKey();
+        expect(verify(sigHash, tweakedPublicKey, signature, isSchnorr: true),
             isTrue);
       });
-      test('Verify schnorr signature (Case 2)', () {
-        Uint8List hash = Encoder.decodeHex(
-            '0d1079255571a05a742a22b0e544bd3888dd7e91ce04b5595167c6cda6e72927');
-        Uint8List publicKey = Encoder.decodeHex(
-            '45b451a396cbf8c3c94f8e9e871401bdbd4f38e8cf238165cb198d15c5093743');
+      test('Verify schnorr signature (bip341 - line 302)', () {
+        String internalPrivateKey =
+            '1e4da49f6aaf4e5cd175fe08a32bb5cb4863d963921255f33d3bc31e1343907f';
+        Uint8List merkleRoot = Encoder.decodeHex(
+            "5b75adecf53548f3ec6ad7d78383bf84cc57b55a3127c72b9a2481752dd88b21");
+        Uint8List sigHash = Encoder.decodeHex(
+            '325a644af47e8a5a2591cda0ab0723978537318f10e6a63d4eed783b96a71a4d');
         Uint8List signature = Encoder.decodeHex(
-            '271500428ba10d1a3193eae8cd502071e65ee028bae9480dca50bb845be2e74523bcac026dabeabf808d734995a0b8eae73546a6588201444d729fd7ae1f5589');
+            '052aedffc554b41f52b521071793a6b88d6dbca9dba94cf34c83696de0c1ec35ca9c5ed4ab28059bd606a4f3a657eec0bb96661d42921b5f50a95ad33675b54f');
 
-        expect(verify(hash, publicKey, signature, isSchnorr: true, parity: 0),
+        HDWallet hdWallet =
+            HDWallet(Encoder.decodeHex(internalPrivateKey), null, Uint8List(0));
+        // expect(
+        //     Encoder.encodeHex(
+        //         hdWallet.getTweakedPrivateKey(merkleRoot: merkleRoot)),
+        //     tweakedPrivateKey);
+        Uint8List tweakedPublicKey =
+            hdWallet.getTweakedPublicKey(merkleRoot: merkleRoot);
+        expect(verify(sigHash, tweakedPublicKey, signature, isSchnorr: true),
+            isTrue);
+      });
+      test('Verify schnorr signature (bip341 - lline 323)', () {
+        String internalPrivateKey =
+            'd3c7af07da2d54f7a7735d3d0fc4f0a73164db638b2f2f7c43f711f6d4aa7e64';
+        Uint8List merkleRoot = Encoder.decodeHex(
+            "c525714a7f49c28aedbbba78c005931a81c234b2f6c99a73e4d06082adc8bf2b");
+        String tweakedPrivateKey =
+            '97323385e57015b75b0339a549c56a948eb961555973f0951f555ae6039ef00d';
+        Uint8List sigHash = Encoder.decodeHex(
+            'bf013ea93474aa67815b1b6cc441d23b64fa310911d991e713cd34c7f5d46669');
+        Uint8List signature = Encoder.decodeHex(
+            'ff45f742a876139946a149ab4d9185574b98dc919d2eb6754f8abaa59d18b025637a3aa043b91817739554f4ed2026cf8022dbd83e351ce1fabc272841d2510a');
+
+        HDWallet hdWallet =
+            HDWallet(Encoder.decodeHex(internalPrivateKey), null, Uint8List(0));
+        expect(
+            Encoder.encodeHex(
+                hdWallet.getTweakedPrivateKey(merkleRoot: merkleRoot)),
+            tweakedPrivateKey);
+        Uint8List tweakedPublicKey =
+            hdWallet.getTweakedPublicKey(merkleRoot: merkleRoot);
+        expect(verify(sigHash, tweakedPublicKey, signature, isSchnorr: true),
+            isTrue);
+      });
+      test('Verify schnorr signature (bip341 - lline 350)', () {
+        String internalPrivateKey =
+            'f36bb07a11e469ce941d16b63b11b9b9120a84d9d87cff2c84a8d4affb438f4e';
+        Uint8List merkleRoot = Encoder.decodeHex(
+            "ccbd66c6f7e8fdab47b3a486f59d28262be857f30d4773f2d5ea47f7761ce0e2");
+        String tweakedPrivateKey =
+            'a8e7aa924f0d58854185a490e6c41f6efb7b675c0f3331b7f14b549400b4d501';
+        Uint8List sigHash = Encoder.decodeHex(
+            '4f900a0bae3f1446fd48490c2958b5a023228f01661cda3496a11da502a7f7ef');
+        Uint8List signature = Encoder.decodeHex(
+            'b4010dd48a617db09926f729e79c33ae0b4e94b79f04a1ae93ede6315eb3669de185a17d2b0ac9ee09fd4c64b678a0b61a0a86fa888a273c8511be83bfd6810f');
+
+        HDWallet hdWallet =
+            HDWallet(Encoder.decodeHex(internalPrivateKey), null, Uint8List(0));
+        expect(
+            Encoder.encodeHex(
+                hdWallet.getTweakedPrivateKey(merkleRoot: merkleRoot)),
+            tweakedPrivateKey);
+        Uint8List tweakedPublicKey =
+            hdWallet.getTweakedPublicKey(merkleRoot: merkleRoot);
+        expect(verify(sigHash, tweakedPublicKey, signature, isSchnorr: true),
             isTrue);
       });
     });

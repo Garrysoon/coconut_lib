@@ -171,15 +171,6 @@ class KeyStore {
     }
   }
 
-  /// Get the public key of the key store using derivation path.
-  // String getPublicKeyWithDerivationPath(String path, {isSchnorr = false}) {
-  //   List<String> pathList = path.split('/');
-  //   int index = int.parse(pathList.last);
-  //   int changeIndex = int.parse(pathList[pathList.length - 2]);
-  //   return getPublicKey(index,
-  //       isChange: changeIndex == 1, isSchnorr: isSchnorr);
-  // }
-
   /// Validate the signatured from this key store.
   bool validateSignature(String signature, String message, int addressIndex,
       {bool isChange = false, bool isSchnorr = false}) {
@@ -199,7 +190,7 @@ class KeyStore {
 
       return child.verify(msg, rs);
     } else {
-      return child.verify(msg, sig, isShnorr: isSchnorr);
+      return child.verify(msg, sig, isSchnorr: isSchnorr);
     }
   }
 
@@ -289,6 +280,8 @@ class KeyStore {
             masterFingerprint) {
           continue;
         }
+
+        //TODO: implement code for the wallet is musig2 or script path
         String publicKey = getPublicKey(
             thisInput.derivationPathList[j].accountIndex,
             isChange: thisInput.derivationPathList[j].isChange,

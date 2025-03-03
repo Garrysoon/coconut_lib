@@ -55,6 +55,11 @@ abstract class MultisignatureWalletBase extends WalletBase {
     if (!WalletUtility.validateDerivationPath(_derivationPath)) {
       throw Exception("Invalid derivation path (e.g., m/44'/0'/0'/0/0)");
     }
+
+    if (!derivationPath.startsWith(derivationPath)) {
+      throw Exception("Derivation path does not match");
+    }
+
     List<String> pubkeys = _keyStoreList
         .map((e) => e.getPublicKey(
             WalletUtility.getAccountIndexFromDerivationPath(derivationPath),

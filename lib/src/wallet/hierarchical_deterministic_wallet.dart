@@ -174,6 +174,7 @@ class HDWallet {
   // Returns the tweaked private key for Taproot/MuSig2.
   Uint8List getTweakedPrivateKey(
       {Uint8List? merkleRoot, Uint8List? aggregatedPublicKey}) {
+    // print("prv:" + Encoder.encodeHex(publicKey));
     if (privateKey == null) {
       throw Exception("HDWallet: Private key is not available.");
     }
@@ -185,17 +186,31 @@ class HDWallet {
     Uint8List? evenPrivateKey = privateKey;
 
     if (publicKey[0] == 0x03) {
+      // print("negate priv origin");
       evenPrivateKey = ecc.privateNegate(privateKey!)!;
     }
 
     Uint8List tweakedPrivateKey =
         ecc.privateAdd(evenPrivateKey!, hashTapTweak)!;
 
+    Uint8List? tweakedPublicKey = ecc.pointFromScalar(tweakedPrivateKey, true);
+    if (tweakedPublicKey![0] == 0x03) {
+      // print("negate priv tweak");
+      tweakedPrivateKey = ecc.privateNegate(tweakedPrivateKey)!;
+    }
+
+    // print("Tweaked pub Key from tweaked private key : " +
+    //     Encoder.encodeHex(
+    //         ecc.pointFromScalar(tweakedPrivateKey, true) as List<int>));
+    // print("Tweaked pub Key from origin public key : " +
+    //     Encoder.encodeHex(getTweakedPublicKey(merkleRoot: merkleRoot)));
+
     return tweakedPrivateKey;
   }
 
   Uint8List getTweakedPublicKey(
       {Uint8List? merkleRoot, Uint8List? aggregatedPublicKey}) {
+    // print("pub:" + Encoder.encodeHex(publicKey));
     Uint8List keyToTweak = aggregatedPublicKey ?? publicKey.sublist(1);
     merkleRoot ??= Uint8List(0);
 
@@ -204,21 +219,29 @@ class HDWallet {
 
     Uint8List evenPublicKey = publicKey;
     if (publicKey[0] == 0x03) {
+      // print("negate pub origin");
       evenPublicKey = ecc.pointNegate(publicKey)!.sublist(1);
     }
+
     Uint8List tweakedPubKey =
         ecc.pointAddScalar(evenPublicKey, hashTapTweak, true)!;
+    // print("pub:" + Encoder.encodeHex(tweakedPubKey));
+    if (tweakedPubKey[0] == 0x03) {
+      // print("negate pub tweak");
+
+      tweakedPubKey = ecc.pointNegate(tweakedPubKey)!;
+    }
+    // print("PUB : " + Encoder.encodeHex(tweakedPubKey.sublist(1)));
     return tweakedPubKey.sublist(1);
   }
 
   /// @nodoc
-  verify(Uint8List hash, Uint8List signature, {bool isShnorr = false}) {
-    if (isShnorr) {
-      Uint8List tweakedPublicKey = getTweakedPublicKey();
-      return ecc.verify(hash, tweakedPublicKey, signature,
-              isSchnorr: true, parity: 0) ||
-          ecc.verify(hash, tweakedPublicKey, signature,
-              isSchnorr: true, parity: 1);
+  verify(Uint8List hash, Uint8List signature,
+      {bool isSchnorr = false, Uint8List? merkleRoot}) {
+    if (isSchnorr) {
+      Uint8List tweakedPublicKey = getTweakedPublicKey(merkleRoot: merkleRoot);
+      // Uint8List tweakedPublicKey = publicKey.sublist(1);
+      return ecc.verify(hash, tweakedPublicKey, signature, isSchnorr: true);
     } else {
       return ecc.verify(hash, publicKey, signature);
     }

@@ -12,6 +12,7 @@ import 'package:pointycastle/ecc/api.dart'
 import "package:pointycastle/signers/ecdsa_signer.dart";
 import 'package:pointycastle/macs/hmac.dart';
 import "package:pointycastle/digests/sha256.dart";
+import 'dart:math';
 
 final ZERO32 = Uint8List.fromList(List.generate(32, (index) => 0));
 final EC_GROUP_ORDER = HEX
@@ -222,7 +223,9 @@ Uint8List _signSchnorr(Uint8List msg, Uint8List seckey, {Uint8List? auxRand}) {
 
   Uint8List P_x = getEncoded(P, false).sublist(1, 33);
 
-  Uint8List aux = auxRand ?? Uint8List(32);
+  Uint8List aux = auxRand ??
+      Uint8List.fromList(
+          List.generate(32, (_) => Random.secure().nextInt(256)));
   Uint8List t = Uint8List(32);
   Uint8List hashAux = Encoder.decodeHex(Hash.taggedHash("BIP0340/aux", aux));
   Uint8List dBytes = toBuffer(d0);
@@ -239,6 +242,10 @@ Uint8List _signSchnorr(Uint8List msg, Uint8List seckey, {Uint8List? auxRand}) {
 
   ECPoint? R = G * k0;
   if (R == null || R.isInfinity) throw Exception("Failed to generate R point.");
+  if (R.y!.toBigInteger()!.isOdd) {
+    k0 = n - k0;
+    R = G * k0;
+  }
 
   Uint8List R_x = getEncoded(R, false).sublist(1, 33);
 
@@ -264,9 +271,7 @@ Uint8List _signSchnorr(Uint8List msg, Uint8List seckey, {Uint8List? auxRand}) {
   // print("Message: ${Encoder.encodeHex(msg)}");
 
   if (!verify(msg, getEncoded(P, true).sublist(1), signature,
-          isSchnorr: true, parity: 0) &&
-      !verify(msg, getEncoded(P, true).sublist(1), signature,
-          isSchnorr: true, parity: 1)) {
+      isSchnorr: true)) {
     throw Exception("The created signature does not pass verification.");
   }
 
@@ -274,25 +279,25 @@ Uint8List _signSchnorr(Uint8List msg, Uint8List seckey, {Uint8List? auxRand}) {
 }
 
 bool verify(Uint8List msg, Uint8List q, Uint8List signature,
-    {bool isSchnorr = false, int? parity}) {
+    {bool isSchnorr = false}) {
   if (!isScalar(msg)) throw ArgumentError(THROW_BAD_HASH);
   if (!isPoint(q)) throw ArgumentError(THROW_BAD_POINT);
   if (!isSignature(signature)) throw ArgumentError(THROW_BAD_SIGNATURE);
 
+  // print("---in verify---");
+  // print("msg: ${Encoder.encodeHex(msg)}");
+  // print("q: ${Encoder.encodeHex(q)}");
+  // print("signature: ${Encoder.encodeHex(signature)}");
+  // print("---end verify---");
+
   if (isSchnorr) {
-    if (parity == null) {
-      throw ArgumentError(
-          "parity must be provided for schnorr signature verification");
-    }
     Uint8List R_x = signature.sublist(0, 32);
     Uint8List sBytes = signature.sublist(32, 64);
     BigInt s = fromBuffer(sBytes);
     if (s >= n) return false;
 
     Uint8List pubkeyWithPrefix = Uint8List.fromList([0x02, ...q]);
-    if (parity == 1) {
-      pubkeyWithPrefix = Uint8List.fromList([0x03, ...q]);
-    }
+
     ECPoint? P = decodeFrom(pubkeyWithPrefix);
     if (P == null || P.isInfinity) return false;
 

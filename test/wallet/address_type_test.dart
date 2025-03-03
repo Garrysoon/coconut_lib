@@ -97,20 +97,33 @@ void main() {
               throwsException);
         });
 
-        test('getP2trKeyPathSpendingAddress', () {
+        // Test vectors from BIP0086 (https://github.com/bitcoin/bips/blob/master/bip-0086.mediawiki#user-content-Test_vectors)
+        test('getP2trKeyPathSpendingAddress (case 1)', () {
           NetworkType.setNetworkType(NetworkType.mainnet);
           SingleSignatureVault vault = SingleSignatureVault.fromMnemonic(
               "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
               addressType: AddressType.p2trKeyPathSpending);
-          print(vault.keyStore.getPublicKey(0, isSchnorr: true));
           expect(
               AddressType.p2trKeyPathSpending
                   .getAddress(vault.keyStore.getPublicKey(0, isSchnorr: true)),
               'bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr');
+        });
+        test('getP2trKeyPathSpendingAddress (case 2)', () {
+          NetworkType.setNetworkType(NetworkType.mainnet);
+          SingleSignatureVault vault = SingleSignatureVault.fromMnemonic(
+              "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+              addressType: AddressType.p2trKeyPathSpending);
+
           expect(
               AddressType.p2trKeyPathSpending
                   .getAddress(vault.keyStore.getPublicKey(1, isSchnorr: true)),
               'bc1p4qhjn9zdvkux4e44uhx8tc55attvtyu358kutcqkudyccelu0was9fqzwh');
+        });
+        test('getP2trKeyPathSpendingAddress (case 3)', () {
+          NetworkType.setNetworkType(NetworkType.mainnet);
+          SingleSignatureVault vault = SingleSignatureVault.fromMnemonic(
+              "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+              addressType: AddressType.p2trKeyPathSpending);
 
           expect(
               AddressType.p2trKeyPathSpending.getAddress(vault.keyStore
