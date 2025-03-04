@@ -62,8 +62,17 @@ abstract class WalletBase {
       int sendingAmount,
       int feeRate) async {
     Psbt psbt = await Future(() => Psbt.fromTransaction(
-        Transaction.fromUtxoList(utxoList, receiverAddress, changeAddress,
-            sendingAmount, feeRate, this),
+        Transaction.fromUtxoList(utxoList, {receiverAddress: sendingAmount},
+            changeAddress, feeRate, this),
+        this));
+    return psbt.serialize();
+  }
+
+  Future<String> generatePsbtForBatchPayment(List<Utxo> utxoPool,
+      Map<String, int> paymentMap, String changeAddress, int feeRate) async {
+    Psbt psbt = await Future(() => Psbt.fromTransaction(
+        Transaction.forBatchPayment(
+            utxoPool, paymentMap, changeAddress, feeRate, this),
         this));
     return psbt.serialize();
   }

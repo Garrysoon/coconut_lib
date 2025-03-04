@@ -7,8 +7,7 @@ class Transaction {
   List<TransactionOutput> _outputs;
   Uint8List _lockTime;
   bool _isSegwit;
-  late int? sendingAmount;
-  late String? receiveAddress;
+  late Map<String, int> paymentMap;
   late String? changeAddress;
 
   late List<Utxo> _utxoList = [];
@@ -60,6 +59,14 @@ class Transaction {
     return total;
   }
 
+  int get totalSendingAmount {
+    int total = 0;
+    for (var entry in paymentMap.entries) {
+      total += entry.value;
+    }
+    return total;
+  }
+
   /// @nodoc
   Transaction(this._version, this._inputs, this._outputs, this._lockTime,
       this._isSegwit);
@@ -76,9 +83,14 @@ class Transaction {
   }
 
   /// Create a transaction with UTXO List.
-  factory Transaction.fromUtxoList(List<Utxo> utxoList, String receiveAddress,
-      String changeAddress, int amount, int feeRate, WalletBase wallet,
-      {int version = 2, int lockTime = 0}) {
+  factory Transaction.fromUtxoList(
+      List<Utxo> utxoList,
+      Map<String, int> paymentMap,
+      String changeAddress,
+      int feeRate,
+      WalletBase wallet,
+      {int version = 2,
+      int lockTime = 0}) {
     int totalInputAmount = 0;
     List<TransactionInput> inputs = [];
     List<TransactionOutput> outputs = [];
@@ -87,12 +99,17 @@ class Transaction {
       inputs.add(TransactionInput.forPayment(utxo.transactionHash, utxo.index));
     }
 
-    TransactionOutput sendingOutput =
-        TransactionOutput.forPayment(amount, receiveAddress);
+    int totalOutputAmount =
+        paymentMap.values.fold(0, (sum, value) => sum + value);
+
+    for (var entry in paymentMap.entries) {
+      String recipientAddress = entry.key;
+      int amount = entry.value;
+
+      outputs.add(TransactionOutput.forPayment(amount, recipientAddress));
+    }
     TransactionOutput changeOutput =
         TransactionOutput.forPayment(0, changeAddress);
-
-    outputs.add(sendingOutput);
     outputs.add(changeOutput);
 
     Transaction tx = Transaction.withDefault(
@@ -115,7 +132,7 @@ class Transaction {
     int fee = (vByte * feeRate).ceil();
 
     // print("Fee : $fee");
-    int changeAmount = totalInputAmount - amount - fee;
+    int changeAmount = totalInputAmount - totalOutputAmount - fee;
     if (changeAmount < 0) {
       tx.outputs.remove(changeOutput);
     } else {
@@ -126,8 +143,7 @@ class Transaction {
       }
     }
 
-    tx.sendingAmount = amount;
-    tx.receiveAddress = receiveAddress;
+    tx.paymentMap = paymentMap;
     tx.changeAddress = changeAddress;
     tx._utxoList = utxoList;
     return tx;
@@ -141,7 +157,29 @@ class Transaction {
         _selectOptimalUtxo(utxoPool, amount, feeRate, wallet.addressType);
 
     Transaction transaction = Transaction.fromUtxoList(selectedUtxoList,
-        receiveAddress, changeAddress, amount, feeRate, wallet,
+        {receiveAddress: amount}, changeAddress, feeRate, wallet,
+        version: version, lockTime: lockTime);
+
+    transaction._utxoList = selectedUtxoList;
+
+    return transaction;
+  }
+
+  /// Create a transaction for simple payment.
+  factory Transaction.forBatchPayment(
+      List<Utxo> utxoPool,
+      Map<String, int> paymentMap,
+      String changeAddress,
+      int feeRate,
+      WalletBase wallet,
+      {int version = 2,
+      int lockTime = 0}) {
+    int totalAmount = paymentMap.values.fold(0, (sum, value) => sum + value);
+    List<Utxo> selectedUtxoList =
+        _selectOptimalUtxo(utxoPool, totalAmount, feeRate, wallet.addressType);
+
+    Transaction transaction = Transaction.fromUtxoList(
+        selectedUtxoList, paymentMap, changeAddress, feeRate, wallet,
         version: version, lockTime: lockTime);
 
     transaction._utxoList = selectedUtxoList;
@@ -912,7 +950,7 @@ class Transaction {
 
     int fee = estimateFee(feeRate, wallet.addressType,
         requiredSignature: requiredSignature, totalSinger: totalSinger);
-    int changeAmount = totalInputAmount - sendingAmount! - fee;
+    int changeAmount = totalInputAmount - totalSendingAmount - fee;
     if (changeAmount < 0) {
       outputs.remove(changeOutput);
     } else {
@@ -967,7 +1005,7 @@ class Transaction {
     _utxoList.remove(utxoToRemove);
     int fee = estimateFee(feeRate, wallet.addressType,
         requiredSignature: requiredSignature, totalSinger: totalSinger);
-    int changeAmount = totalInputAmount - sendingAmount! - fee;
+    int changeAmount = totalInputAmount - totalSendingAmount - fee;
     if (changeAmount < 0) {
       outputs.remove(changeOutput);
     } else {
@@ -1002,7 +1040,7 @@ class Transaction {
           break;
         }
       }
-      int changeAmount = totalInputAmount - sendingAmount! - fee;
+      int changeAmount = totalInputAmount - totalSendingAmount - fee;
 
       if (changeAmount < 0) {
         outputs.remove(changeOutput);
