@@ -17,7 +17,7 @@ abstract class MultisignatureWalletBase extends WalletBase {
   /// @nodoc
   MultisignatureWalletBase(this._requiredSignature, AddressType _addressType,
       String derivationPath, this._keyStoreList)
-      : super(_addressType, derivationPath, true) {
+      : super(_addressType, derivationPath) {
     if (!_addressType.isMultisignature) {
       throw Exception('Use Vault or Wallet class for multisignature.');
     }
@@ -25,6 +25,12 @@ abstract class MultisignatureWalletBase extends WalletBase {
     if (_keyStoreList.length < requiredSignature) {
       throw Exception(
           'Required signature is greater than the number of keyStores.');
+    }
+
+    if (_addressType == AddressType.p2trMusig2 &&
+        _keyStoreList.length != _requiredSignature) {
+      throw Exception(
+          'The number of keyStores must be equal to the required signature in MuSig2.');
     }
 
     for (KeyStore keyStore in _keyStoreList) {
@@ -118,25 +124,5 @@ abstract class MultisignatureWalletBase extends WalletBase {
       }
     }
     return signedPsbt;
-  }
-
-  @override
-  Future<int> estimateFee(List<Utxo> utxoPool, String receiverAddress,
-      String changeAddress, int sendingAmount, int feeRate) async {
-    Psbt psbt = await Future(() => Psbt.fromTransaction(
-        Transaction.forPayment(utxoPool, receiverAddress, changeAddress,
-            sendingAmount, feeRate, this),
-        this));
-    return psbt.estimateFee(feeRate, addressType,
-        requiredSignature: requiredSignature, totalSigner: keyStoreList.length);
-  }
-
-  @override
-  Future<int> estimateFeeForSweep(
-      List<Utxo> utxoPool, String receiverAddress, int feeRate) async {
-    Psbt psbt = await Future(() => Psbt.fromTransaction(
-        Transaction.forSweep(utxoPool, receiverAddress, feeRate, this), this));
-    return psbt.estimateFee(feeRate, addressType,
-        requiredSignature: requiredSignature, totalSigner: keyStoreList.length);
   }
 }

@@ -581,27 +581,6 @@ class Psbt {
     }
     return signedTransaction;
   }
-
-  /// Get estimated fee for the transaction.
-  int estimateFee(int feeRate, AddressType addressType,
-      {int? requiredSignature, int? totalSigner}) {
-    Transaction tx =
-        Transaction.parseUnsignedTransaction(unsignedTransaction!.serialize());
-    tx._isSegwit = addressType.isSegwit;
-    double vByte = 0.0;
-    if (addressType == AddressType.p2wpkh) {
-      vByte = tx.estimateVirtualByte(addressType);
-    } else if (addressType == AddressType.p2wsh) {
-      if (requiredSignature == null || totalSigner == null) {
-        throw Exception("No requiredSignature, totalSiger data");
-      }
-      vByte = tx.estimateVirtualByte(addressType,
-          requiredSignature: requiredSignature, totalSigner: totalSigner);
-    } else {
-      throw Exception("Not supported address type.");
-    }
-    return (vByte * feeRate).ceil();
-  }
 }
 
 /// @nodoc

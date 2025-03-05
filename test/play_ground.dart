@@ -15,6 +15,12 @@ void takeScenario(int accountIndex, Utxo utxo, SingleSignatureVault vault) {
       'bcrt1p40qqa84kpphe5vtcwd8zv7v6w7p62cmupf6f60mf8pxdkcv2455qgtw98j';
   String utxoPath = "m/86'/1'/0'/0/$accountIndex";
 
+  print(vault.descriptor);
+  SingleSignatureWallet wallet =
+      SingleSignatureWallet.fromDescriptor(vault.descriptor);
+
+  print(wallet.getAddress(accountIndex));
+
   print(vault.getAddress(accountIndex));
   // print(utxo.transactionHash);
   // print(utxo.index);
@@ -49,7 +55,7 @@ void takeScenario(int accountIndex, Utxo utxo, SingleSignatureVault vault) {
   //     Encoder.decodeHex(signature),
   //     isSchnorr: true, parity: 0));
 
-  print(signedTx.serialize());
+  // print(signedTx.serialize());
 }
 
 void main() {
@@ -80,13 +86,13 @@ void main() {
         21000, "m/86'/1'/0'/0/9")
   ];
   List<int> notWorking = [];
-  for (int i = 0; i < 10; i++) {
-    print("=== Scenario $i ===");
-    if (notWorking.contains(i)) {
-      // print("X");
-      // continue;
-      // takeScenario(i, utxos[i], vault);
-    }
-    takeScenario(i, utxos[i], vault);
-  }
+  // for (int i = 0; i < 10; i++) {
+  //   print("=== Scenario $i ===");
+  //   if (notWorking.contains(i)) {
+  //     // print("X");
+  //     // continue;
+  //     // takeScenario(i, utxos[i], vault);
+  //   }
+  takeScenario(0, utxos[0], vault);
+  // }
 }

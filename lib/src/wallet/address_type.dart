@@ -91,16 +91,8 @@ class AddressType {
       getP2trKeyPathSpendingAddress,
       getWrongMultisigatureAddress);
 
-  static AddressType p2trMusig2 = AddressType._(
-      'p2trMusig2',
-      86,
-      'bc1',
-      'P2TR',
-      0x04b2430c,
-      0x044a5262,
-      getWrongAddress,
-      //TODO: get musig 2 address()
-      getWrongMultisigatureAddress);
+  static AddressType p2trMusig2 = AddressType._('p2trMusig2', 86, 'bc1', 'P2TR',
+      0x04b2430c, 0x044a5262, getWrongAddress, getP2trMusig2Address);
 
   static AddressType p2trScriptPathSpending = AddressType._(
       'p2trScriptPathSpending',
@@ -298,6 +290,13 @@ class AddressType {
   static String getP2trKeyPathSpendingAddress(String tweakedPubKey) {
     // print("PUB : $tweakedPubKey");
     return getTaprootAddress(tweakedPubKey);
+  }
+
+  //BIP0327
+  static String getP2trMusig2Address(
+      List<String> publicKeys, int requiredSignature) {
+    //TODO: get musig2 address
+    return "";
   }
 
   static String getP2trScriptPathSpendingAddress(

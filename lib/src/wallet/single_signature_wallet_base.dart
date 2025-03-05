@@ -12,7 +12,7 @@ abstract class SingleSignatureWalletBase extends WalletBase {
   /// @nodoc
   SingleSignatureWalletBase(this._keyStore, AddressType _addressType,
       String _derivationPath, this._isVault)
-      : super(_addressType, _derivationPath, false) {
+      : super(_addressType, _derivationPath) {
     // if (_addressType.isMultisig) {
     //   throw Exception('Use MultsignatureVault or MultisignatureWallet.');
     // }
@@ -70,23 +70,5 @@ abstract class SingleSignatureWalletBase extends WalletBase {
   @override
   String addSignatureToPsbt(String psbt) {
     return keyStore.addSignatureToPsbt(psbt, addressType);
-  }
-
-  @override
-  Future<int> estimateFee(List<Utxo> utxoPool, String receiverAddress,
-      String changeAddress, int sendingAmount, int feeRate) async {
-    Psbt psbt = await Future(() => Psbt.fromTransaction(
-        Transaction.forPayment(utxoPool, receiverAddress, changeAddress,
-            sendingAmount, feeRate, this),
-        this));
-    return psbt.estimateFee(feeRate, addressType);
-  }
-
-  @override
-  Future<int> estimateFeeForSweep(
-      List<Utxo> utxoPool, String receiverAddress, int feeRate) async {
-    Psbt psbt = await Future(() => Psbt.fromTransaction(
-        Transaction.forSweep(utxoPool, receiverAddress, feeRate, this), this));
-    return psbt.estimateFee(feeRate, addressType);
   }
 }

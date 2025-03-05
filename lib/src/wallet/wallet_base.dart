@@ -5,7 +5,6 @@ abstract class WalletBase {
   final AddressType _addressType;
   final String _derivationPath;
   final int _accountIndex = 0;
-  final bool _isMultisignature;
   late final Descriptor _descriptor;
 
   /// Get the address type of the wallet.
@@ -14,9 +13,6 @@ abstract class WalletBase {
   /// Get the derivation path of the wallet.
   String get derivationPath => _derivationPath;
 
-  /// Get this wallet is for multisignature or not.
-  bool get isMultisignature => _isMultisignature;
-
   /// Get the account index of the wallet.
   int get accountIndex => _accountIndex;
 
@@ -24,7 +20,7 @@ abstract class WalletBase {
   String get descriptor => _descriptor.serialize();
 
   /// @nodoc
-  WalletBase(this._addressType, this._derivationPath, this._isMultisignature);
+  WalletBase(this._addressType, this._derivationPath);
 
   /// Get the address of the given index.
   String getAddress(int addressIndex, {bool isChange = false});
@@ -35,12 +31,6 @@ abstract class WalletBase {
   bool canSignToPsbt(String psbt);
 
   String addSignatureToPsbt(String psbt);
-
-  Future<int> estimateFee(List<Utxo> utxoPool, String receiverAddress,
-      String changeAddress, int sendingAmount, int feeRate);
-
-  Future<int> estimateFeeForSweep(
-      List<Utxo> utxoPool, String receiverAddress, int feeRate);
 
   Future<String> generatePsbtForPayment(
       List<Utxo> utxoPool,

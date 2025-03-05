@@ -119,7 +119,7 @@ class Transaction {
     // print("Input : ${tx.inputs.length}, Output : ${tx.outputs.length}");
 
     double vByte = 0.0;
-    if (!wallet.isMultisignature) {
+    if (!wallet.addressType.isMultisignature) {
       vByte = tx.estimateVirtualByte(wallet.addressType);
     } else {
       MultisignatureWalletBase multisignatureWallet =
@@ -250,7 +250,7 @@ class Transaction {
         version: version, lockTime: lockTime);
 
     double vByte = 0.0;
-    if (!wallet.isMultisignature) {
+    if (!wallet.addressType.isMultisignature) {
       vByte = transaction.estimateVirtualByte(wallet.addressType);
     } else {
       MultisignatureWalletBase multisignatureWallet =
@@ -891,35 +891,15 @@ class Transaction {
 
   /// Estimate the fee of the transaction.
   int estimateFee(int feeRatePerByte, AddressType addressType,
-      {int? requiredSignature, int? totalSinger}) {
-    // bool hasSignatureLength = !hasNoSignature();
-    // int unsignedInput = 0;
-    // double vByte = getVirtualByte();
-    // int sigByte = 106;
-    // for (TransactionInput input in inputs) {
-    //   if (!input.hasSignature(_isSegwit)) {
-    //     unsignedInput++;
-    //   }
-    // }
-    // if (_isSegwit) {
-    //   double additionalByte = 4.0;
-    //   additionalByte += unsignedInput * sigByte;
-    //   if (!hasSignatureLength) {
-    //     additionalByte += 2;
-    //   }
-    //   vByte += (additionalByte / 4);
-    // } else {
-    //   vByte += unsignedInput * sigByte;
-    // }
-    // print("vByte : $vByte");
+      {int? requiredSignature, int? totalSigner}) {
     double vByte = estimateVirtualByte(addressType,
-        requiredSignature: requiredSignature, totalSigner: totalSinger);
+        requiredSignature: requiredSignature, totalSigner: totalSigner);
     return (vByte * feeRatePerByte).ceil();
   }
 
   /// Add utxo to the transaction.
   void addInputWithUtxo(Utxo newUtxo, int feeRate, WalletBase wallet,
-      {int? requiredSignature, int? totalSinger}) {
+      {int? requiredSignature, int? totalSigner}) {
     for (TransactionInput input in inputs) {
       if (input.transactionHash == newUtxo.transactionHash &&
           input.index == newUtxo.index) {
@@ -949,7 +929,7 @@ class Transaction {
     }
 
     int fee = estimateFee(feeRate, wallet.addressType,
-        requiredSignature: requiredSignature, totalSinger: totalSinger);
+        requiredSignature: requiredSignature, totalSigner: totalSigner);
     int changeAmount = totalInputAmount - totalSendingAmount - fee;
     if (changeAmount < 0) {
       outputs.remove(changeOutput);
@@ -969,7 +949,7 @@ class Transaction {
 
   /// Remove utxo from the transaction.
   void removeInputWithUtxo(Utxo utxoToRemove, int feeRate, WalletBase wallet,
-      {int? requiredSignature, int? totalSinger}) {
+      {int? requiredSignature, int? totalSigner}) {
     if (!_utxoList.contains(utxoToRemove)) {
       throw Exception('UTXO not found in the UTXO list');
     }
@@ -1004,7 +984,7 @@ class Transaction {
     }
     _utxoList.remove(utxoToRemove);
     int fee = estimateFee(feeRate, wallet.addressType,
-        requiredSignature: requiredSignature, totalSinger: totalSinger);
+        requiredSignature: requiredSignature, totalSigner: totalSigner);
     int changeAmount = totalInputAmount - totalSendingAmount - fee;
     if (changeAmount < 0) {
       outputs.remove(changeOutput);
@@ -1018,9 +998,9 @@ class Transaction {
   }
 
   void updateFeeRate(int feeRate, WalletBase wallet,
-      {int? requiredSignature, int? totalSinger}) {
+      {int? requiredSignature, int? totalSigner}) {
     int fee = estimateFee(feeRate, wallet.addressType,
-        requiredSignature: requiredSignature, totalSinger: totalSinger);
+        requiredSignature: requiredSignature, totalSigner: totalSigner);
 
     if (outputs.length == 1) {
       if (outputs[0].amount <= fee) {

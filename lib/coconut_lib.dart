@@ -18,6 +18,7 @@ import 'src/cryptography/mnemonic_wordlist/english.dart' as english_words;
 
 export 'src/cryptography/mnemonic_wordlist/english.dart';
 export 'src/cryptography/converter.dart';
+export 'src/cryptography/encoder.dart';
 
 part 'src/transaction/partially_signed_bitcoin_transaction.dart';
 part 'src/transaction/script.dart';
