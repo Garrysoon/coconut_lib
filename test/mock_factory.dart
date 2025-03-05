@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:coconut_lib/coconut_lib.dart';
-import 'package:coconut_lib/src/cryptography/hash.dart';
 
 enum TestWalletType {
   /// Regtest, 트랜잭션과 UTXO가 수십개 포함된 싱글 시그 지갑
@@ -86,8 +85,8 @@ abstract class MockFactory {
 
   static Psbt createP2wpkhUnsignedPsbt() {
     SingleSignatureVault vault = createP2wpkhVault();
-    Transaction tx = Transaction.forPayment(
-        createUtxoList(count: 2),
+    Transaction tx = Transaction.forSinglePayment(
+        createUtxoList(count: 1),
         vault.getAddress(1),
         vault.getAddress(1, isChange: true),
         15000,
@@ -98,7 +97,7 @@ abstract class MockFactory {
 
   static Psbt createP2wshUnsignedPsbt() {
     MultisignatureVault vault = createP2wshVault();
-    Transaction tx = Transaction.forPayment(
+    Transaction tx = Transaction.forSinglePayment(
         createUtxoList(count: 2, derivationPath: "m/48'/1'/0'/2'/0/0"),
         vault.getAddress(1),
         vault.getAddress(1, isChange: true),
@@ -110,7 +109,7 @@ abstract class MockFactory {
 
   static Psbt createP2wshSignedPsbt() {
     MultisignatureVault vault = createP2wshVault();
-    Transaction tx = Transaction.forPayment(
+    Transaction tx = Transaction.forSinglePayment(
         createUtxoList(count: 2, derivationPath: "m/48'/1'/0'/2'/0/0"),
         vault.getAddress(1),
         vault.getAddress(1, isChange: true),
@@ -124,8 +123,8 @@ abstract class MockFactory {
 
   static Psbt createP2wpkhSignedPsbt() {
     SingleSignatureVault vault = createP2wpkhVault();
-    Transaction tx = Transaction.forPayment(
-        createUtxoList(count: 2),
+    Transaction tx = Transaction.forSinglePayment(
+        createUtxoList(count: 1),
         vault.getAddress(1),
         vault.getAddress(1, isChange: true),
         15000,
@@ -162,6 +161,6 @@ abstract class MockFactory {
       TransactionOutput.forPayment(amount, address),
     ];
 
-    return Transaction.withDefault(inputs, outputs, addressType);
+    return Transaction.withInputsAndOutputs(inputs, outputs, addressType);
   }
 }

@@ -31,8 +31,8 @@ void main() {
     group('Psbt.fromTransaction', () {
       test('Generate psbt from transction object', () {
         SingleSignatureVault vault = MockFactory.createP2wpkhVault();
-        Transaction tx = Transaction.forPayment(
-            MockFactory.createUtxoList(count: 2),
+        Transaction tx = Transaction.forSinglePayment(
+            MockFactory.createUtxoList(count: 1),
             vault.getAddress(1),
             vault.getAddress(1, isChange: true),
             15000,
@@ -93,13 +93,13 @@ void main() {
             '033b0492bf5c0a0222a55cdea04cdc022b1751112381ae6e9970319b3d6b161db9');
       });
     });
-
     group('addSignature', () {
       test('Add signature to psbt', () {
         unsignedPsbt.addSignature(
             0,
             '3045022100de494cd0a05a5621d8303a024130fc43550af2ec456de026174c542dfb1706e5022037f358ddba9025abc70d19693014304158eda80877e00f4b9cea86d18d4fad9801',
             '0246c18ea7c5624b87e5f65a60842c9a22b27ae7e3630a95abeb35455259761824');
+
         expect(
             signedPsbt.serialize().hashCode, unsignedPsbt.serialize().hashCode);
         unsignedPsbt = MockFactory.createP2wshUnsignedPsbt();
@@ -164,7 +164,7 @@ void main() {
     });
     group('get totalSigner', () {
       test('Get number of total signer', () {
-        expect(multisigInput.totalSigner, 3);
+        expect(multisigInput.totalSinger, 3);
       });
     });
     group('addSignature', () {

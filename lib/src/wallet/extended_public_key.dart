@@ -20,7 +20,7 @@ class ExtendedPublicKey {
   Uint8List get parentFingerprintByte => _parentFingerprint;
 
   /// The parent fingerprint of the extended public key.
-  String get parentFingerprint => Encoder.encodeHex(_parentFingerprint);
+  String get parentFingerprint => Codec.encodeHex(_parentFingerprint);
 
   /// The index of the extended public key.
   int get index => _index;
@@ -43,7 +43,7 @@ class ExtendedPublicKey {
 
   /// Parse an extended public key.
   factory ExtendedPublicKey.parse(String expub) {
-    Uint8List buffer = Encoder.decodeBase58(expub);
+    Uint8List buffer = Codec.decodeBase58(expub);
     if (buffer.length != 78) {
       throw Exception("ExtendedPublicKey :Invalid buffer length");
     }
@@ -89,7 +89,7 @@ class ExtendedPublicKey {
         Uint8List.fromList(Hash.sha256fromByte(Hash.sha256fromByte(buffer)));
     Uint8List combine = Uint8List.fromList(
         [buffer, hash.sublist(0, 4)].expand((i) => i).toList(growable: false));
-    return Encoder.encodeBase58(combine);
+    return Codec.encodeBase58(combine);
   }
 
   @override

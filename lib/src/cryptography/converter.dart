@@ -1,5 +1,4 @@
-import 'dart:typed_data';
-import 'encoder.dart';
+part of '../../coconut_lib.dart';
 
 class Converter {
   Converter._();
@@ -118,7 +117,7 @@ class Converter {
   }
 
   static int bytesToDec(Uint8List byteList) {
-    return int.parse(Encoder.encodeHex(byteList), radix: 16);
+    return int.parse(Codec.encodeHex(byteList), radix: 16);
   }
 
   static Uint8List intToLittleEndianBytes(int value, int length) {
@@ -151,13 +150,13 @@ class Converter {
   }
 
   static BigInt littleEndianToBigInt(Uint8List bytes) {
-    return BigInt.parse(Encoder.encodeHex(bytes), radix: 16);
+    return BigInt.parse(Codec.encodeHex(bytes), radix: 16);
   }
 
   static String toLittleEndian(String hexString) {
-    List<int> bytes = Encoder.decodeHex(hexString).toList();
+    List<int> bytes = Codec.decodeHex(hexString).toList();
     bytes = bytes.reversed.toList();
-    return Encoder.encodeHex(Uint8List.fromList(bytes));
+    return Codec.encodeHex(Uint8List.fromList(bytes));
   }
 
   static List<int> convertBits(List<int> data, int from, int to,

@@ -23,7 +23,7 @@ class HDWallet {
 
   /// @nodoc
   Uint8List get publicKey {
-    _Q ??= ecc.pointFromScalar(_d!, true)!;
+    _Q ??= Ecc.pointFromScalar(_d!, true)!;
     return _Q!;
   }
 
@@ -80,7 +80,7 @@ class HDWallet {
         Uint8List.fromList(Hash.sha256fromByte(Hash.sha256fromByte(buffer)));
     Uint8List combine = Uint8List.fromList(
         [buffer, hash.sublist(0, 4)].expand((i) => i).toList(growable: false));
-    return Encoder.encodeBase58(combine);
+    return Codec.encodeBase58(combine);
   }
 
   /// get master private WIF format
@@ -88,7 +88,7 @@ class HDWallet {
     if (privateKey == null) {
       throw Exception("HDWallet : Missing private key");
     }
-    return Encoder.encodeWif(
+    return Codec.encodeWif(
         WIF(version: 0x80, privateKey: privateKey!, compressed: true));
   }
 
@@ -111,16 +111,16 @@ class HDWallet {
     final I = Hash.hmacSha512(chainCode, data);
     final il = I.sublist(0, 32);
     final ir = I.sublist(32);
-    if (!ecc.isPrivate(il)) {
+    if (!Ecc.isPrivate(il)) {
       return derive(index + 1);
     }
     HDWallet hd;
     if (!isNeutered()) {
-      final ki = ecc.privateAdd(privateKey!, il);
+      final ki = Ecc.privateAdd(privateKey!, il);
       if (ki == null) return derive(index + 1);
       hd = HDWallet.fromPrivateKey(ki, ir);
     } else {
-      final ki = ecc.pointAddScalar(publicKey, il, true);
+      final ki = Ecc.pointAddScalar(publicKey, il, true);
       if (ki == null) return derive(index + 1);
       hd = HDWallet.fromPublicKey(ki, ir);
     }
@@ -164,10 +164,10 @@ class HDWallet {
   /// @nodoc
   Uint8List sign(Uint8List hash, {isShnorr = false, Uint8List? auxRand}) {
     if (isShnorr) {
-      return ecc.sign(hash, getTweakedPrivateKey(),
+      return Ecc.sign(hash, getTweakedPrivateKey(),
           isSchnorr: isShnorr, auxRand: auxRand);
     } else {
-      return ecc.sign(hash, privateKey!, isSchnorr: isShnorr);
+      return Ecc.sign(hash, privateKey!, isSchnorr: isShnorr);
     }
   }
 
@@ -187,16 +187,16 @@ class HDWallet {
 
     if (publicKey[0] == 0x03) {
       // print("negate priv origin");
-      evenPrivateKey = ecc.privateNegate(privateKey!)!;
+      evenPrivateKey = Ecc.privateNegate(privateKey!)!;
     }
 
     Uint8List tweakedPrivateKey =
-        ecc.privateAdd(evenPrivateKey!, hashTapTweak)!;
+        Ecc.privateAdd(evenPrivateKey!, hashTapTweak)!;
 
-    Uint8List? tweakedPublicKey = ecc.pointFromScalar(tweakedPrivateKey, true);
+    Uint8List? tweakedPublicKey = Ecc.pointFromScalar(tweakedPrivateKey, true);
     if (tweakedPublicKey![0] == 0x03) {
       // print("negate priv tweak");
-      tweakedPrivateKey = ecc.privateNegate(tweakedPrivateKey)!;
+      tweakedPrivateKey = Ecc.privateNegate(tweakedPrivateKey)!;
     }
 
     // print("Tweaked pub Key from tweaked private key : " +
@@ -220,16 +220,16 @@ class HDWallet {
     Uint8List evenPublicKey = publicKey;
     if (publicKey[0] == 0x03) {
       // print("negate pub origin");
-      evenPublicKey = ecc.pointNegate(publicKey)!.sublist(1);
+      evenPublicKey = Ecc.pointNegate(publicKey)!.sublist(1);
     }
 
     Uint8List tweakedPubKey =
-        ecc.pointAddScalar(evenPublicKey, hashTapTweak, true)!;
+        Ecc.pointAddScalar(evenPublicKey, hashTapTweak, true)!;
     // print("pub:" + Encoder.encodeHex(tweakedPubKey));
     if (tweakedPubKey[0] == 0x03) {
       // print("negate pub tweak");
 
-      tweakedPubKey = ecc.pointNegate(tweakedPubKey)!;
+      tweakedPubKey = Ecc.pointNegate(tweakedPubKey)!;
     }
     // print("PUB : " + Encoder.encodeHex(tweakedPubKey.sublist(1)));
     return tweakedPubKey.sublist(1);
@@ -241,15 +241,15 @@ class HDWallet {
     if (isSchnorr) {
       Uint8List tweakedPublicKey = getTweakedPublicKey(merkleRoot: merkleRoot);
       // Uint8List tweakedPublicKey = publicKey.sublist(1);
-      return ecc.verify(hash, tweakedPublicKey, signature, isSchnorr: true);
+      return Ecc.verify(hash, tweakedPublicKey, signature, isSchnorr: true);
     } else {
-      return ecc.verify(hash, publicKey, signature);
+      return Ecc.verify(hash, publicKey, signature);
     }
   }
 
   /// @nodoc
   factory HDWallet.fromPublicKey(Uint8List publicKey, Uint8List chainCode) {
-    if (!ecc.isPoint(publicKey)) {
+    if (!Ecc.isPoint(publicKey)) {
       throw ArgumentError("Point is not on the curve");
     }
     return HDWallet(null, publicKey, chainCode);
@@ -261,7 +261,7 @@ class HDWallet {
       throw Exception(
           "Expected property privateKey of type Buffer(Length: 32)");
     }
-    if (!ecc.isPrivate(privateKey)) {
+    if (!Ecc.isPrivate(privateKey)) {
       throw ArgumentError("Private key not in range [1, n]");
     }
     return HDWallet(privateKey, null, chainCode);
@@ -280,7 +280,7 @@ class HDWallet {
     final I = Hash.hmacSha512(utf8.encode("Bitcoin seed"), seedBytes);
     final privateKey = I.sublist(0, 32);
     final chainCode = I.sublist(32);
-    final publicKey = ecc.pointFromScalar(privateKey, true)!;
+    final publicKey = Ecc.pointFromScalar(privateKey, true)!;
 
     return HDWallet(privateKey, publicKey, chainCode);
   }
@@ -289,14 +289,14 @@ class HDWallet {
   String toJson() {
     if (privateKey != null) {
       return jsonEncode({
-        'privateKey': Encoder.encodeHex(privateKey!),
-        'publicKey': Encoder.encodeHex(publicKey),
-        'chainCode': Encoder.encodeHex(chainCode),
+        'privateKey': Codec.encodeHex(privateKey!),
+        'publicKey': Codec.encodeHex(publicKey),
+        'chainCode': Codec.encodeHex(chainCode),
       });
     } else {
       return jsonEncode({
-        'publicKey': Encoder.encodeHex(publicKey),
-        'chainCode': Encoder.encodeHex(chainCode),
+        'publicKey': Codec.encodeHex(publicKey),
+        'chainCode': Codec.encodeHex(chainCode),
       });
     }
   }
@@ -305,13 +305,11 @@ class HDWallet {
   factory HDWallet.fromJson(String json) {
     Map<String, dynamic> map = jsonDecode(json);
     if (map.containsKey('privateKey')) {
-      return HDWallet(
-          Encoder.decodeHex(map['privateKey']),
-          Encoder.decodeHex(map['publicKey']),
-          Encoder.decodeHex(map['chainCode']));
+      return HDWallet(Codec.decodeHex(map['privateKey']),
+          Codec.decodeHex(map['publicKey']), Codec.decodeHex(map['chainCode']));
     } else {
-      return HDWallet.fromPublicKey(Encoder.decodeHex(map['publicKey']),
-          Encoder.decodeHex(map['chainCode']));
+      return HDWallet.fromPublicKey(
+          Codec.decodeHex(map['publicKey']), Codec.decodeHex(map['chainCode']));
     }
   }
 }

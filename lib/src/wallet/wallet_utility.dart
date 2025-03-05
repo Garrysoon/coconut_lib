@@ -46,7 +46,7 @@ abstract class WalletUtility {
       if (address.length < 26 || address.length > 35) return false;
       Uint8List decoded;
       try {
-        decoded = Encoder.decodeBase58(address);
+        decoded = Codec.decodeBase58(address);
       } catch (e) {
         return false;
       }

@@ -14,7 +14,7 @@ class TransactionInput {
 
   /// Get the previous transaction hash.
   String get transactionHash =>
-      Encoder.encodeHex(_transactionHash.reversed.toList());
+      Codec.encodeHex(_transactionHash.reversed.toList());
 
   /// Get the index of previous transaction.
   int get index => Converter.littleEndianToInt(_index);
@@ -39,7 +39,7 @@ class TransactionInput {
 
   /// Parse the transaction input from the given input string.
   factory TransactionInput.parse(String input) {
-    Uint8List bytes = Encoder.decodeHex(input);
+    Uint8List bytes = Codec.decodeHex(input);
     //print("full : " + Converter.bytesToHex(bytes));
     var txHash = bytes.sublist(0, 32);
     //print("txHash : " + Converter.bytesToHex(txHash));
@@ -52,7 +52,7 @@ class TransactionInput {
       script = ScriptSignature.empty();
     } else {
       var scriptSig = bytes.sublist(36);
-      script = ScriptSignature.parse(Encoder.encodeHex(scriptSig));
+      script = ScriptSignature.parse(Codec.encodeHex(scriptSig));
     }
     //print("scriptSig : " + Converter.bytesToHex(scriptSig));
     scriptSize = script.serialize().length ~/ 2;
@@ -63,7 +63,7 @@ class TransactionInput {
 
   /// Parse the transaction input from the given input string for PSBT.
   factory TransactionInput.parseForPsbt(String input) {
-    Uint8List bytes = Encoder.decodeHex(input);
+    Uint8List bytes = Codec.decodeHex(input);
     //print("full : " + Converter.bytesToHex(bytes));
     var txHash = bytes.sublist(0, 32);
     //print("txHash : " + Converter.bytesToHex(txHash));
@@ -77,8 +77,7 @@ class TransactionInput {
   factory TransactionInput.forPayment(String transactionHash, int index,
       {int sequence = 0xffffffff}) {
     return TransactionInput(
-        Uint8List.fromList(
-            Encoder.decodeHex(transactionHash).reversed.toList()),
+        Uint8List.fromList(Codec.decodeHex(transactionHash).reversed.toList()),
         Converter.intToLittleEndianBytes(index, 4),
         ScriptSignature.empty(),
         Converter.intToLittleEndianBytes(sequence, 4));
@@ -98,8 +97,8 @@ class TransactionInput {
 
     if (addressType == AddressType.p2pkh) {
       scriptSig = ScriptSignature.p2pkh(
-          Encoder.decodeHex(signatureList[0].signature),
-          Encoder.decodeHex(signatureList[0].publicKey));
+          Codec.decodeHex(signatureList[0].signature),
+          Codec.decodeHex(signatureList[0].publicKey));
     } else if (addressType == AddressType.p2wpkh) {
       scriptSig = ScriptSignature.p2wpkh();
       witnessList = [signatureList[0].signature, signatureList[0].publicKey];
@@ -141,9 +140,9 @@ class TransactionInput {
     // print("index : " + Converter.bytesToHex(_index));
     // print("script : " + _scriptSig.serialize());
     // print("seq : " + Converter.bytesToHex(_sequence));
-    return Encoder.encodeHex(_transactionHash) +
-        Encoder.encodeHex(_index) +
+    return Codec.encodeHex(_transactionHash) +
+        Codec.encodeHex(_index) +
         scriptSig.serialize() +
-        Encoder.encodeHex(_sequence);
+        Codec.encodeHex(_sequence);
   }
 }

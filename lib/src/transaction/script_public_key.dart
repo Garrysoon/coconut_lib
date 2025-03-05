@@ -6,12 +6,12 @@ class ScriptPublicKey extends Script {
 
   /// Parse the script from the given script hex.
   factory ScriptPublicKey.parse(String script) {
-    return ScriptPublicKey(Script.parseToCommand(Encoder.decodeHex(script)));
+    return ScriptPublicKey(Script.parseToCommand(Codec.decodeHex(script)));
   }
 
   /// Generate P2PKH script public key from given address.
   factory ScriptPublicKey.p2pkh(String address) {
-    List<int> h160 = Encoder.decodeBase58(address);
+    List<int> h160 = Codec.decodeBase58(address);
     h160 = h160.sublist(1);
     return ScriptPublicKey([
       0x76,
@@ -24,7 +24,7 @@ class ScriptPublicKey extends Script {
 
   /// Generate P2SH script public key from given address.
   factory ScriptPublicKey.p2sh(String address) {
-    List<int> h160 = Encoder.decodeBase58(address);
+    List<int> h160 = Codec.decodeBase58(address);
     h160 = h160.sublist(1);
     return ScriptPublicKey([
       0xa9,
@@ -98,13 +98,13 @@ class ScriptPublicKey extends Script {
           isTestnet ? Uint8List.fromList([0x6f]) : Uint8List.fromList([0x00]);
       Uint8List h160 = commands[2];
       Uint8List prefixedHash = Uint8List.fromList(prefix + h160);
-      return Encoder.encodeBase58Checksum(prefixedHash);
+      return Codec.encodeBase58Checksum(prefixedHash);
     } else if (_isP2sh()) {
       Uint8List prefix =
           isTestnet ? Uint8List.fromList([0xc4]) : Uint8List.fromList([0x05]);
       Uint8List h160 = commands[1];
       Uint8List prefixedHash = Uint8List.fromList(prefix + h160);
-      return Encoder.encodeBase58Checksum(prefixedHash);
+      return Codec.encodeBase58Checksum(prefixedHash);
     } else if (_isP2tr()) {
       String hrp = _getSegwitHrp();
       Uint8List h256 = commands[1];

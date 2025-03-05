@@ -54,7 +54,7 @@ void main() {
       test('Get utxo list if exist', () {
         SingleSignatureVault vault = MockFactory.createP2wpkhVault();
         List<Utxo> utxoList = MockFactory.createUtxoList(count: 2);
-        Transaction tx = Transaction.fromUtxoList(
+        Transaction tx = Transaction.forBatchPayment(
             utxoList,
             {'bcrt1qk4z5ysfc2k72pz2ws4dhskxdq772s7uq6cdqkv': 100000},
             'bcrt1qyg29ghzqe5fweer9tyga4dtccxhnx4yq7ysflg',
@@ -90,12 +90,12 @@ void main() {
             'e803000000000000160014b247a00acc1cc2c0b4be0d3c38d866f9c08d244a');
         TransactionOutput output2 = TransactionOutput.parse(
             '051f000000000000160014d32c7c4dbb9457cff124c786bac87a9a706c5b3a');
-        Transaction tx = Transaction.withDefault(
+        Transaction tx = Transaction.withInputsAndOutputs(
             [input], [output1, output2], AddressType.p2wpkh);
         expect(tx, isA<Transaction>());
       });
     });
-    group('Transaction.fromUtxoList', () {
+    group('Transaction.forSinglePayment', () {
       List<Utxo> utxos = MockFactory.createUtxoList(count: 5);
       String receiveAddress = 'bcrt1q8e5ghfg8gpe4dlfv7qqck2c2jc47lnllul3puh';
       String changeAddress = 'bcrt1qyg29ghzqe5fweer9tyga4dtccxhnx4yq7ysflg';
@@ -104,8 +104,8 @@ void main() {
           () {
         SingleSignatureVault vault = MockFactory.createP2wpkhVault();
 
-        Transaction tx = Transaction.fromUtxoList(utxos.sublist(0, 1),
-            {receiveAddress: 99800}, changeAddress, 1, vault);
+        Transaction tx = Transaction.forSinglePayment(utxos.sublist(0, 1),
+            receiveAddress, changeAddress, 99800, 1, vault);
         int inputAmount = 0;
         int outputAmount = 0;
         for (Utxo u in tx.utxoList) {
@@ -119,28 +119,26 @@ void main() {
             true);
         expect(tx.outputs.length, 1);
       });
-      test('Generate transactin with utxo list', () {
+      test('Generate transactin for single payment (case 1)', () {
         SingleSignatureVault vault = MockFactory.createP2wpkhVault();
         List<Utxo> utxos = MockFactory.createUtxoList(count: 5);
-        Transaction tx = Transaction.fromUtxoList(
-            utxos, {receiveAddress: 4200}, changeAddress, 1, vault);
+        Transaction tx = Transaction.forSinglePayment(
+            utxos, receiveAddress, changeAddress, 4200, 1, vault);
         expect(tx.outputs.length, 2);
       });
-    });
-
-    group('Transaction.forPayment', () {
-      test('Generate transaction for payment', () {
+      test('Generate transactin for single payment (case 2)', () {
         SingleSignatureVault vault = MockFactory.createP2wpkhVault();
         List<Utxo> utxos = MockFactory.createUtxoList(count: 5);
         String receiveAddress = 'bcrt1q8e5ghfg8gpe4dlfv7qqck2c2jc47lnllul3puh';
         String changeAddress = 'bcrt1qyg29ghzqe5fweer9tyga4dtccxhnx4yq7ysflg';
-        Transaction tx = Transaction.forPayment(
+        Transaction tx = Transaction.forSinglePayment(
             utxos, receiveAddress, changeAddress, 3500, 1, vault);
         expect(tx.outputs[0].getAddress(), receiveAddress);
         expect(tx.outputs[1].getAddress(), changeAddress);
         expect(tx.outputs[0].amount, 3500);
       });
     });
+
     group('Transaction.forSweep', () {
       test('Generate transaction for sweep', () {
         SingleSignatureVault vault = MockFactory.createP2wpkhVault();
@@ -168,7 +166,7 @@ void main() {
             utxos, paymentMap, changeAddress, 1, vault);
 
         expect(tx.outputs.length == 3, isTrue);
-        expect(tx.serialize().hashCode, 180007001);
+        expect(tx.serialize().hashCode, 960424395);
       });
     });
     group('Transaction.parse', () {
@@ -277,7 +275,7 @@ void main() {
         List<Utxo> utxos = MockFactory.createUtxoList(count: 5);
         String receiveAddress = 'bcrt1q8e5ghfg8gpe4dlfv7qqck2c2jc47lnllul3puh';
         String changeAddress = 'bcrt1qyg29ghzqe5fweer9tyga4dtccxhnx4yq7ysflg';
-        Transaction tx = Transaction.fromUtxoList(
+        Transaction tx = Transaction.forBatchPayment(
             utxos, {receiveAddress: 4200}, changeAddress, 1, vault);
         expect(tx.estimateVirtualByte(AddressType.p2wpkh), 412.75);
       });
@@ -301,7 +299,7 @@ void main() {
             'e803000000000000160014b247a00acc1cc2c0b4be0d3c38d866f9c08d244a');
         TransactionOutput output2 = TransactionOutput.parse(
             '051f000000000000160014d32c7c4dbb9457cff124c786bac87a9a706c5b3a');
-        Transaction tx = Transaction.withDefault(
+        Transaction tx = Transaction.withInputsAndOutputs(
             [input], [output1, output2], AddressType.p2wpkh);
         expect(tx.estimateFee(1, AddressType.p2wpkh), 141);
       });
@@ -313,8 +311,8 @@ void main() {
       String changeAddress = 'bcrt1qyg29ghzqe5fweer9tyga4dtccxhnx4yq7ysflg';
       int feeRate = 2;
       test('Add input with utxo', () {
-        Transaction tx = Transaction.forPayment(
-            utxos, receiveAddress, changeAddress, 3200, feeRate, vault);
+        Transaction tx = Transaction.forSinglePayment(utxos.sublist(0, 1),
+            receiveAddress, changeAddress, 3200, feeRate, vault);
         int beforeInputLength = tx.inputs.length;
 
         tx.addInputWithUtxo(utxos[4], feeRate, vault);
@@ -339,7 +337,7 @@ void main() {
       test('Add utxo in dust change case', () {
         int feeRate = 2;
 
-        Transaction tx = Transaction.fromUtxoList(utxos.sublist(0, 3),
+        Transaction tx = Transaction.forBatchPayment(utxos.sublist(0, 3),
             {receiveAddress: 399300}, changeAddress, feeRate, vault);
         int beforeInputLength = tx.inputs.length;
 
@@ -370,7 +368,7 @@ void main() {
       String changeAddress = 'bcrt1qyg29ghzqe5fweer9tyga4dtccxhnx4yq7ysflg';
       int feeRate = 2;
       test('Remove utxo in dust change case', () {
-        Transaction tx = Transaction.fromUtxoList(utxos.sublist(0, 4),
+        Transaction tx = Transaction.forBatchPayment(utxos.sublist(0, 4),
             {receiveAddress: 299300}, changeAddress, feeRate, vault);
         int beforeInputLength = tx.inputs.length;
 
@@ -400,7 +398,7 @@ void main() {
       test('Lower fee rate', () {
         int beforeFeeRate = 4;
         int afterFeeRate = 2;
-        Transaction tx = Transaction.fromUtxoList(utxos.sublist(0, 4),
+        Transaction tx = Transaction.forBatchPayment(utxos.sublist(0, 4),
             {receiveAddress: 24000}, changeAddress, beforeFeeRate, vault);
 
         int beforeChange = tx.outputs[1].amount;
@@ -413,7 +411,7 @@ void main() {
       test('Higher fee rate', () {
         int beforeFeeRate = 2;
         int afterFeeRate = 4;
-        Transaction tx = Transaction.fromUtxoList(utxos.sublist(0, 4),
+        Transaction tx = Transaction.forBatchPayment(utxos.sublist(0, 4),
             {receiveAddress: 240000}, changeAddress, beforeFeeRate, vault);
         int beforeChange = tx.outputs[1].amount;
 
@@ -426,7 +424,7 @@ void main() {
         int beforeFeeRate = 2;
         int afterFeeRate = 5;
 
-        Transaction tx = Transaction.fromUtxoList(utxos.sublist(0, 4),
+        Transaction tx = Transaction.forBatchPayment(utxos.sublist(0, 4),
             {receiveAddress: 398200}, changeAddress, beforeFeeRate, vault);
 
         tx.updateFeeRate(afterFeeRate, vault);

@@ -1,7 +1,5 @@
 import 'dart:typed_data';
-
-import 'package:coconut_lib/src/cryptography/encoder.dart';
-import 'package:coconut_lib/src/cryptography/hash.dart';
+import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -275,7 +273,7 @@ void main() {
     group('taggedHash', () {
       test('Get tagged hash', () {
         final result =
-            Hash.taggedHash('tag', Encoder.decodeHex(Hash.sha256('salt')));
+            Hash.taggedHash('tag', Codec.decodeHex(Hash.sha256('salt')));
         expect(result,
             '8a38cdedb7e8e90315ef4d169732c89e7dbfe24e28a7467d43841c5e74c04aec');
       });

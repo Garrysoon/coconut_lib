@@ -1,9 +1,7 @@
-import 'dart:typed_data';
-import 'converter.dart';
-import 'package:coconut_lib/src/cryptography/hash.dart';
+part of '../../coconut_lib.dart';
 
-class Encoder {
-  Encoder._();
+class Codec {
+  Codec._();
 
   static Uint8List decodeHex(String hexString) {
     List<int> bytes = [];
@@ -168,11 +166,11 @@ class Encoder {
   }
 
   // static WIF decodeWif(String string, [int? version]) {
-  //   return _decodeWifRaw(Encoder.decodeBase58(string), version);
+  //   return _decodeWifRaw(Codec.decodeBase58(string), version);
   // }
 
   static String encodeWif(WIF wif) {
-    return Encoder.encodeBase58(
+    return Codec.encodeBase58(
         _encodeWifRaw(wif.version, wif.privateKey, wif.compressed));
   }
 }

@@ -2,7 +2,6 @@
 import 'dart:typed_data';
 
 import 'package:coconut_lib/coconut_lib.dart';
-import 'package:coconut_lib/src/cryptography/encoder.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -19,11 +18,11 @@ void main() {
     group('factory MultisignatureScript.forP2wsh', () {
       test('Generate multisignature script for p2wsh', () {
         List<Uint8List> publicKeys = [
-          Encoder.decodeHex(
+          Codec.decodeHex(
               '028106e5b5449e0b78e7e06c6435f724b9797db0926ed3ba59b01d6e3dee8fd74b'),
-          Encoder.decodeHex(
+          Codec.decodeHex(
               '02869102bed3322707dfebeaf06f9e0f89b5d133e48ee481bcd624dfc1fa1b1880'),
-          Encoder.decodeHex(
+          Codec.decodeHex(
               '02d6481c1e9ead3f86508ec5d4b515089ae40505f642901e078824184e910d3363')
         ];
         MultisignatureScript multisignatureScript =
@@ -43,11 +42,11 @@ void main() {
     group('getRequiredSignature', () {
       test('Get reqruied signature', () {
         List<Uint8List> publicKeys = [
-          Encoder.decodeHex(
+          Codec.decodeHex(
               '028106e5b5449e0b78e7e06c6435f724b9797db0926ed3ba59b01d6e3dee8fd74b'),
-          Encoder.decodeHex(
+          Codec.decodeHex(
               '02869102bed3322707dfebeaf06f9e0f89b5d133e48ee481bcd624dfc1fa1b1880'),
-          Encoder.decodeHex(
+          Codec.decodeHex(
               '02d6481c1e9ead3f86508ec5d4b515089ae40505f642901e078824184e910d3363')
         ];
         MultisignatureScript multisignatureScript =
@@ -58,11 +57,11 @@ void main() {
     group('getPublicKeys', () {
       test('Get public key list', () {
         List<Uint8List> publicKeys = [
-          Encoder.decodeHex(
+          Codec.decodeHex(
               '028106e5b5449e0b78e7e06c6435f724b9797db0926ed3ba59b01d6e3dee8fd74b'),
-          Encoder.decodeHex(
+          Codec.decodeHex(
               '02869102bed3322707dfebeaf06f9e0f89b5d133e48ee481bcd624dfc1fa1b1880'),
-          Encoder.decodeHex(
+          Codec.decodeHex(
               '02d6481c1e9ead3f86508ec5d4b515089ae40505f642901e078824184e910d3363')
         ];
         MultisignatureScript multisignatureScript =

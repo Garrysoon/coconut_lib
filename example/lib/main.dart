@@ -91,12 +91,17 @@ void main() async {
         100000000, "m/84'/1'/0'/0/68")
   ];
   print(' - Generating unsigned PSBT');
-  String unsignedPsbt = await singleSignatureWallet.generatePsbtForPayment(
+  Transaction unsignedTransaction = Transaction.forSinglePayment(
       utxosForSingleSignatureWallet,
       receiverAddress,
       changeAddress,
       sendingAmount,
-      feeRate);
+      feeRate,
+      singleSignatureWallet);
+  String unsignedPsbt =
+      Psbt.fromTransaction(unsignedTransaction, singleSignatureWallet)
+          .serialize();
+
   print(' - Add signature from vault');
   String signedPsbt = singleSignatureVault.addSignatureToPsbt(unsignedPsbt);
   Psbt walletReceivedPsbt = Psbt.parse(signedPsbt);

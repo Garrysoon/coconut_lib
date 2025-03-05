@@ -1,22 +1,23 @@
-import 'dart:convert';
-import 'dart:typed_data';
+part of '../../coconut_lib.dart';
+// import 'dart:convert';
+// import 'dart:typed_data';
 
-import 'package:hex/hex.dart';
-import 'package:pointycastle/export.dart';
-import 'encoder.dart';
+// import 'package:hex/hex.dart';
+// import 'package:pointycastle/export.dart';
+// import 'codec.dart';
 
 class Hash {
   Hash._();
   static String sha256(String input) {
     var bytes = utf8.encode(input);
     var digest = SHA256Digest().process(bytes);
-    return Encoder.encodeHex(digest);
+    return Codec.encodeHex(digest);
   }
 
   static String sha256fromHex(String hex) {
     Uint8List decoded = Uint8List.fromList(HEX.decode(hex));
     var hashed = SHA256Digest().process(decoded);
-    return Encoder.encodeHex(hashed);
+    return Codec.encodeHex(hashed);
   }
 
   static Uint8List sha256fromByte(Uint8List bytes) {
@@ -61,7 +62,7 @@ class Hash {
     var tagByte = Hash.sha256fromByte(utf8.encode(tag));
     var tagHash = Uint8List.fromList(tagByte + tagByte);
     var taggedHash = Hash.sha256fromByte(Uint8List.fromList(tagHash + data));
-    return Encoder.encodeHex(taggedHash);
+    return Codec.encodeHex(taggedHash);
   }
 
   static Uint8List hashTapTweak(
@@ -73,6 +74,6 @@ class Hash {
       combined = pubkey + merkleRoot;
     }
     String hashTapTweak = taggedHash(tag, combined);
-    return Encoder.decodeHex(hashTapTweak);
+    return Codec.decodeHex(hashTapTweak);
   }
 }

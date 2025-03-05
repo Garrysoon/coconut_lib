@@ -70,7 +70,7 @@ void main() {
         Psbt unsignedPsbt = MockFactory.createP2wshUnsignedPsbt();
         String signedPsbtText =
             vault.addSignatureToPsbt(unsignedPsbt.serialize());
-        expect(signedPsbtText.hashCode, 244975286);
+        expect(signedPsbtText.hashCode, 571013711);
 
         Psbt signedPsbt = Psbt.parse(signedPsbtText);
 
@@ -79,42 +79,5 @@ void main() {
         }
       });
     });
-    // group('estimateFee', () {
-    //   test('Get estimated fee', () async {
-    //     Transaction targetTransaction = MockFactory.createP2wshSignedPsbt()
-    //         .getSignedTransaction(AddressType.p2wsh);
-    //     int estimatedFee = await vault.estimateFee(
-    //         MockFactory.createUtxoList(count: 2),
-    //         vault.getAddress(1),
-    //         vault.getAddress(1, isChange: true),
-    //         15000,
-    //         1);
-    //     int targetFee = targetTransaction
-    //         .estimateVirtualByte(AddressType.p2wsh,
-    //             requiredSignature: 2, totalSigner: 3)
-    //         .ceil();
-    //     expect(estimatedFee, targetFee);
-    //   });
-    // });
-    // group('estimateFeeWithMaximum', () {
-    //   Matcher isWithinRange(int lower, int upper) => predicate(
-    //       (x) => x is num && x >= lower && x <= upper,
-    //       'is within range $lower to $upper');
-    //   test('Get estimated fee for sweep', () async {
-    //     Transaction transaction = Transaction.forSweep(
-    //         MockFactory.createUtxoList(count: 2),
-    //         vault.getAddress(1),
-    //         1,
-    //         vault);
-    //     int targetFee = Psbt.parse(vault.addSignatureToPsbt(
-    //             Psbt.fromTransaction(transaction, vault).serialize()))
-    //         .getSignedTransaction(AddressType.p2wsh)
-    //         .getVirtualByte()
-    //         .floor();
-    //     int estimatedFee = await vault.estimateFeeForSweep(
-    //         MockFactory.createUtxoList(count: 2), vault.getAddress(1), 1);
-    //     expect(estimatedFee, isWithinRange(targetFee - 1, targetFee + 1));
-    //   });
-    // });
   });
 }

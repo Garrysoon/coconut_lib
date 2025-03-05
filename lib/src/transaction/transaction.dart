@@ -13,7 +13,7 @@ class Transaction {
   late List<Utxo> _utxoList = [];
 
   /// Get the version of the transaction.
-  String get version => Encoder.encodeHex(_version);
+  String get version => Codec.encodeHex(_version);
 
   /// Get the inputs of the transaction.
   List<TransactionInput> get inputs => _inputs;
@@ -22,7 +22,7 @@ class Transaction {
   List<TransactionOutput> get outputs => _outputs;
 
   /// Get the lock time of the transaction.
-  String get lockTime => Encoder.encodeHex(_lockTime);
+  String get lockTime => Codec.encodeHex(_lockTime);
 
   /// Get the transaction hash.
   String get transactionHash {
@@ -38,11 +38,11 @@ class Transaction {
         if (_isSegwit) {
           total += 2;
         }
-        total += Encoder.encodeVariableInteger(_inputs.length).length;
+        total += Codec.encodeVariableInteger(_inputs.length).length;
         for (TransactionInput input in _inputs) {
           total += input.length;
         }
-        total += Encoder.encodeVariableInteger(_outputs.length).length;
+        total += Codec.encodeVariableInteger(_outputs.length).length;
         for (TransactionOutput output in _outputs) {
           total += output.length;
         }
@@ -71,7 +71,7 @@ class Transaction {
   Transaction(this._version, this._inputs, this._outputs, this._lockTime,
       this._isSegwit);
 
-  factory Transaction.withDefault(List<TransactionInput> inputs,
+  factory Transaction.withInputsAndOutputs(List<TransactionInput> inputs,
       List<TransactionOutput> outputs, AddressType addressType,
       {int version = 2, int lockTime = 0}) {
     return Transaction(
@@ -83,7 +83,7 @@ class Transaction {
   }
 
   /// Create a transaction with UTXO List.
-  factory Transaction.fromUtxoList(
+  factory Transaction.forBatchPayment(
       List<Utxo> utxoList,
       Map<String, int> paymentMap,
       String changeAddress,
@@ -112,7 +112,7 @@ class Transaction {
         TransactionOutput.forPayment(0, changeAddress);
     outputs.add(changeOutput);
 
-    Transaction tx = Transaction.withDefault(
+    Transaction tx = Transaction.withInputsAndOutputs(
         inputs, outputs, wallet.addressType,
         version: version, lockTime: lockTime);
 
@@ -150,83 +150,29 @@ class Transaction {
   }
 
   /// Create a transaction for simple payment.
-  factory Transaction.forPayment(List<Utxo> utxoPool, String receiveAddress,
-      String changeAddress, int amount, int feeRate, WalletBase wallet,
-      {int version = 2, int lockTime = 0}) {
-    List<Utxo> selectedUtxoList =
-        _selectOptimalUtxo(utxoPool, amount, feeRate, wallet.addressType);
-
-    Transaction transaction = Transaction.fromUtxoList(selectedUtxoList,
-        {receiveAddress: amount}, changeAddress, feeRate, wallet,
-        version: version, lockTime: lockTime);
-
-    transaction._utxoList = selectedUtxoList;
-
-    return transaction;
-  }
-
-  /// Create a transaction for simple payment.
-  factory Transaction.forBatchPayment(
-      List<Utxo> utxoPool,
-      Map<String, int> paymentMap,
+  factory Transaction.forSinglePayment(
+      List<Utxo> utxoList,
+      String receiveAddress,
       String changeAddress,
+      int amount,
       int feeRate,
       WalletBase wallet,
       {int version = 2,
       int lockTime = 0}) {
-    int totalAmount = paymentMap.values.fold(0, (sum, value) => sum + value);
-    List<Utxo> selectedUtxoList =
-        _selectOptimalUtxo(utxoPool, totalAmount, feeRate, wallet.addressType);
-
-    Transaction transaction = Transaction.fromUtxoList(
-        selectedUtxoList, paymentMap, changeAddress, feeRate, wallet,
+    Transaction transaction = Transaction.forBatchPayment(
+        utxoList, {receiveAddress: amount}, changeAddress, feeRate, wallet,
         version: version, lockTime: lockTime);
-
-    transaction._utxoList = selectedUtxoList;
-
     return transaction;
-  }
-
-  static List<Utxo> _selectOptimalUtxo(
-      List<Utxo> utxos, int amount, int feeRate, AddressType addressType) {
-    int baseVbyte = 72; //0 input, 2 output
-    int vBytePerInput = 0;
-    int dust = _getDustThreshold(addressType);
-    if (addressType.isSegwit) {
-      vBytePerInput = 68; //segwit discount
-    } else {
-      vBytePerInput = 148;
-    }
-    List<Utxo> selectedUtxos = [];
-
-    int totalAmount = 0;
-    int totalVbyte = baseVbyte;
-    int finalFee = 0;
-    utxos.sort((a, b) => b.amount.compareTo(a.amount));
-    for (Utxo utxo in utxos) {
-      // if (utxo.blockHeight == 0) {
-      //   continue;
-      // }
-      selectedUtxos.add(utxo);
-      totalAmount += utxo.amount;
-      totalVbyte += vBytePerInput;
-      int fee = totalVbyte * feeRate;
-      if (totalAmount >= amount + fee + dust) {
-        return selectedUtxos;
-      }
-      finalFee = fee;
-    }
-    throw Exception('Not enough amount for sending. (Fee : $finalFee)');
   }
 
   /// Create a transaction for sending all Bitcoin in the wallet.
   factory Transaction.forSweep(
-      List<Utxo> utxoPool, String address, int feeRate, WalletBase wallet,
+      List<Utxo> utxoList, String address, int feeRate, WalletBase wallet,
       {int version = 2, int lockTime = 0}) {
     List<TransactionInput> inputs = [];
     List<TransactionOutput> outputs = [];
     int inputAmount = 0;
-    for (Utxo utxo in utxoPool) {
+    for (Utxo utxo in utxoList) {
       // if (utxo.blockHeight == 0) {
       //   continue;
       // }
@@ -245,7 +191,7 @@ class Transaction {
     TransactionOutput sendingOutput = TransactionOutput.forPayment(0, address);
     outputs.add(sendingOutput);
 
-    Transaction transaction = Transaction.withDefault(
+    Transaction transaction = Transaction.withInputsAndOutputs(
         inputs, outputs, wallet.addressType,
         version: version, lockTime: lockTime);
 
@@ -271,14 +217,14 @@ class Transaction {
     // Transaction tx = Transaction.forMaximumSending(
     //     inputs, address, inputAmount, wallet.addressType, feeRate);
     // print(tx.serialize());
-    transaction._utxoList = utxoPool;
+    transaction._utxoList = utxoList;
     return transaction;
   }
 
   /// Parse the transaction.
   factory Transaction.parse(String transaction,
       {bool isEmptySignature = false}) {
-    Uint8List txBytes = Encoder.decodeHex(transaction);
+    Uint8List txBytes = Codec.decodeHex(transaction);
 
     Uint8List sublist = txBytes.sublist(4);
     bool isSegwit = sublist[0] == 0x00;
@@ -301,36 +247,36 @@ class Transaction {
     if (!(marker[0] == 0x00 && marker[1] == 0x01)) {
       throw Exception('Transaction : Not a segwit transaction maker');
     }
-    int numInputs = Encoder.decodeVariableInteger(txBytes, offset);
+    int numInputs = Codec.decodeVariableInteger(txBytes, offset);
     //print(numInputs);
     offset += 1;
     List<TransactionInput> inputs = [];
     //print(Converter.bytesToHex(txBytes.sublist(offset)));
     for (int i = 0; i < numInputs; i++) {
       TransactionInput input =
-          TransactionInput.parse(Encoder.encodeHex(txBytes.sublist(offset)));
+          TransactionInput.parse(Codec.encodeHex(txBytes.sublist(offset)));
       inputs.add(input);
       int size = input.serialize().length ~/ 2;
       //print("size:" + size.toString());
       offset += size;
     }
-    int numOutputs = Encoder.decodeVariableInteger(txBytes, offset);
+    int numOutputs = Codec.decodeVariableInteger(txBytes, offset);
     offset += 1;
     //print(numOutputs);
     List<TransactionOutput> outputs = [];
     for (int i = 0; i < numOutputs; i++) {
       TransactionOutput output =
-          TransactionOutput.parse(Encoder.encodeHex(txBytes.sublist(offset)));
+          TransactionOutput.parse(Codec.encodeHex(txBytes.sublist(offset)));
       outputs.add(output);
       int size = output.serialize().length ~/ 2;
       offset += size;
     }
     //witness
     for (TransactionInput txIn in inputs) {
-      int numItems = Encoder.decodeVariableInteger(txBytes, offset++);
+      int numItems = Codec.decodeVariableInteger(txBytes, offset++);
       List items = [];
       for (int i = 0; i < numItems; i++) {
-        int itemLen = Encoder.decodeVariableInteger(txBytes, offset);
+        int itemLen = Codec.decodeVariableInteger(txBytes, offset);
         offset++;
         if (itemLen == 0) {
           items.add(0);
@@ -345,7 +291,7 @@ class Transaction {
         if (item == 0) {
           txIn.witnessList.add('00');
         } else {
-          txIn.witnessList.add(Encoder.encodeHex(item));
+          txIn.witnessList.add(Codec.encodeHex(item));
         }
       }
     }
@@ -361,13 +307,13 @@ class Transaction {
     int offset = 0;
     Uint8List version = txBytes.sublist(0, 4);
     offset += 4;
-    int numInputs = Encoder.decodeVariableInteger(txBytes, offset);
+    int numInputs = Codec.decodeVariableInteger(txBytes, offset);
     //print("numInputs : $numInputs");
     offset += 1;
     List<TransactionInput> inputs = [];
     for (int i = 0; i < numInputs; i++) {
       TransactionInput input =
-          TransactionInput.parse(Encoder.encodeHex(txBytes.sublist(offset)));
+          TransactionInput.parse(Codec.encodeHex(txBytes.sublist(offset)));
       // print("input : ${input.serialize()}");
       inputs.add(input);
       int size = input.serialize().length ~/ 2;
@@ -377,13 +323,13 @@ class Transaction {
       // print("input : ${input.serialize()}");
     }
 
-    int numOutputs = Encoder.decodeVariableInteger(txBytes, offset);
+    int numOutputs = Codec.decodeVariableInteger(txBytes, offset);
     offset++;
     // print("numOutputs : $numOutputs");
     List<TransactionOutput> outputs = [];
     for (int i = 0; i < numOutputs; i++) {
       TransactionOutput output =
-          TransactionOutput.parse(Encoder.encodeHex(txBytes.sublist(offset)));
+          TransactionOutput.parse(Codec.encodeHex(txBytes.sublist(offset)));
       outputs.add(output);
       int size = output.serialize().length ~/ 2;
       offset += size;
@@ -395,17 +341,17 @@ class Transaction {
   /// Parse the unsigned transaction. (for PSBT)
   factory Transaction.parseUnsignedTransaction(String transaction) {
     int offset = 0;
-    Uint8List txBytes = Encoder.decodeHex(transaction);
+    Uint8List txBytes = Codec.decodeHex(transaction);
     Uint8List version = txBytes.sublist(0, 4);
     offset += 4;
 
-    int numInputs = Encoder.decodeVariableInteger(txBytes, offset);
+    int numInputs = Codec.decodeVariableInteger(txBytes, offset);
     offset += 1;
     List<TransactionInput> inputs = [];
 
     for (int i = 0; i < numInputs; i++) {
       TransactionInput input = TransactionInput.parseForPsbt(
-          Encoder.encodeHex(txBytes.sublist(offset)));
+          Codec.encodeHex(txBytes.sublist(offset)));
       inputs.add(input);
       int size = input.serialize().length ~/ 2;
       //print("size:" + size.toString());
@@ -416,12 +362,12 @@ class Transaction {
       // print("input sequence : " + input.sequence.toString());
     }
 
-    int numOutputs = Encoder.decodeVariableInteger(txBytes, offset);
+    int numOutputs = Codec.decodeVariableInteger(txBytes, offset);
     offset += 1;
     List<TransactionOutput> outputs = [];
     for (int i = 0; i < numOutputs; i++) {
       TransactionOutput output =
-          TransactionOutput.parse(Encoder.encodeHex(txBytes.sublist(offset)));
+          TransactionOutput.parse(Codec.encodeHex(txBytes.sublist(offset)));
       outputs.add(output);
       int size = output.serialize().length ~/ 2;
       offset += size;
@@ -450,21 +396,19 @@ class Transaction {
     String serialized = '';
     serialized += version;
     serialized += '0001';
-    serialized +=
-        Encoder.encodeHex(Encoder.encodeVariableInteger(inputs.length));
+    serialized += Codec.encodeHex(Codec.encodeVariableInteger(inputs.length));
     for (int i = 0; i < inputs.length; i++) {
       serialized += inputs[i].serialize();
     }
-    serialized +=
-        Encoder.encodeHex(Encoder.encodeVariableInteger(outputs.length));
+    serialized += Codec.encodeHex(Codec.encodeVariableInteger(outputs.length));
     for (int i = 0; i < outputs.length; i++) {
       serialized += outputs[i].serialize();
     }
 
     //serialize witness
     for (int i = 0; i < inputs.length; i++) {
-      serialized += Encoder.encodeHex(
-          Encoder.encodeVariableInteger(inputs[i].witnessList.length));
+      serialized += Codec.encodeHex(
+          Codec.encodeVariableInteger(inputs[i].witnessList.length));
 
       //if the script is p2wpkh or else
       for (int j = 0; j < inputs[i].witnessList.length; j++) {
@@ -487,13 +431,11 @@ class Transaction {
   String _serializeLegacy() {
     String serialized = '';
     serialized += version;
-    serialized +=
-        Encoder.encodeHex(Encoder.encodeVariableInteger(inputs.length));
+    serialized += Codec.encodeHex(Codec.encodeVariableInteger(inputs.length));
     for (int i = 0; i < inputs.length; i++) {
       serialized += inputs[i].serialize();
     }
-    serialized +=
-        Encoder.encodeHex(Encoder.encodeVariableInteger(outputs.length));
+    serialized += Codec.encodeHex(Codec.encodeVariableInteger(outputs.length));
     //print(Converter.bytesToHex(Varints.encode(outputs.length)));
     for (int i = 0; i < outputs.length; i++) {
       serialized += outputs[i].serialize();
@@ -537,7 +479,7 @@ class Transaction {
       }
     }
     String type =
-        Encoder.encodeHex(Converter.intToLittleEndianBytes(hashType, 4));
+        Codec.encodeHex(Converter.intToLittleEndianBytes(hashType, 4));
     String sigHash = forSig.serialize() + type;
     return Hash.sha256(sigHash);
   }
@@ -554,25 +496,25 @@ class Transaction {
     sigHash += _getOutPoint(index);
     if (addressType == AddressType.p2wpkh) {
       sigHash +=
-          "1976a914${Encoder.encodeHex(utxo.scriptPubKey.commands[1])}88ac";
+          "1976a914${Codec.encodeHex(utxo.scriptPubKey.commands[1])}88ac";
     } else if (addressType == AddressType.p2wsh) {
       if (witnessScript == null) {
         throw ArgumentError('witnessScript is required for p2wsh');
       }
       int length = witnessScript.length ~/ 2;
-      sigHash += Encoder.encodeHex(Encoder.encodeVariableInteger(length));
+      sigHash += Codec.encodeHex(Codec.encodeVariableInteger(length));
       sigHash += witnessScript;
     } else {
       sigHash += utxo.scriptPubKey.serialize();
     }
 
     sigHash +=
-        Encoder.encodeHex(Converter.intToLittleEndianBytes(utxo.amount, 8));
-    sigHash += Encoder.encodeHex(
+        Codec.encodeHex(Converter.intToLittleEndianBytes(utxo.amount, 8));
+    sigHash += Codec.encodeHex(
         Converter.intToLittleEndianBytes(inputs[index].sequence, 4));
     sigHash += _getHashOutputs(false);
     sigHash += lockTime;
-    sigHash += Encoder.encodeHex(Converter.intToLittleEndianBytes(hashType, 4));
+    sigHash += Codec.encodeHex(Converter.intToLittleEndianBytes(hashType, 4));
 
     return Hash.sha256fromHex(Hash.sha256fromHex(sigHash));
   }
@@ -602,16 +544,16 @@ class Transaction {
     buffer.addAll(_lockTime);
     if (inputType != 0x80) {
       //if not SIGHASH_ANYONECANPAY
-      buffer.addAll(Encoder.decodeHex(_getHashPrevOuts(true)));
+      buffer.addAll(Codec.decodeHex(_getHashPrevOuts(true)));
       // print("prevouts : " + _getHashPrevOuts(true));
-      buffer.addAll(Encoder.decodeHex(
+      buffer.addAll(Codec.decodeHex(
           getHashAmounts(utxoList.map((e) => e.amount).toList())));
       // print("amounts : " +
       //     getHashAmounts(utxoList.map((e) => e.amount).toList()));
-      buffer.addAll(Encoder.decodeHex(_getHashScriptPublicKey(utxoList
+      buffer.addAll(Codec.decodeHex(_getHashScriptPublicKey(utxoList
           .map((e) => e.scriptPubKey.serialize())
           .toList()))); //scriptPubkeys
-      buffer.addAll(Encoder.decodeHex(_getHashSequence(true)));
+      buffer.addAll(Codec.decodeHex(_getHashSequence(true)));
     }
     if (outputType == 1) {
       //if SIGHASH_ALL
@@ -619,7 +561,7 @@ class Transaction {
       outputs.map((e) => e.serialize()).forEach((element) {
         outputsText += element;
       });
-      buffer.addAll(Encoder.decodeHex(Hash.sha256fromHex(outputsText)));
+      buffer.addAll(Codec.decodeHex(Hash.sha256fromHex(outputsText)));
       // print("outputs : " + Hash.sha256fromHex(outputsText));
     }
 
@@ -645,8 +587,8 @@ class Transaction {
   String _getHashPrevOuts(bool isTaproot) {
     String prevouts = '';
     for (TransactionInput input in inputs) {
-      prevouts += Encoder.encodeHex(input._transactionHash) +
-          Encoder.encodeHex(input._index);
+      prevouts += Codec.encodeHex(input._transactionHash) +
+          Codec.encodeHex(input._index);
     }
     //print("prevouts : " + prevouts);
     if (isTaproot) {
@@ -661,7 +603,7 @@ class Transaction {
     for (int amount in amountList) {
       buffer.addAll(Converter.intToLittleEndianBytes(amount, 8));
     }
-    return Hash.sha256fromHex(Encoder.encodeHex(buffer));
+    return Hash.sha256fromHex(Codec.encodeHex(buffer));
   }
 
   String _getHashScriptPublicKey(List<String> scriptList) {
@@ -675,7 +617,7 @@ class Transaction {
   String _getHashSequence(bool isTaproot) {
     String sequences = '';
     for (TransactionInput input in inputs) {
-      sequences += Encoder.encodeHex(input._sequence);
+      sequences += Codec.encodeHex(input._sequence);
     }
     if (isTaproot) {
       return Hash.sha256fromHex(sequences);
@@ -698,8 +640,8 @@ class Transaction {
 
   String _getOutPoint(int index) {
     String outpoint = '';
-    outpoint += Encoder.encodeHex(inputs[index]._transactionHash) +
-        Encoder.encodeHex(inputs[index]._index);
+    outpoint += Codec.encodeHex(inputs[index]._transactionHash) +
+        Codec.encodeHex(inputs[index]._index);
     //print(outpoint);
     return outpoint;
   }
@@ -721,20 +663,20 @@ class Transaction {
     } else {
       throw Exception('Unsupported Address Type');
     }
-    Uint8List msg = Encoder.decodeHex(sigHash);
+    Uint8List msg = Codec.decodeHex(sigHash);
 
     // 2.Validate signature
     if (addressType == AddressType.p2wsh) {
       String script = inputs[inputIndex].witnessList.last;
       String size =
-          Encoder.encodeHex(Encoder.encodeVariableInteger(script.length ~/ 2));
+          Codec.encodeHex(Codec.encodeVariableInteger(script.length ~/ 2));
       MultisignatureScript witnessScript =
           MultisignatureScript.parse(size + script);
 
       List<Uint8List> signatures = [];
 
       for (int i = 1; i < inputs[inputIndex].witnessList.length - 1; i++) {
-        signatures.add(Encoder.decodeHex(inputs[inputIndex].witnessList[i]));
+        signatures.add(Codec.decodeHex(inputs[inputIndex].witnessList[i]));
       }
 
       List<Uint8List> pubKeys = witnessScript.getPublicKeys();
@@ -756,7 +698,7 @@ class Transaction {
           Uint8List s = sig.sublist(4 + rLen + 2, 4 + rLen + 2 + sLen);
           Uint8List rs = Uint8List.fromList([...r, ...s]);
 
-          if (ecc.verify(msg, pub, rs)) {
+          if (Ecc.verify(msg, pub, rs)) {
             validSigs += 1;
             continue;
           }
@@ -771,8 +713,8 @@ class Transaction {
       signature = inputs[inputIndex].witnessList[0];
       publicKey = inputs[inputIndex].witnessList[1];
 
-      Uint8List sig = Encoder.decodeHex(signature);
-      Uint8List pub = Encoder.decodeHex(publicKey);
+      Uint8List sig = Codec.decodeHex(signature);
+      Uint8List pub = Codec.decodeHex(publicKey);
 
       int rLen = sig[3];
       Uint8List r = sig.sublist(4, 4 + rLen);
@@ -781,7 +723,7 @@ class Transaction {
       Uint8List s = sig.sublist(4 + rLen + 2, 4 + rLen + 2 + sLen);
       Uint8List rs = Uint8List.fromList([...r, ...s]);
 
-      return ecc.verify(msg, pub, rs);
+      return Ecc.verify(msg, pub, rs);
     } else {
       throw Exception('Unsupported Address Type');
     }
@@ -791,19 +733,19 @@ class Transaction {
   bool validateTaprootSignature(
       int inputIndex, List<TransactionOutput> utxoList) {
     Uint8List sigHash =
-        Encoder.decodeHex(getTaprootSigHash(inputIndex, utxoList));
+        Codec.decodeHex(getTaprootSigHash(inputIndex, utxoList));
     // Uint8List publicKey = Encoder.decodeHex(
     //     "02${TransactionOutput.parse(utxoList[inputIndex]).scriptPubKey.commands[1]}");
     Uint8List publicKey = utxoList[inputIndex].scriptPubKey.commands[1];
-    Uint8List signature = Encoder.decodeHex(inputs[inputIndex].witnessList[0]);
-    bool isValid = ecc.verify(sigHash, publicKey, signature, isSchnorr: true) ||
-        ecc.verify(sigHash, publicKey, signature, isSchnorr: true);
+    Uint8List signature = Codec.decodeHex(inputs[inputIndex].witnessList[0]);
+    bool isValid = Ecc.verify(sigHash, publicKey, signature, isSchnorr: true) ||
+        Ecc.verify(sigHash, publicKey, signature, isSchnorr: true);
     return isValid;
   }
 
   /// Get the virtual byte size of the transaction.
   double getVirtualByte() {
-    double totalByte = (Encoder.decodeHex(serialize()).length) * 1.0;
+    double totalByte = (Codec.decodeHex(serialize()).length) * 1.0;
     double witnessByte = 0;
     for (TransactionInput input in inputs) {
       for (int i = 0; i < input.witnessList.length; i++) {

@@ -43,8 +43,7 @@ class KeyStore {
       {int accountIndex = 0}) {
     bool isTestnet = NetworkType.currentNetworkType.isTestnet;
     HDWallet rootWallet = HDWallet.fromRootSeed(seed.rootSeed);
-    String fingerprint =
-        Encoder.encodeHex(rootWallet.fingerprint).toUpperCase();
+    String fingerprint = Codec.encodeHex(rootWallet.fingerprint).toUpperCase();
 
     String derivationPath =
         WalletUtility.getDerivationPath(addressType, accountIndex);
@@ -111,7 +110,7 @@ class KeyStore {
     if (!hasSeed) throw Exception('No private key in this key store');
     HDWallet child = getChildHdWallet(isChange).derive(index);
     if (isSchnorr) {
-      return Encoder.encodeHex(child.getTweakedPrivateKey(
+      return Codec.encodeHex(child.getTweakedPrivateKey(
           merkleRoot: merkleRoot, aggregatedPublicKey: aggregatedPublicKey));
     } else {
       //print("priv : " + Converter.bytesToHex(child.privateKey!.toList()));
@@ -128,17 +127,17 @@ class KeyStore {
         isShnorr: isSchnorr);
     String sig;
     if (!isSchnorr) {
-      String r = Encoder.encodeHex(signature.sublist(0, 32));
+      String r = Codec.encodeHex(signature.sublist(0, 32));
       if (signature[0] & 0x80 != 0) {
         r = '00$r';
       }
       String rLength = Converter.decToHex(r.length ~/ 2);
-      String s = Encoder.encodeHex(signature.sublist(32, 64));
+      String s = Codec.encodeHex(signature.sublist(32, 64));
       String sLength = Converter.decToHex(s.length ~/ 2);
       String rs = '02$rLength${r}02$sLength$s';
       sig = '30${Converter.decToHex(rs.length ~/ 2)}${rs}01';
     } else {
-      sig = Encoder.encodeHex(signature);
+      sig = Codec.encodeHex(signature);
     }
     return sig;
   }
@@ -174,8 +173,8 @@ class KeyStore {
   /// Validate the signatured from this key store.
   bool validateSignature(String signature, String message, int addressIndex,
       {bool isChange = false, bool isSchnorr = false}) {
-    Uint8List sig = Encoder.decodeHex(signature);
-    Uint8List msg = Encoder.decodeHex(message);
+    Uint8List sig = Codec.decodeHex(signature);
+    Uint8List msg = Codec.decodeHex(message);
 
     HDWallet child = getChildHdWallet(isChange).derive(addressIndex);
 

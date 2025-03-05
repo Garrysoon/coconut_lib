@@ -16,7 +16,7 @@ class Script {
         if (raw[0] == 0x00 && raw.length == 1) {
           return length;
         }
-        length += Encoder.encodeVariableInteger(raw.length).length;
+        length += Codec.encodeVariableInteger(raw.length).length;
         return length;
       }();
 
@@ -26,7 +26,7 @@ class Script {
   /// Parse the script from the given script bytes.
   static List<dynamic> parseToCommand(Uint8List script) {
     int offset = 0;
-    int length = Encoder.decodeVariableInteger(script, offset);
+    int length = Codec.decodeVariableInteger(script, offset);
     offset += (length < 0xfd)
         ? 1
         : (length == 0xfd)
@@ -98,7 +98,7 @@ class Script {
   }
 
   String rawSerialize() {
-    return Encoder.encodeHex(_rawSerialize());
+    return Codec.encodeHex(_rawSerialize());
   }
 
   /// Serialize the script.
@@ -109,12 +109,12 @@ class Script {
     Uint8List raw = _rawSerialize();
     if (raw[0] == 0x00 && raw.length == 1) {
       //segwit
-      return Encoder.encodeHex(raw);
+      return Codec.encodeHex(raw);
     }
 
     String serialized =
-        Encoder.encodeHex(Encoder.encodeVariableInteger(raw.length)) +
-            Encoder.encodeHex(raw);
+        Codec.encodeHex(Codec.encodeVariableInteger(raw.length)) +
+            Codec.encodeHex(raw);
 
     return serialized;
   }

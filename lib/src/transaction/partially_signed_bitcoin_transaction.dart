@@ -51,7 +51,7 @@ class Psbt {
         String publicKey = key.substring(2);
         String masterFingerprint = psbtMap["global"][key].substring(0, 8);
         String derivationPath = _parseDerivationPath(
-            Encoder.decodeHex(psbtMap["global"][key].substring(8)));
+            Codec.decodeHex(psbtMap["global"][key].substring(8)));
         derivationPathList
             .add(DerivationPath(publicKey, masterFingerprint, derivationPath));
       }
@@ -78,7 +78,7 @@ class Psbt {
           String publicKey = key.substring(2);
           String masterFingerprint = psbtMap["inputs"][i][key].substring(0, 8);
           String derivationPath = _parseDerivationPath(
-              Encoder.decodeHex(psbtMap["inputs"][i][key].substring(8)));
+              Codec.decodeHex(psbtMap["inputs"][i][key].substring(8)));
           inputDerivationPathList.add(
               DerivationPath(publicKey, masterFingerprint, derivationPath));
         }
@@ -91,8 +91,8 @@ class Psbt {
         // 05 : WITNESS_SCRIPT
         if (key.startsWith('05')) {
           String script = psbtMap["inputs"][i][key];
-          String size = Encoder.encodeHex(
-              Encoder.encodeVariableInteger(script.length ~/ 2));
+          String size =
+              Codec.encodeHex(Codec.encodeVariableInteger(script.length ~/ 2));
           witnessScript = MultisignatureScript.parse(size + script);
         }
         // 19 : TAP_KEY_SIG
@@ -113,7 +113,7 @@ class Psbt {
       String? script;
       if (psbtMap["outputs"][i].containsKey("03")) {
         amount = Converter.littleEndianToInt(
-            Encoder.decodeHex(psbtMap["outputs"][i]["03"]));
+            Codec.decodeHex(psbtMap["outputs"][i]["03"]));
       }
 
       if (psbtMap["outputs"][i].containsKey("04")) {
@@ -126,7 +126,7 @@ class Psbt {
           String publicKey = key.substring(2);
           String masterFingerprint = psbtMap["outputs"][i][key].substring(0, 8);
           String derivationPath = _parseDerivationPath(
-              Encoder.decodeHex(psbtMap["outputs"][i][key].substring(8)));
+              Codec.decodeHex(psbtMap["outputs"][i][key].substring(8)));
           outputDerivationPath =
               DerivationPath(publicKey, masterFingerprint, derivationPath);
         }
@@ -159,11 +159,11 @@ class Psbt {
   List<int> _serializeKeyMap(Map<String, dynamic> map) {
     List<int> globalBytes = [];
     map.forEach((key, value) {
-      List<int> keyBytes = Encoder.decodeHex(key);
-      globalBytes += Encoder.encodeVariableInteger(keyBytes.length);
+      List<int> keyBytes = Codec.decodeHex(key);
+      globalBytes += Codec.encodeVariableInteger(keyBytes.length);
       globalBytes += keyBytes;
-      List<int> valueBytes = Encoder.decodeHex(value);
-      globalBytes += Encoder.encodeVariableInteger(valueBytes.length);
+      List<int> valueBytes = Codec.decodeHex(value);
+      globalBytes += Codec.encodeVariableInteger(valueBytes.length);
       globalBytes += valueBytes;
     });
     return globalBytes;
@@ -223,7 +223,7 @@ class Psbt {
         String fingerPrint = singleSignatureWallet.keyStore.masterFingerprint;
 
         inputData[bip32DerivationKeyType + publicKey] = fingerPrint +
-            Encoder.encodeHex(
+            Codec.encodeHex(
                 _serializeDerivationPath(tx.utxoList[i].derivationPath));
       } else if (wallet is MultisignatureWalletBase) {
         for (KeyStore keyStore in multisignatureWallet.keyStoreList) {
@@ -232,7 +232,7 @@ class Psbt {
 
           String fingerPrint = keyStore.masterFingerprint;
           inputData[bip32DerivationKeyType + publicKey] = fingerPrint +
-              Encoder.encodeHex(
+              Codec.encodeHex(
                   _serializeDerivationPath(tx.utxoList[i].derivationPath));
         }
       }
@@ -261,7 +261,7 @@ class Psbt {
     for (int i = 0; i < tx.outputs.length; i++) {
       Map<String, dynamic> outputData = {};
       String amountKey = getKeyType(outputKeyType, 'AMOUNT');
-      outputData[amountKey] = Encoder.encodeHex(
+      outputData[amountKey] = Codec.encodeHex(
           Converter.intToLittleEndianBytes(tx.outputs[i].amount, 4));
       String scriptKey = getKeyType(outputKeyType, 'SCRIPT');
       outputData[scriptKey] = tx.outputs[i].scriptPubKey.serialize();
@@ -307,18 +307,18 @@ class Psbt {
     Map<String, String> globalMap = {};
     // print(' ---> GLOBAL ---');
     while (true) {
-      int keyLen = Encoder.decodeVariableInteger(psbtBytes, offset);
+      int keyLen = Codec.decodeVariableInteger(psbtBytes, offset);
       offset += _getOffset(psbtBytes[offset]);
       if (keyLen == 0) {
         break;
       }
       Uint8List key = psbtBytes.sublist(offset, offset + keyLen);
       offset += keyLen;
-      int valueLen = Encoder.decodeVariableInteger(psbtBytes, offset);
+      int valueLen = Codec.decodeVariableInteger(psbtBytes, offset);
       offset += _getOffset(psbtBytes[offset]);
       Uint8List value = psbtBytes.sublist(offset, offset + valueLen);
       offset += valueLen;
-      globalMap[Encoder.encodeHex(key)] = Encoder.encodeHex(value);
+      globalMap[Codec.encodeHex(key)] = Codec.encodeHex(value);
     }
     psbtData["global"] = globalMap;
 
@@ -332,18 +332,18 @@ class Psbt {
     for (int i = 0; i < globalTx.inputs.length; i++) {
       Map<String, String> inputData = {};
       while (true) {
-        int keyLen = Encoder.decodeVariableInteger(psbtBytes, offset);
+        int keyLen = Codec.decodeVariableInteger(psbtBytes, offset);
         offset += _getOffset(psbtBytes[offset]);
         if (keyLen == 0) {
           break;
         }
         Uint8List key = psbtBytes.sublist(offset, offset + keyLen);
         offset += keyLen;
-        int valueLen = Encoder.decodeVariableInteger(psbtBytes, offset);
+        int valueLen = Codec.decodeVariableInteger(psbtBytes, offset);
         offset += _getOffset(psbtBytes[offset]);
         Uint8List value = psbtBytes.sublist(offset, offset + valueLen);
         offset += valueLen;
-        inputData[Encoder.encodeHex(key)] = Encoder.encodeHex(value);
+        inputData[Codec.encodeHex(key)] = Codec.encodeHex(value);
       }
       psbtData["inputs"].add(inputData);
     }
@@ -352,7 +352,7 @@ class Psbt {
     for (int i = 0; i < globalTx.outputs.length; i++) {
       Map<String, String> outputData = {};
       while (true) {
-        int keyLen = Encoder.decodeVariableInteger(psbtBytes, offset);
+        int keyLen = Codec.decodeVariableInteger(psbtBytes, offset);
         // print(' -key len ${keyLen.toString()}-');
         offset += _getOffset(psbtBytes[offset]);
         if (keyLen == 0) {
@@ -360,11 +360,11 @@ class Psbt {
         }
         Uint8List key = psbtBytes.sublist(offset, offset + keyLen);
         offset += keyLen;
-        int valueLen = Encoder.decodeVariableInteger(psbtBytes, offset);
+        int valueLen = Codec.decodeVariableInteger(psbtBytes, offset);
         offset += _getOffset(psbtBytes[offset]);
         Uint8List value = psbtBytes.sublist(offset, offset + valueLen);
         offset += valueLen;
-        outputData[Encoder.encodeHex(key)] = Encoder.encodeHex(value);
+        outputData[Codec.encodeHex(key)] = Codec.encodeHex(value);
       }
       psbtData["outputs"].add(outputData);
     }

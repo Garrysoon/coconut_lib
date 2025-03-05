@@ -205,7 +205,7 @@ class AddressType {
         0, extendedRipemd160Hash.length, extendedRipemd160Hash);
     addressBytes.setRange(
         extendedRipemd160Hash.length, addressBytes.length, checksum);
-    return Encoder.encodeBase58(addressBytes);
+    return Codec.encodeBase58(addressBytes);
   }
 
   /// @nodoc
@@ -224,7 +224,7 @@ class AddressType {
     var address =
         (Uint8List.fromList([prefix, ...Hash.sha160fromByte(scriptSig)]));
 
-    return Encoder.encodeBase58Checksum(address);
+    return Codec.encodeBase58Checksum(address);
   }
 
   /// @nodoc
@@ -233,7 +233,7 @@ class AddressType {
     bool isTestnet = NetworkType.currentNetworkType.isTestnet;
     publicKeys.sort();
     List<Uint8List> pubKeysBytes =
-        publicKeys.map((key) => Encoder.decodeHex(key)).toList();
+        publicKeys.map((key) => Codec.decodeHex(key)).toList();
     var redeemScript = <int>[];
     redeemScript.add(0x50 + requiredSignatures); // <m>
     for (var pubKey in pubKeysBytes) {
@@ -249,7 +249,7 @@ class AddressType {
     var addressBytes = [networkPrefix, ...redeemScriptHash];
     // print(Converter.bytesToHex(addressBytes));
     var base58Address =
-        Encoder.encodeBase58Checksum(Uint8List.fromList(addressBytes));
+        Codec.encodeBase58Checksum(Uint8List.fromList(addressBytes));
 
     return base58Address;
   }
@@ -260,7 +260,7 @@ class AddressType {
     publicKeys.sort();
 
     List<Uint8List> pubKeys =
-        publicKeys.map((hex) => Encoder.decodeHex(hex)).toList();
+        publicKeys.map((hex) => Codec.decodeHex(hex)).toList();
 
     var redeemScript = <int>[];
     redeemScript.add(0x50 + requiredSignatures);
@@ -310,15 +310,14 @@ class AddressType {
     }
     publicKeys.sort();
     for (var publicKey in publicKeys) {
-      if (Encoder.decodeHex(publicKey).length != 32) {
+      if (Codec.decodeHex(publicKey).length != 32) {
         throw Exception("Public Key must be a 32-byte x-only public key.");
       }
     }
     List<Uint8List> pubList =
-        publicKeys.map((hex) => Encoder.decodeHex(hex)).toList();
+        publicKeys.map((hex) => Codec.decodeHex(hex)).toList();
 
-    String concatenedPubkeys =
-        pubList.map((e) => Encoder.encodeHex(e)).join('');
+    String concatenedPubkeys = pubList.map((e) => Codec.encodeHex(e)).join('');
 
     String internalKey = Hash.sha256fromHex(concatenedPubkeys);
 
@@ -343,13 +342,13 @@ class AddressType {
 
     // print(Converter.bytesToHex(tapscript));
 
-    Uint8List merkleRoot = _getTapleafHash(0xc0, Encoder.encodeHex(tapscript));
+    Uint8List merkleRoot = _getTapleafHash(0xc0, Codec.encodeHex(tapscript));
 
     return getTaprootAddress(internalKey);
   }
 
   static String getTaprootAddress(String tweakedPubKey) {
-    Uint8List tweakedPubKeyBytes = Encoder.decodeHex(tweakedPubKey);
+    Uint8List tweakedPubKeyBytes = Codec.decodeHex(tweakedPubKey);
 
     var data5Bits = Converter.convertBits(
         Uint8List.fromList(tweakedPubKeyBytes), 8, 5,
@@ -364,7 +363,7 @@ class AddressType {
   }
 
   static Uint8List _getTapleafHash(int version, String script) {
-    Uint8List scriptBytes = Encoder.decodeHex(script);
+    Uint8List scriptBytes = Codec.decodeHex(script);
     Uint8List scriptSize = _encodeCompactSize(scriptBytes.length);
     Uint8List tapleafHash = _taggedHash(
         "TapLeaf", Uint8List.fromList([version] + scriptSize + scriptBytes));

@@ -7,7 +7,7 @@ class ScriptSignature extends Script {
   /// Parse the script from the given script hex.
   factory ScriptSignature.parse(String script) {
     //print("script : " + Converter.hexToBytes(script).toString());
-    return ScriptSignature(Script.parseToCommand(Encoder.decodeHex(script)));
+    return ScriptSignature(Script.parseToCommand(Codec.decodeHex(script)));
   }
 
   /// Get P2PKH script signature from given signature and public key.

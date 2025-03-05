@@ -2,7 +2,6 @@
 import 'dart:typed_data';
 
 import 'package:coconut_lib/coconut_lib.dart';
-import 'package:coconut_lib/src/cryptography/encoder.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -138,13 +137,13 @@ void main() {
         test('Get Taproot address with empty merkle root', () {
           HDWallet hdWallet = HDWallet(
               null,
-              Encoder.decodeHex(
+              Codec.decodeHex(
                   '02d6889cb081036e0faefa3a35157ad71086b123b2b144b649798b494c300a961d'),
               Uint8List.fromList([]));
           Uint8List tPubKey = hdWallet.getTweakedPublicKey();
           expect(
               AddressType.getP2trKeyPathSpendingAddress(
-                  Encoder.encodeHex(tPubKey)),
+                  Codec.encodeHex(tPubKey)),
               'bc1p2wsldez5mud2yam29q22wgfh9439spgduvct83k3pm50fcxa5dps59h4z5');
         });
 
@@ -152,26 +151,26 @@ void main() {
           NetworkType.setNetworkType(NetworkType.mainnet);
           HDWallet hdWallet = HDWallet(
               null,
-              Encoder.decodeHex(
+              Codec.decodeHex(
                   '02187791b6f712a8ea41c8ecdd0ee77fab3e85263b37e1ec18a3651926b3a6cf27'),
               Uint8List.fromList([]));
           Uint8List tPubKey = hdWallet.getTweakedPublicKey(
-              merkleRoot: Encoder.decodeHex(
+              merkleRoot: Codec.decodeHex(
                   '5b75adecf53548f3ec6ad7d78383bf84cc57b55a3127c72b9a2481752dd88b21'));
-          expect(AddressType.getTaprootAddress(Encoder.encodeHex(tPubKey)),
+          expect(AddressType.getTaprootAddress(Codec.encodeHex(tPubKey)),
               'bc1pz37fc4cn9ah8anwm4xqqhvxygjf9rjf2resrw8h8w4tmvcs0863sa2e586');
         });
         test('Get Taproot address with script (case 2)', () {
           NetworkType.setNetworkType(NetworkType.mainnet);
           HDWallet hdWallet = HDWallet(
               null,
-              Encoder.decodeHex(
+              Codec.decodeHex(
                   '0293478e9488f956df2396be2ce6c5cced75f900dfa18e7dabd2428aae78451820'),
               Uint8List.fromList([]));
           Uint8List tPubKey = hdWallet.getTweakedPublicKey(
-              merkleRoot: Encoder.decodeHex(
+              merkleRoot: Codec.decodeHex(
                   'c525714a7f49c28aedbbba78c005931a81c234b2f6c99a73e4d06082adc8bf2b'));
-          expect(AddressType.getTaprootAddress(Encoder.encodeHex(tPubKey)),
+          expect(AddressType.getTaprootAddress(Codec.encodeHex(tPubKey)),
               'bc1punvppl2stp38f7kwv2u2spltjuvuaayuqsthe34hd2dyy5w4g58qqfuag5');
         });
       });

@@ -9,15 +9,11 @@ void main() {
   group('WalletBase', () {
     late SingleSignatureVault vault;
     late SingleSignatureWallet wallet;
-    late String receiverAddress;
-    late String changeAddress;
 
     setUpAll(() async {
       NetworkType.setNetworkType(NetworkType.regtest);
       vault = MockFactory.createP2wpkhVault();
       wallet = SingleSignatureWallet.fromDescriptor(vault.descriptor);
-      receiverAddress = vault.getAddress(0);
-      changeAddress = vault.getAddress(0, isChange: true);
     });
     group('get addressType', () {
       test('Get address type from wallet base', () {
@@ -37,32 +33,6 @@ void main() {
     group('get descriptor', () {
       test('Get descriptor', () {
         expect(vault.descriptor.hashCode, 186870090);
-      });
-    });
-    group('generatePsbtForPayment', () {
-      test('Generate psbt for payment', () async {
-        List<Utxo> utxoPool = MockFactory.createUtxoList(count: 5);
-        int sendingAmount = 150000;
-        int feeRate = 1;
-        String psbt = await wallet.generatePsbtForPayment(
-            utxoPool, receiverAddress, changeAddress, sendingAmount, feeRate);
-        expect(psbt.hashCode, 252587404);
-      });
-    });
-    group('generatePsbtWithUtxoList', () {
-      test('Generate psbt from utxo list', () async {
-        List<Utxo> utxoPool = MockFactory.createUtxoList(count: 3);
-        String psbt = await wallet.generatePsbtWithUtxoList(
-            utxoPool, receiverAddress, changeAddress, 150000, 1);
-        expect(psbt.hashCode, 793019315);
-      });
-    });
-    group('generatePsbtForSweep', () {
-      test('Generate psbt for sweep', () async {
-        List<Utxo> utxoPool = MockFactory.createUtxoList(count: 5);
-        String psbt =
-            await wallet.generatePsbtForSweep(utxoPool, receiverAddress, 1);
-        expect(psbt.hashCode, 943576437);
       });
     });
   });

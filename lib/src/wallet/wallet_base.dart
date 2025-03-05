@@ -31,46 +31,4 @@ abstract class WalletBase {
   bool canSignToPsbt(String psbt);
 
   String addSignatureToPsbt(String psbt);
-
-  Future<String> generatePsbtForPayment(
-      List<Utxo> utxoPool,
-      String receiverAddress,
-      String changeAddress,
-      int sendingAmount,
-      int feeRate) async {
-    Psbt psbt = await Future(() => Psbt.fromTransaction(
-        Transaction.forPayment(utxoPool, receiverAddress, changeAddress,
-            sendingAmount, feeRate, this),
-        this));
-    return psbt.serialize();
-  }
-
-  Future<String> generatePsbtWithUtxoList(
-      List<Utxo> utxoList,
-      String receiverAddress,
-      String changeAddress,
-      int sendingAmount,
-      int feeRate) async {
-    Psbt psbt = await Future(() => Psbt.fromTransaction(
-        Transaction.fromUtxoList(utxoList, {receiverAddress: sendingAmount},
-            changeAddress, feeRate, this),
-        this));
-    return psbt.serialize();
-  }
-
-  Future<String> generatePsbtForBatchPayment(List<Utxo> utxoPool,
-      Map<String, int> paymentMap, String changeAddress, int feeRate) async {
-    Psbt psbt = await Future(() => Psbt.fromTransaction(
-        Transaction.forBatchPayment(
-            utxoPool, paymentMap, changeAddress, feeRate, this),
-        this));
-    return psbt.serialize();
-  }
-
-  Future<String> generatePsbtForSweep(
-      List<Utxo> utxoPool, String receiverAddress, int feeRate) async {
-    Psbt psbt = await Future(() => Psbt.fromTransaction(
-        Transaction.forSweep(utxoPool, receiverAddress, feeRate, this), this));
-    return psbt.serialize();
-  }
 }

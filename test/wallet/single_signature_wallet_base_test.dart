@@ -57,40 +57,5 @@ void main() {
         expect(signedPsbt.hashCode, 862890113);
       });
     });
-    // group('estimateFee', () {
-    //   test('Get estimated fee', () async {
-    //     Transaction targetTransaction = MockFactory.createP2wpkhSignedPsbt()
-    //         .getSignedTransaction(AddressType.p2wpkh);
-    //     int estimatedFee = await vault.estimateFee(
-    //         MockFactory.createUtxoList(count: 2),
-    //         vault.getAddress(1),
-    //         vault.getAddress(1, isChange: true),
-    //         15000,
-    //         1);
-    //     int targetFee =
-    //         targetTransaction.estimateVirtualByte(AddressType.p2wpkh).ceil();
-    //     expect(estimatedFee, targetFee);
-    //   });
-    // });
-    // group('estimateFeeForSweep', () {
-    //   Matcher isWithinRange(int lower, int upper) => predicate(
-    //       (x) => x is num && x >= lower && x <= upper,
-    //       'is within range $lower to $upper');
-    //   test('Get estimated fee for sweep', () async {
-    //     Transaction transaction = Transaction.forSweep(
-    //         MockFactory.createUtxoList(count: 2),
-    //         vault.getAddress(1),
-    //         1,
-    //         vault);
-    //     int targetFee = Psbt.parse(vault.addSignatureToPsbt(
-    //             Psbt.fromTransaction(transaction, vault).serialize()))
-    //         .getSignedTransaction(AddressType.p2wpkh)
-    //         .getVirtualByte()
-    //         .floor();
-    //     int estimatedFee = await vault.estimateFeeForSweep(
-    //         MockFactory.createUtxoList(count: 2), vault.getAddress(1), 1);
-    //     expect(estimatedFee, isWithinRange(targetFee - 1, targetFee + 1));
-    //   });
-    // });
   });
 }
