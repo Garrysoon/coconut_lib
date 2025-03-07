@@ -86,21 +86,21 @@ class AddressType {
       86,
       'bc1',
       'P2TR',
-      0x04b2430c,
-      0x044a5262,
+      0x0488b21e,
+      0x043587cf,
       getP2trKeyPathSpendingAddress,
       getWrongMultisigatureAddress);
 
   static AddressType p2trMusig2 = AddressType._('p2trMusig2', 86, 'bc1', 'P2TR',
-      0x04b2430c, 0x044a5262, getWrongAddress, getP2trMusig2Address);
+      0x0488b21e, 0x043587cf, getWrongAddress, getP2trMusig2Address);
 
   static AddressType p2trScriptPathSpending = AddressType._(
       'p2trScriptPathSpending',
       86,
       'bc1',
       'P2TR',
-      0x04b2430c,
-      0x044a5262,
+      0x0488b21e,
+      0x043587cf,
       getWrongAddress,
       getP2trScriptPathSpendingAddress);
 
