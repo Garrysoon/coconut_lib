@@ -22,6 +22,10 @@ abstract class MultisignatureWalletBase extends WalletBase {
       throw Exception('Use Vault or Wallet class for multisignature.');
     }
 
+    if (_addressType == AddressType.p2trMusig2) {
+      throw Exception('MuSig2 is not supported yet.');
+    }
+
     if (_keyStoreList.length < requiredSignature) {
       throw Exception(
           'Required signature is greater than the number of keyStores.');
