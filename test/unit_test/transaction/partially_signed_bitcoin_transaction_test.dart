@@ -2,7 +2,7 @@
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
 
-import '../mock_factory.dart';
+import '../../mock_factory.dart';
 
 void main() {
   group('Psbt', () {
@@ -19,13 +19,13 @@ void main() {
     });
     group('get sendingAmount', () {
       test('Get sending amount except fee and change', () {
-        expect(signedPsbt.sendingAmount, 99577);
+        expect(signedPsbt.sendingAmount, 15000);
       });
     });
     group('serialize', () {
       test('Get base64 psbt', () {
-        expect(unsignedPsbt.serialize().hashCode, 293915099);
-        expect(signedPsbt.serialize().hashCode, 862890113);
+        expect(unsignedPsbt.serialize().hashCode, 1020912455);
+        expect(signedPsbt.serialize().hashCode, 1025914823);
       });
     });
     group('Psbt.fromTransaction', () {
@@ -34,7 +34,7 @@ void main() {
         Transaction tx = Transaction.forSinglePayment(
             MockFactory.createUtxoList(count: 1),
             vault.getAddress(1),
-            vault.getAddress(1, isChange: true),
+            '${vault.derivationPath}/1/1',
             15000,
             3,
             vault);

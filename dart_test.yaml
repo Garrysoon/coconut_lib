@@ -2,7 +2,7 @@
 timeout: 30s
 tags:
   unit:
-  e2e:
+  scenario:
 platforms:
   - vm
 reporter: expanded

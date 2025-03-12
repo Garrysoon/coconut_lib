@@ -2,7 +2,7 @@
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
 
-import '../mock_factory.dart';
+import '../../mock_factory.dart';
 
 void main() {
   group('SingleSignatureWalletBase', () {
@@ -54,7 +54,7 @@ void main() {
       test('Sign to psbt', () {
         Psbt psbt = MockFactory.createP2wpkhUnsignedPsbt();
         String signedPsbt = vault.addSignatureToPsbt(psbt.serialize());
-        expect(signedPsbt.hashCode, 862890113);
+        expect(signedPsbt.hashCode, 1025914823);
       });
     });
   });

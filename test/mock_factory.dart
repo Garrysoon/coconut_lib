@@ -85,13 +85,8 @@ abstract class MockFactory {
 
   static Psbt createP2wpkhUnsignedPsbt() {
     SingleSignatureVault vault = createP2wpkhVault();
-    Transaction tx = Transaction.forSinglePayment(
-        createUtxoList(count: 1),
-        vault.getAddress(1),
-        vault.getAddress(1, isChange: true),
-        15000,
-        3,
-        vault);
+    Transaction tx = Transaction.forSinglePayment(createUtxoList(count: 1),
+        vault.getAddress(1), '${vault.derivationPath}/1/1', 15000, 3, vault);
     return Psbt.fromTransaction(tx, vault);
   }
 
@@ -100,7 +95,7 @@ abstract class MockFactory {
     Transaction tx = Transaction.forSinglePayment(
         createUtxoList(count: 2, derivationPath: "m/48'/1'/0'/2'/0/0"),
         vault.getAddress(1),
-        vault.getAddress(1, isChange: true),
+        '${vault.derivationPath}/1/1',
         15000,
         3,
         vault);
@@ -112,7 +107,7 @@ abstract class MockFactory {
     Transaction tx = Transaction.forSinglePayment(
         createUtxoList(count: 2, derivationPath: "m/48'/1'/0'/2'/0/0"),
         vault.getAddress(1),
-        vault.getAddress(1, isChange: true),
+        '${vault.derivationPath}/1/1',
         15000,
         3,
         vault);
@@ -123,13 +118,8 @@ abstract class MockFactory {
 
   static Psbt createP2wpkhSignedPsbt() {
     SingleSignatureVault vault = createP2wpkhVault();
-    Transaction tx = Transaction.forSinglePayment(
-        createUtxoList(count: 1),
-        vault.getAddress(1),
-        vault.getAddress(1, isChange: true),
-        15000,
-        3,
-        vault);
+    Transaction tx = Transaction.forSinglePayment(createUtxoList(count: 1),
+        vault.getAddress(1), '${vault.derivationPath}/1/1', 15000, 3, vault);
     Psbt unsignedPsbt = Psbt.fromTransaction(tx, vault);
 
     return Psbt.parse(vault.addSignatureToPsbt(unsignedPsbt.serialize()));
@@ -158,7 +148,7 @@ abstract class MockFactory {
     }
 
     List<TransactionOutput> outputs = [
-      TransactionOutput.forPayment(amount, address),
+      TransactionOutput.forPayment(amount, address, isChangeOutput: false),
     ];
 
     return Transaction.withInputsAndOutputs(inputs, outputs, addressType);
