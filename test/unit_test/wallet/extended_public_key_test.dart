@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
 
-import '../mock_factory.dart';
+import '../../mock_factory.dart';
 
 void main() {
   group('ExtendedPublicKey', () {

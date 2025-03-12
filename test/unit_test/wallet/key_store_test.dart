@@ -2,7 +2,7 @@
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
 
-import '../mock_factory.dart';
+import '../../mock_factory.dart';
 
 void main() {
   group('KeyStore', () {
@@ -165,7 +165,7 @@ void main() {
         Psbt unsignedPsbt = MockFactory.createP2wpkhUnsignedPsbt();
         String signedPsbtText = MockFactory.createP2wpkhVault()
             .addSignatureToPsbt(unsignedPsbt.serialize());
-        expect(signedPsbtText.hashCode, 862890113);
+        expect(signedPsbtText.hashCode, 1025914823);
       });
     });
     group('toJson', () {

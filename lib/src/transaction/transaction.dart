@@ -8,7 +8,7 @@ class Transaction {
   Uint8List _lockTime;
   bool _isSegwit;
   late Map<String, int> paymentMap;
-  late String? changeAddress;
+  late String? changeAddressDerivationPath;
 
   late List<Utxo> _utxoList = [];
 
@@ -86,7 +86,7 @@ class Transaction {
   factory Transaction.forBatchPayment(
       List<Utxo> utxoList,
       Map<String, int> paymentMap,
-      String changeAddress,
+      String changeAddressDerivationPath,
       int feeRate,
       WalletBase wallet,
       {int version = 2,
@@ -99,6 +99,9 @@ class Transaction {
       inputs.add(TransactionInput.forPayment(utxo.transactionHash, utxo.index));
     }
 
+    String changeAddress =
+        wallet.getAddressWithDerivationPath(changeAddressDerivationPath);
+
     int totalOutputAmount =
         paymentMap.values.fold(0, (sum, value) => sum + value);
 
@@ -106,10 +109,11 @@ class Transaction {
       String recipientAddress = entry.key;
       int amount = entry.value;
 
-      outputs.add(TransactionOutput.forPayment(amount, recipientAddress));
+      outputs.add(TransactionOutput.forPayment(amount, recipientAddress,
+          isChangeOutput: false));
     }
     TransactionOutput changeOutput =
-        TransactionOutput.forPayment(0, changeAddress);
+        TransactionOutput.forPayment(0, changeAddress, isChangeOutput: true);
     outputs.add(changeOutput);
 
     Transaction tx = Transaction.withInputsAndOutputs(
@@ -144,7 +148,7 @@ class Transaction {
     }
 
     tx.paymentMap = paymentMap;
-    tx.changeAddress = changeAddress;
+    tx.changeAddressDerivationPath = changeAddressDerivationPath;
     tx._utxoList = utxoList;
     return tx;
   }
@@ -153,14 +157,14 @@ class Transaction {
   factory Transaction.forSinglePayment(
       List<Utxo> utxoList,
       String receiveAddress,
-      String changeAddress,
+      String changeAddressDerivationPath,
       int amount,
       int feeRate,
       WalletBase wallet,
       {int version = 2,
       int lockTime = 0}) {
-    Transaction transaction = Transaction.forBatchPayment(
-        utxoList, {receiveAddress: amount}, changeAddress, feeRate, wallet,
+    Transaction transaction = Transaction.forBatchPayment(utxoList,
+        {receiveAddress: amount}, changeAddressDerivationPath, feeRate, wallet,
         version: version, lockTime: lockTime);
     return transaction;
   }
@@ -188,7 +192,8 @@ class Transaction {
       throw Exception('Sending amount is under dust threshold.');
     }
 
-    TransactionOutput sendingOutput = TransactionOutput.forPayment(0, address);
+    TransactionOutput sendingOutput =
+        TransactionOutput.forPayment(0, address, isChangeOutput: false);
     outputs.add(sendingOutput);
 
     Transaction transaction = Transaction.withInputsAndOutputs(
@@ -858,6 +863,8 @@ class Transaction {
     inputs.add(input);
     _utxoList.add(newUtxo);
     TransactionOutput? changeOutput;
+    String changeAddress =
+        wallet.getAddressWithDerivationPath(changeAddressDerivationPath!);
     for (TransactionOutput output in outputs) {
       if (output.scriptPubKey.getAddress() == changeAddress) {
         changeOutput = output;
@@ -866,7 +873,8 @@ class Transaction {
     }
 
     if (changeOutput == null) {
-      changeOutput = TransactionOutput.forPayment(0, changeAddress!);
+      changeOutput =
+          TransactionOutput.forPayment(0, changeAddress, isChangeOutput: true);
       outputs.add(changeOutput);
     }
 
@@ -908,8 +916,11 @@ class Transaction {
       throw Exception('UTXO not found in the transaction');
     }
 
+    String changeAddress =
+        wallet.getAddressWithDerivationPath(changeAddressDerivationPath!);
+
     TransactionOutput changeOutput =
-        TransactionOutput.forPayment(0, changeAddress!);
+        TransactionOutput.forPayment(0, changeAddress, isChangeOutput: true);
     for (TransactionOutput output in outputs) {
       if (output.scriptPubKey.getAddress() == changeAddress) {
         changeOutput = output;
@@ -953,8 +964,10 @@ class Transaction {
         throw Exception('Sending amount is under dust threshold.');
       }
     } else {
+      String changeAddress =
+          wallet.getAddressWithDerivationPath(changeAddressDerivationPath!);
       TransactionOutput changeOutput =
-          TransactionOutput.forPayment(0, changeAddress!);
+          TransactionOutput.forPayment(0, changeAddress, isChangeOutput: true);
 
       for (TransactionOutput output in outputs) {
         if (output.scriptPubKey.getAddress() == changeAddress) {
