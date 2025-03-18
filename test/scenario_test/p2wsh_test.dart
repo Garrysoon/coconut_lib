@@ -7,6 +7,9 @@ import '../mock_factory.dart';
 void main() {
   test('Add signature to psbt scenario', () {
     MultisignatureVault vault = MockFactory.createP2wshVault();
+
+    expect(vault.descriptor.hashCode, 541502011);
+
     MultisignatureWallet wallet =
         MultisignatureWallet.fromDescriptor(vault.descriptor);
 

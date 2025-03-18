@@ -125,6 +125,22 @@ abstract class MockFactory {
     return Psbt.parse(vault.addSignatureToPsbt(unsignedPsbt.serialize()));
   }
 
+  static Psbt createP2trKeyPathSpendingUnsignedPsbt() {
+    SingleSignatureVault vault = createP2trKeyPathSpendingVault();
+    Transaction tx = Transaction.forSinglePayment(createUtxoList(count: 1),
+        vault.getAddress(1), '${vault.derivationPath}/1/1', 15000, 3, vault);
+    return Psbt.fromTransaction(tx, vault);
+  }
+
+  static Psbt createP2trKeyPathSpendingSignedPsbt() {
+    SingleSignatureVault vault = createP2trKeyPathSpendingVault();
+    Transaction tx = Transaction.forSinglePayment(createUtxoList(count: 1),
+        vault.getAddress(1), '${vault.derivationPath}/1/1', 15000, 3, vault);
+    Psbt unsignedPsbt = Psbt.fromTransaction(tx, vault);
+
+    return Psbt.parse(vault.addSignatureToPsbt(unsignedPsbt.serialize()));
+  }
+
   Transaction getMockTransaction(String scriptPubKey, int amount,
       {bool isCoinbase = false, AddressType? addressType}) {
     addressType ??= AddressType.p2wpkh;
