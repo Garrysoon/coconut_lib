@@ -111,8 +111,14 @@ void main() {
       });
     });
     group('getKeyType', () {
-      test('Get key type for psbt', () {
+      test('Get key type for psbt (input)', () {
         expect(Psbt.getKeyType(Psbt.inputKeyType, 'WITNESS_UTXO'), '01');
+      });
+      test('Get key type for psbt (global)', () {
+        expect(Psbt.getKeyType(Psbt.globalKeyType, 'XPUB'), '01');
+      });
+      test('Get key type for psbt (output)', () {
+        expect(Psbt.getKeyType(Psbt.outputKeyType, 'AMOUNT'), '03');
       });
     });
     group('getSignedTransaction', () {
