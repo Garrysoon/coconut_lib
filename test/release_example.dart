@@ -16,10 +16,10 @@ void main() {
 
   for (PsbtOutput output in unsignedPsbt.outputs) {
     print("Is Change Output : ${output.isChange}");
-    if (output.derivationPath == null) {
+    if (output.bip32Derivation == null) {
       continue;
     }
-    print("Finger print : ${output.derivationPath!.masterFingerprint}");
-    print("Path : ${output.derivationPath!.path}");
+    print("Finger print : ${output.bip32Derivation!.masterFingerprint}");
+    print("Path : ${output.bip32Derivation!.path}");
   }
 }

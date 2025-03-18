@@ -77,9 +77,7 @@ void main() {
         Psbt psbt = Psbt.parse(psbtString);
         expect(psbt.unsignedTransaction!.transactionHash,
             "71ae48a404ce3ad731981532b3dbbde539f27ffc042c0f830576b50478cc16ea");
-        expect(psbt.inputs[1].previousTransaction!.transactionHash,
-            '84d7b9e4286ae2255df883cb0e1f73f12512421f3c112737d4efc727c852e6fa');
-        expect(psbt.outputs[0].derivationPath!.publicKey,
+        expect(psbt.outputs[0].bip32Derivation!.publicKey,
             "0246c18ea7c5624b87e5f65a60842c9a22b27ae7e3630a95abeb35455259761824");
       });
 
@@ -87,9 +85,9 @@ void main() {
         String psbtString =
             'cHNidP8BAFICAAAAAWUg7t4pxeA0A2pGGYAUkmjiY/7YpbjlJ+rYhiEj45BrAQAAAAABAAAAAfgqAAAAAAAAFgAUc/eqTbaEfqsnxZIU9u1yVGJ+feAAAAAAIgEChVOU1Zf1Ia2blwWLDAjxZrf+CE3VFyfmwWr8eJgiWM4Qd0e+VFQAAIABAACAAAAAgAABAN4CAAAAAAEBs4jOPTSThTEdjG6QIX4gambTCssZE2kUV3nCcApKPYUAAAAAAP3///8CI+cUEgAAAAAWABTJ0Ri4AKGR8zDoBd3jeQa9j3A6jwQtAAAAAAAAFgAUyzJcKawdn5xWq3fH9ln2owSnvQICRzBEAiBsMs59znYIj9uBw2u6EQrkrdOOzr/3rgPDYwgpOg35eQIgP3jemekJGVvwqBSWUK7VM+urYcmL5NatuIZGPdVQ4/8BIQLHhxEGkXj/F9d75Tp6ztu6ysTayik+QsYfcwM2IQj9ImUFKwABAR8ELQAAAAAAABYAFMsyXCmsHZ+cVqt3x/ZZ9qMEp70CIgYDOwSSv1wKAiKlXN6gTNwCKxdRESOBrm6ZcDGbPWsWHbkYzPDmxlQAAIABAACAAAAAgAAAAAAAAAAAIgIDOwSSv1wKAiKlXN6gTNwCKxdRESOBrm6ZcDGbPWsWHblIMEUCIQDzaaPhvftio/+HX6YLyYNDJt6teJok/8svr19IYoJA6AIgFMwhYwmo3tKWWXz9JoBShynApV5Dgm2K99Fg1Fvj34YBAAEDBPgqAAABBBcWABRz96pNtoR+qyfFkhT27XJUYn594CICApaPYnyq0NL/g79f7tMP2059h/m9ZVfoDSuJjgdjz4f6GMzw5sZUAACAAQAAgAAAAIAAAAAAAQAAAAAA';
         Psbt psbt = Psbt.parse(psbtString);
-        expect(psbt.inputs[0].partialSigList[0].signature,
+        expect(psbt.inputs[0].partialSig[0].signature,
             '3045022100f369a3e1bdfb62a3ff875fa60bc9834326dead789a24ffcb2faf5f48628240e8022014cc216309a8ded296597cfd2680528729c0a55e43826d8af7d160d45be3df8601');
-        expect(psbt.inputs[0].partialSigList[0].publicKey,
+        expect(psbt.inputs[0].partialSig[0].publicKey,
             '033b0492bf5c0a0222a55cdea04cdc022b1751112381ae6e9970319b3d6b161db9');
       });
     });
@@ -146,12 +144,6 @@ void main() {
       multisigInput = MockFactory.createP2wshUnsignedPsbt().inputs[0];
     });
 
-    group('get previousTransaction', () {
-      test('Get prevous transaction', () {
-        // for legacy input
-        expect(input.previousTransaction, null);
-      });
-    });
     group('get witnessUtxo', () {
       test('Get witness utxo', () {
         expect(input.witnessUtxo!.serialize().hashCode, 528248287);
@@ -159,8 +151,8 @@ void main() {
     });
     group('get derivationPathList', () {
       test('Get derivation path list', () {
-        expect(input.derivationPathList[0].path, "m/84'/1'/0'/0/0");
-        expect(multisigInput.derivationPathList[0].path, "m/48'/1'/0'/2'/0/0");
+        expect(input.bip32Derivation[0].path, "m/84'/1'/0'/0/0");
+        expect(multisigInput.bip32Derivation[0].path, "m/48'/1'/0'/2'/0/0");
       });
     });
     group('get requiredSignature', () {
@@ -197,18 +189,18 @@ void main() {
     });
     group('get derivationPath', () {
       test('Get derivation path from psbt output', () {
-        expect(parsedPsbtOutput.derivationPath!.path, "m/84'/1'/0'/0/0");
+        expect(parsedPsbtOutput.bip32Derivation!.path, "m/84'/1'/0'/0/0");
       });
     });
     group('get amount', () {
       test('Get amount of psbt output', () {
-        expect(multisigOutput.amount, 15000);
+        expect(multisigOutput.outAmount, 15000);
       });
     });
-    group('getAddress', () {
+    group('get outAddress', () {
       test('Get address of psbt output', () {
         expect(
-            output.getAddress(), 'tb1qcjx6kazryh26wzpr2p66w2s0f7nv29n07fx05a');
+            output.outAaddress, 'tb1qcjx6kazryh26wzpr2p66w2s0f7nv29n07fx05a');
       });
     });
     group('isChange', () {
@@ -228,18 +220,18 @@ void main() {
     });
     group('get publicKey', () {
       test('Get public key of bip32 derivation path', () {
-        expect(parsedPsbtOutput.derivationPath!.publicKey,
+        expect(parsedPsbtOutput.bip32Derivation!.publicKey,
             "0246c18ea7c5624b87e5f65a60842c9a22b27ae7e3630a95abeb35455259761824");
       });
     });
     group('get masterFingerprint', () {
       test('Get master finger print of bip32 derivation path', () {
-        expect(parsedPsbtOutput.derivationPath!.masterFingerprint, "98C7D774");
+        expect(parsedPsbtOutput.bip32Derivation!.masterFingerprint, "98C7D774");
       });
     });
     group('get path', () {
       test('Get derivation path', () {
-        expect(parsedPsbtOutput.derivationPath!.path, "m/84'/1'/0'/0/0");
+        expect(parsedPsbtOutput.bip32Derivation!.path, "m/84'/1'/0'/0/0");
       });
     });
   });
