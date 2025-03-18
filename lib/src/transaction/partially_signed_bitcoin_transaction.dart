@@ -34,8 +34,8 @@ class Psbt {
   int get sendingAmount => () {
         int sendingAmount = 0;
         for (PsbtOutput output in outputs) {
-          if (output.derivationPath != null && output.isChange) continue;
-          sendingAmount += output.amount!;
+          if (output.bip32Derivation != null && output.isChange) continue;
+          sendingAmount += output.outAmount!;
         }
 
         return sendingAmount;
@@ -103,21 +103,21 @@ class Psbt {
 
       // Set psbt input
       inputs.add(PsbtInput.forSegwit(
-          prevTx, witnessUtxo, inputDerivationPathList, partialSigList,
+          witnessUtxo, inputDerivationPathList, partialSigList,
           witnessScript: witnessScript,
-          taprootKeyPathSpendingSignature: taprootKeyPathSpendingSignature));
+          tapKeySig: taprootKeyPathSpendingSignature));
     }
 
     for (int i = 0; i < psbtMap["outputs"].length; i++) {
       int? amount;
-      String? script;
+      ScriptPublicKey? script;
       if (psbtMap["outputs"][i].containsKey("03")) {
         amount = Converter.littleEndianToInt(
             Codec.decodeHex(psbtMap["outputs"][i]["03"]));
       }
 
       if (psbtMap["outputs"][i].containsKey("04")) {
-        script = psbtMap["outputs"][i]["04"];
+        script = ScriptPublicKey.parse(psbtMap["outputs"][i]["04"]);
       }
 
       DerivationPath? outputDerivationPath;
@@ -312,7 +312,7 @@ class Psbt {
     }
     int totalOutputAmount = 0;
     for (PsbtOutput output in psbt.outputs) {
-      totalOutputAmount += output.amount!;
+      totalOutputAmount += output.outAmount!;
     }
     if (totalOutputAmount > totalInputAmount) {
       throw Exception('Not enough input amount');
@@ -421,14 +421,14 @@ class Psbt {
   bool isSigned(KeyStore keyStore) {
     bool isSigned = false;
     for (PsbtInput input in inputs) {
-      for (DerivationPath path in input._derivationPathList) {
+      for (DerivationPath path in input.bip32Derivation) {
         if (keyStore.masterFingerprint == path.masterFingerprint) {
           isSigned = true;
           String publicKey = keyStore.getPublicKey(
               WalletUtility.getAccountIndexFromDerivationPath(path.path),
               isChange: WalletUtility.isChangeFromDerivationPath(path.path));
           // getPublicKeyWithDerivationPath(path.path);
-          if (!input.partialSigList
+          if (!input.partialSig
               .any((element) => element.publicKey == publicKey)) {
             return false;
           }
@@ -564,11 +564,11 @@ class Psbt {
     signedTransaction._isSegwit = addressType.isSegwit;
     if (addressType == AddressType.p2wsh) {
       for (int i = 0; i < inputs.length; i++) {
-        if (inputs[i].partialSigList.length < inputs[i].requiredSignature) {
+        if (inputs[i].partialSig.length < inputs[i].requiredSignature) {
           throw Exception('Not enough signatures');
         }
         signedTransaction.inputs[i].setSignature(
-            addressType, inputs[i].partialSigList,
+            addressType, inputs[i].partialSig,
             witnessScript: inputs[i].witnessScript);
 
         if (signedTransaction.validateSignature(
@@ -582,11 +582,11 @@ class Psbt {
     } else if (addressType == AddressType.p2wpkh) {
       //every input should have 2 partial sigs
       for (int i = 0; i < inputs.length; i++) {
-        if (inputs[i].partialSigList.length != 1) {
+        if (inputs[i].partialSig.length != 1) {
           throw Exception('Not enough signatures');
         }
         signedTransaction.inputs[i]
-            .setSignature(addressType, inputs[i].partialSigList);
+            .setSignature(addressType, inputs[i].partialSig);
         if (signedTransaction.validateSignature(
             i, inputs[i].witnessUtxo!, addressType)) {
           continue;
@@ -601,9 +601,9 @@ class Psbt {
       }
 
       for (int i = 0; i < inputs.length; i++) {
-        if (inputs[i].taprootKeyPathSpendingSignature != null) {
-          signedTransaction.inputs[i].setTaprootKeyPathSpendingSignature(
-              inputs[i].taprootKeyPathSpendingSignature!);
+        if (inputs[i].tapKeySig != null) {
+          signedTransaction.inputs[i]
+              .setTaprootKeyPathSpendingSignature(inputs[i].tapKeySig!);
           if (signedTransaction.validateTaprootSignature(i, utxoList)) {
             continue;
           } else {
@@ -620,17 +620,11 @@ class Psbt {
 
 /// @nodoc
 class PsbtInput {
-  final Transaction? _previousTransaction;
-  final TransactionOutput? _witnessUtxo;
-  final List<DerivationPath> _derivationPathList;
-  final List<Signature> _partialSigList;
-  late String? taprootKeyPathSpendingSignature;
-  late MultisignatureScript? witnessScript;
-
-  Transaction? get previousTransaction => _previousTransaction;
-  TransactionOutput? get witnessUtxo => _witnessUtxo;
-  List<DerivationPath> get derivationPathList => _derivationPathList;
-  List<Signature> get partialSigList => _partialSigList;
+  final TransactionOutput? witnessUtxo; //0x01
+  final List<DerivationPath> bip32Derivation; //0x03
+  final List<Signature> partialSig; //0x02
+  late String? tapKeySig; //0x13(19)
+  late MultisignatureScript? witnessScript; //0x05
 
   int get requiredSignature {
     if (witnessScript == null) {
@@ -641,51 +635,44 @@ class PsbtInput {
   }
 
   int get totalSinger {
-    return derivationPathList.length;
+    return bip32Derivation.length;
   }
 
-  PsbtInput.forSegwit(this._previousTransaction, this._witnessUtxo,
-      this._derivationPathList, this._partialSigList,
-      {this.witnessScript, this.taprootKeyPathSpendingSignature});
+  PsbtInput.forSegwit(this.witnessUtxo, this.bip32Derivation, this.partialSig,
+      {this.witnessScript, this.tapKeySig});
 
   addSignature(String signature, String publicKey) {
-    _partialSigList.add(Signature(signature, publicKey));
+    partialSig.add(Signature(signature, publicKey));
   }
 
   addTaprootKeyPathSpendingSignature(String signature) {
-    taprootKeyPathSpendingSignature = signature;
+    tapKeySig = signature;
   }
 }
 
 /// @nodoc
 class PsbtOutput {
-  final DerivationPath? _derivationPath;
-  final int? _amount;
-  final String? _script;
+  final DerivationPath? bip32Derivation; //0x02
+  final int? outAmount; //0x03
+  final ScriptPublicKey? outScript; //0x04
 
-  DerivationPath? get derivationPath => _derivationPath;
-  int? get amount => _amount;
-
-  String getAddress() {
-    ScriptPublicKey script = ScriptPublicKey.parse(_script!);
-    return script.getAddress();
-  }
+  String get outAaddress => outScript!.getAddress();
 
   /// @nodoc
   bool get isChange {
-    if (derivationPath == null) {
+    if (bip32Derivation == null) {
       return false;
-    } else if (derivationPath!.path.split('/')[1].startsWith('48') &&
-        derivationPath!.path.split('/')[5] == '1') {
+    } else if (bip32Derivation!.path.split('/')[1].startsWith('48') &&
+        bip32Derivation!.path.split('/')[5] == '1') {
       return true;
-    } else if (derivationPath!.path.split('/')[4] == '1') {
+    } else if (bip32Derivation!.path.split('/')[4] == '1') {
       return true;
     } else {
       return false;
     }
   }
 
-  PsbtOutput(this._derivationPath, this._amount, this._script);
+  PsbtOutput(this.bip32Derivation, this.outAmount, this.outScript);
 }
 
 /// @nodoc

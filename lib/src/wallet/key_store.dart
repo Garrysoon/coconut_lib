@@ -209,12 +209,12 @@ class KeyStore {
     Psbt psbtObj = Psbt.parse(psbt);
     for (int i = 0; i < psbtObj.unsignedTransaction!.inputs.length; i++) {
       PsbtInput thisInput = psbtObj.inputs[i];
-      for (int j = 0; j < thisInput.derivationPathList.length; j++) {
-        if (thisInput.derivationPathList[j].masterFingerprint ==
+      for (int j = 0; j < thisInput.bip32Derivation.length; j++) {
+        if (thisInput.bip32Derivation[j].masterFingerprint ==
                 masterFingerprint &&
-            thisInput.derivationPathList[j].publicKey ==
-                getPublicKey(thisInput.derivationPathList[j].accountIndex,
-                    isChange: thisInput.derivationPathList[j].isChange)) {
+            thisInput.bip32Derivation[j].publicKey ==
+                getPublicKey(thisInput.bip32Derivation[j].accountIndex,
+                    isChange: thisInput.bip32Derivation[j].isChange)) {
           return true;
         }
       }
@@ -240,7 +240,7 @@ class KeyStore {
     for (int i = 0; i < psbtObject.unsignedTransaction!.inputs.length; i++) {
       PsbtInput thisInput = psbtObject.inputs[i];
 
-      if (thisInput.requiredSignature <= thisInput.partialSigList.length) {
+      if (thisInput.requiredSignature <= thisInput.partialSig.length) {
         continue;
       }
 
@@ -256,13 +256,8 @@ class KeyStore {
         sigHash =
             psbtObject.unsignedTransaction!.getTaprootSigHash(i, utxoList);
       } else {
-        TransactionOutput utxo;
-        if (thisInput.witnessUtxo == null) {
-          utxo = thisInput.previousTransaction!
-              .outputs[psbtObject.unsignedTransaction!.inputs[i].index];
-        } else {
-          utxo = thisInput.witnessUtxo!;
-        }
+        TransactionOutput utxo = thisInput.witnessUtxo!;
+
         if (addressType == AddressType.p2wsh) {
           String? witnessScript = thisInput.witnessScript!.rawSerialize();
           sigHash = psbtObject.unsignedTransaction!
@@ -274,24 +269,24 @@ class KeyStore {
       }
 
       //Add signature
-      for (int j = 0; j < thisInput.derivationPathList.length; j++) {
-        if (thisInput.derivationPathList[j].masterFingerprint !=
+      for (int j = 0; j < thisInput.bip32Derivation.length; j++) {
+        if (thisInput.bip32Derivation[j].masterFingerprint !=
             masterFingerprint) {
           continue;
         }
 
         //TODO: implement code for the wallet is musig2 or script path
         String publicKey = getPublicKey(
-            thisInput.derivationPathList[j].accountIndex,
-            isChange: thisInput.derivationPathList[j].isChange,
+            thisInput.bip32Derivation[j].accountIndex,
+            isChange: thisInput.bip32Derivation[j].isChange,
             isSchnorr: isSchnorr);
         String signature = signWithDerivationPath(
-            sigHash, thisInput.derivationPathList[j].path,
+            sigHash, thisInput.bip32Derivation[j].path,
             isSchnorr: isSchnorr);
 
         // Validate signature
         if (!validateSignatureWithDerivationPath(
-            signature, sigHash, thisInput.derivationPathList[j].path,
+            signature, sigHash, thisInput.bip32Derivation[j].path,
             isSchnorr: isSchnorr)) {
           throw Exception('Invalid signature');
         }
