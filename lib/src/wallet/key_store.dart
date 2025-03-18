@@ -210,11 +210,16 @@ class KeyStore {
     for (int i = 0; i < psbtObj.unsignedTransaction!.inputs.length; i++) {
       PsbtInput thisInput = psbtObj.inputs[i];
       for (int j = 0; j < thisInput.derivationPathList.length; j++) {
+        String publicKeyInPsbt = thisInput.derivationPathList[j].publicKey;
+        String publicKey = getPublicKey(
+            thisInput.derivationPathList[j].accountIndex,
+            isChange: thisInput.derivationPathList[j].isChange);
+        if (publicKeyInPsbt.length != publicKey.length) {
+          publicKey = publicKey.substring(2);
+        }
         if (thisInput.derivationPathList[j].masterFingerprint ==
                 masterFingerprint &&
-            thisInput.derivationPathList[j].publicKey ==
-                getPublicKey(thisInput.derivationPathList[j].accountIndex,
-                    isChange: thisInput.derivationPathList[j].isChange)) {
+            publicKeyInPsbt == publicKey) {
           return true;
         }
       }
