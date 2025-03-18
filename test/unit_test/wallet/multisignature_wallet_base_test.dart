@@ -75,7 +75,7 @@ void main() {
         Psbt signedPsbt = Psbt.parse(signedPsbtText);
 
         for (PsbtInput input in signedPsbt.inputs) {
-          expect(input.requiredSignature, input.partialSig.length);
+          expect(input.requiredSignature, input.signedCount);
         }
       });
     });

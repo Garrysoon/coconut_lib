@@ -46,6 +46,7 @@ class Psbt {
     unsignedTransaction =
         Transaction.parseUnsignedTransaction(psbtMap["global"]["00"]);
 
+    // instantiate global
     psbtMap["global"].keys.forEach((key) {
       if (key.startsWith('01')) {
         String publicKey = key.substring(2);
@@ -57,11 +58,8 @@ class Psbt {
       }
     });
 
+    // instantiate each input
     for (int i = 0; i < psbtMap["inputs"].length; i++) {
-      Transaction? prevTx;
-      if (psbtMap["inputs"][i].containsKey("00")) {
-        prevTx = Transaction.parse(psbtMap["inputs"][i]["00"]);
-      }
       TransactionOutput? witnessUtxo;
       if (psbtMap["inputs"][i].containsKey("01")) {
         witnessUtxo = TransactionOutput.parse(psbtMap["inputs"][i]["01"]);
@@ -418,27 +416,6 @@ class Psbt {
     psbtMap["inputs"][inputIndex]["13"] = signature;
   }
 
-  bool isSigned(KeyStore keyStore) {
-    bool isSigned = false;
-    for (PsbtInput input in inputs) {
-      for (DerivationPath path in input.bip32Derivation) {
-        if (keyStore.masterFingerprint == path.masterFingerprint) {
-          isSigned = true;
-          String publicKey = keyStore.getPublicKey(
-              WalletUtility.getAccountIndexFromDerivationPath(path.path),
-              isChange: WalletUtility.isChangeFromDerivationPath(path.path));
-          // getPublicKeyWithDerivationPath(path.path);
-          if (!input.partialSig
-              .any((element) => element.publicKey == publicKey)) {
-            return false;
-          }
-        }
-      }
-    }
-
-    return isSigned;
-  }
-
   static int _getOffset(int prefix) {
     if (prefix == 0xfd) {
       return 3;
@@ -564,11 +541,11 @@ class Psbt {
     signedTransaction._isSegwit = addressType.isSegwit;
     if (addressType == AddressType.p2wsh) {
       for (int i = 0; i < inputs.length; i++) {
-        if (inputs[i].partialSig.length < inputs[i].requiredSignature) {
+        if (inputs[i].totalSinger < inputs[i].requiredSignature) {
           throw Exception('Not enough signatures');
         }
         signedTransaction.inputs[i].setSignature(
-            addressType, inputs[i].partialSig,
+            addressType, inputs[i].partialSig!,
             witnessScript: inputs[i].witnessScript);
 
         if (signedTransaction.validateSignature(
@@ -582,11 +559,11 @@ class Psbt {
     } else if (addressType == AddressType.p2wpkh) {
       //every input should have 2 partial sigs
       for (int i = 0; i < inputs.length; i++) {
-        if (inputs[i].partialSig.length != 1) {
+        if (inputs[i].totalSinger != 1) {
           throw Exception('Not enough signatures');
         }
         signedTransaction.inputs[i]
-            .setSignature(addressType, inputs[i].partialSig);
+            .setSignature(addressType, inputs[i].partialSig!);
         if (signedTransaction.validateSignature(
             i, inputs[i].witnessUtxo!, addressType)) {
           continue;
@@ -620,11 +597,29 @@ class Psbt {
 
 /// @nodoc
 class PsbtInput {
+  //Field for Segwit v0
   final TransactionOutput? witnessUtxo; //0x01
-  final List<DerivationPath> bip32Derivation; //0x03
-  final List<Signature> partialSig; //0x02
-  late String? tapKeySig; //0x13(19)
-  late MultisignatureScript? witnessScript; //0x05
+  List<Signature>? partialSig; //0x02
+  List<DerivationPath>? bip32Derivation; //0x03
+  MultisignatureScript? witnessScript; //0x05
+
+  PsbtInput.forSegwit(this.witnessUtxo, this.bip32Derivation, this.partialSig,
+      {this.witnessScript, this.tapKeySig});
+
+  //Field for taproot
+  String? tapKeySig; //0x13(19)
+  List<Signature>? tapScriptSig; //0x14(20)
+  MultisignatureScript? tapLeafScript; //0x15
+  String? controlBlock; //0x15
+  List<DerivationPath>? tapBip32Derivation; //16
+
+  PsbtInput.forKeyPathSpending(
+      this.witnessUtxo, this.tapBip32Derivation, this.tapKeySig);
+
+  List<DerivationPath> get derivationPathList =>
+      bip32Derivation == null ? tapBip32Derivation! : bip32Derivation!;
+  List<Signature> get signatureList =>
+      partialSig == null ? tapScriptSig! : partialSig!;
 
   int get requiredSignature {
     if (witnessScript == null) {
@@ -635,14 +630,15 @@ class PsbtInput {
   }
 
   int get totalSinger {
-    return bip32Derivation.length;
+    return derivationPathList.length;
   }
 
-  PsbtInput.forSegwit(this.witnessUtxo, this.bip32Derivation, this.partialSig,
-      {this.witnessScript, this.tapKeySig});
+  int get signedCount {
+    return signatureList.length;
+  }
 
   addSignature(String signature, String publicKey) {
-    partialSig.add(Signature(signature, publicKey));
+    partialSig!.add(Signature(signature, publicKey));
   }
 
   addTaprootKeyPathSpendingSignature(String signature) {
