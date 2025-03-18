@@ -85,9 +85,9 @@ void main() {
         String psbtString =
             'cHNidP8BAFICAAAAAWUg7t4pxeA0A2pGGYAUkmjiY/7YpbjlJ+rYhiEj45BrAQAAAAABAAAAAfgqAAAAAAAAFgAUc/eqTbaEfqsnxZIU9u1yVGJ+feAAAAAAIgEChVOU1Zf1Ia2blwWLDAjxZrf+CE3VFyfmwWr8eJgiWM4Qd0e+VFQAAIABAACAAAAAgAABAN4CAAAAAAEBs4jOPTSThTEdjG6QIX4gambTCssZE2kUV3nCcApKPYUAAAAAAP3///8CI+cUEgAAAAAWABTJ0Ri4AKGR8zDoBd3jeQa9j3A6jwQtAAAAAAAAFgAUyzJcKawdn5xWq3fH9ln2owSnvQICRzBEAiBsMs59znYIj9uBw2u6EQrkrdOOzr/3rgPDYwgpOg35eQIgP3jemekJGVvwqBSWUK7VM+urYcmL5NatuIZGPdVQ4/8BIQLHhxEGkXj/F9d75Tp6ztu6ysTayik+QsYfcwM2IQj9ImUFKwABAR8ELQAAAAAAABYAFMsyXCmsHZ+cVqt3x/ZZ9qMEp70CIgYDOwSSv1wKAiKlXN6gTNwCKxdRESOBrm6ZcDGbPWsWHbkYzPDmxlQAAIABAACAAAAAgAAAAAAAAAAAIgIDOwSSv1wKAiKlXN6gTNwCKxdRESOBrm6ZcDGbPWsWHblIMEUCIQDzaaPhvftio/+HX6YLyYNDJt6teJok/8svr19IYoJA6AIgFMwhYwmo3tKWWXz9JoBShynApV5Dgm2K99Fg1Fvj34YBAAEDBPgqAAABBBcWABRz96pNtoR+qyfFkhT27XJUYn594CICApaPYnyq0NL/g79f7tMP2059h/m9ZVfoDSuJjgdjz4f6GMzw5sZUAACAAQAAgAAAAIAAAAAAAQAAAAAA';
         Psbt psbt = Psbt.parse(psbtString);
-        expect(psbt.inputs[0].partialSig[0].signature,
+        expect(psbt.inputs[0].partialSig![0].signature,
             '3045022100f369a3e1bdfb62a3ff875fa60bc9834326dead789a24ffcb2faf5f48628240e8022014cc216309a8ded296597cfd2680528729c0a55e43826d8af7d160d45be3df8601');
-        expect(psbt.inputs[0].partialSig[0].publicKey,
+        expect(psbt.inputs[0].partialSig![0].publicKey,
             '033b0492bf5c0a0222a55cdea04cdc022b1751112381ae6e9970319b3d6b161db9');
       });
     });
@@ -151,8 +151,8 @@ void main() {
     });
     group('get derivationPathList', () {
       test('Get derivation path list', () {
-        expect(input.bip32Derivation[0].path, "m/84'/1'/0'/0/0");
-        expect(multisigInput.bip32Derivation[0].path, "m/48'/1'/0'/2'/0/0");
+        expect(input.bip32Derivation![0].path, "m/84'/1'/0'/0/0");
+        expect(multisigInput.bip32Derivation![0].path, "m/48'/1'/0'/2'/0/0");
       });
     });
     group('get requiredSignature', () {
