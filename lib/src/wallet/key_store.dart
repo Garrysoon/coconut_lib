@@ -104,12 +104,12 @@ class KeyStore {
   /// Get the private key of the key store using index.
   String getPrivateKey(int index,
       {bool isChange = false,
-      bool isSchnorr = false,
+      bool applyTweak = false,
       Uint8List? merkleRoot,
       Uint8List? aggregatedPublicKey}) {
     if (!hasSeed) throw Exception('No private key in this key store');
     HDWallet child = getChildHdWallet(isChange).derive(index);
-    if (isSchnorr) {
+    if (applyTweak) {
       return Codec.encodeHex(child.getTweakedPrivateKey(
           merkleRoot: merkleRoot, aggregatedPublicKey: aggregatedPublicKey));
     } else {
@@ -158,11 +158,12 @@ class KeyStore {
   /// Get the public key of the key store using index.
   String getPublicKey(int addressIndex,
       {bool isChange = false,
-      isSchnorr = false,
+      isXOnly = false,
+      applyTweak = false,
       Uint8List? merkleRoot,
       Uint8List? aggregatedPublicKey}) {
     HDWallet child = getChildHdWallet(isChange).derive(addressIndex).neutered();
-    if (isSchnorr) {
+    if (applyTweak) {
       return HEX.encode((child.getTweakedPublicKey(
           merkleRoot: merkleRoot, aggregatedPublicKey: aggregatedPublicKey)));
     } else {
@@ -283,7 +284,7 @@ class KeyStore {
         String publicKey = getPublicKey(
             thisInput.derivationPathList[j].accountIndex,
             isChange: thisInput.derivationPathList[j].isChange,
-            isSchnorr: isSchnorr);
+            applyTweak: isSchnorr);
         String signature = signWithDerivationPath(
             sigHash, thisInput.derivationPathList[j].path,
             isSchnorr: isSchnorr);

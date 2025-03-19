@@ -267,6 +267,12 @@ void main() {
         expect(legacyTransaction.getVirtualByte(), 188.0);
         expect(segwitTransaction.getVirtualByte(), 140.5);
       });
+      test('Test with tx', () {
+        String txText =
+            '0200000000010168414056047da922de8c3f8c671f0668907e29be197ac4c76e0dc2673355dc9b0000000000ffffffff02a086010000000000160014d3cf7bce6a9c341feaca1f20cb42cf440e5bef7a207a3b0000000000160014e29982768e6a80d5034191ffadc33a9da0b22f2c02483045022100e56b4ea67ffdb53f9a42c6263e3342a7454103a5f4b2c8f25949731bb4e9ca3d02204b4008ad728b441bee68a8e5cbeb35e44de6e6de793d94c95004c04b583495e401210247592babe670e5bb9a9163f99381ec3934461ed120a57c1e96669f6db314552d00000000';
+        Transaction tx = Transaction.parse(txText);
+        expect(tx.getVirtualByte(), 140.5);
+      });
     });
     group('estimateVirtualByte', () {
       test('Get estimated virtyal byte', () {

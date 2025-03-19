@@ -1,5 +1,6 @@
 @Tags(['unit'])
 import 'package:coconut_lib/coconut_lib.dart';
+import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
 
 import '../../mock_factory.dart';
@@ -127,6 +128,31 @@ void main() {
                 .serialize()
                 .hashCode,
             738053798);
+      });
+    });
+
+    group('isSigned', () {
+      group('Check if psbt is signed', () {
+        test('Check if psbt is signed (segwit)', () {
+          SingleSignatureVault vault = MockFactory.createP2wpkhVault();
+          Psbt unsignedPsbt = MockFactory.createP2wpkhUnsignedPsbt();
+          Psbt signedPsbt = MockFactory.createP2wpkhSignedPsbt();
+
+          expect(unsignedPsbt.isSigned(vault.keyStore), false);
+          expect(signedPsbt.isSigned(vault.keyStore), true);
+        });
+        test('Check if psbt is signed (taproot)', () {
+          SingleSignatureVault vault =
+              MockFactory.createP2trKeyPathSpendingVault();
+          Psbt unsignedPsbt =
+              MockFactory.createP2trKeyPathSpendingUnsignedPsbt();
+          Psbt signedPsbt = MockFactory.createP2trKeyPathSpendingSignedPsbt();
+
+          expect(unsignedPsbt.isSigned(vault.keyStore, isKeyPathSpending: true),
+              false);
+          expect(signedPsbt.isSigned(vault.keyStore, isKeyPathSpending: true),
+              true);
+        });
       });
     });
     // group('estimateFee', () {

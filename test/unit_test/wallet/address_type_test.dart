@@ -85,7 +85,7 @@ void main() {
           // print(keyStore.getPublicKey(0, isSchnorr: true));
           expect(
               AddressType.p2trKeyPathSpending
-                  .getAddress(keyStore.getPublicKey(2, isSchnorr: true)),
+                  .getAddress(keyStore.getPublicKey(2, applyTweak: true)),
               'bc1p4trvc4y8hu4cyj93vytg57dx5853d9qjrs9w7ctamn5gn6frgawqtkpnv8');
         });
         test('getWrondAddress', () {
@@ -104,7 +104,7 @@ void main() {
               addressType: AddressType.p2trKeyPathSpending);
           expect(
               AddressType.p2trKeyPathSpending
-                  .getAddress(vault.keyStore.getPublicKey(0, isSchnorr: true)),
+                  .getAddress(vault.keyStore.getPublicKey(0, applyTweak: true)),
               'bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr');
         });
         test('getP2trKeyPathSpendingAddress (case 2)', () {
@@ -115,7 +115,7 @@ void main() {
 
           expect(
               AddressType.p2trKeyPathSpending
-                  .getAddress(vault.keyStore.getPublicKey(1, isSchnorr: true)),
+                  .getAddress(vault.keyStore.getPublicKey(1, applyTweak: true)),
               'bc1p4qhjn9zdvkux4e44uhx8tc55attvtyu358kutcqkudyccelu0was9fqzwh');
         });
         test('getP2trKeyPathSpendingAddress (case 3)', () {
@@ -126,7 +126,7 @@ void main() {
 
           expect(
               AddressType.p2trKeyPathSpending.getAddress(vault.keyStore
-                  .getPublicKey(0, isChange: true, isSchnorr: true)),
+                  .getPublicKey(0, isChange: true, applyTweak: true)),
               'bc1p3qkhfews2uk44qtvauqyr2ttdsw7svhkl9nkm9s9c3x4ax5h60wqwruhk7');
         });
         test('getP2trScriptPathMultisignatureAddress', () {

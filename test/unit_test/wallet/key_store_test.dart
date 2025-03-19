@@ -118,7 +118,8 @@ void main() {
         SingleSignatureVault vault = SingleSignatureVault.fromMnemonic(
             "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
             addressType: AddressType.p2trKeyPathSpending);
-        expect(vault.keyStore.getPublicKey(0, isChange: false, isSchnorr: true),
+        expect(
+            vault.keyStore.getPublicKey(0, isChange: false, applyTweak: true),
             'a60869f0dbcf1dc659c9cecbaf8050135ea9e8cdc487053f1dc6880949dc684c');
       });
     });
