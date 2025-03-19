@@ -239,7 +239,7 @@ class Psbt {
             getKeyType(inputKeyType, 'TAP_BIP32_DERIVATION');
         String publicKey = singleSignatureWallet.keyStore
             .getPublicKey(tx.utxoList[i].accountIndex,
-                isChange: tx.utxoList[i].isChange, isSchnorr: false)
+                isChange: tx.utxoList[i].isChange, applyTweak: false)
             .substring(2);
         String fingerPrint = singleSignatureWallet.keyStore.masterFingerprint;
         inputData[tapBip32DerivationKeyType + publicKey] = fingerPrint +
@@ -637,6 +637,31 @@ class Psbt {
     }
     return signedTransaction;
   }
+
+  bool isSigned(KeyStore keyStore, {isKeyPathSpending = false}) {
+    bool isSigned = false;
+    for (PsbtInput input in inputs) {
+      for (DerivationPath path in input.derivationPathList) {
+        if (keyStore.masterFingerprint == path.masterFingerprint) {
+          isSigned = true;
+          if (isKeyPathSpending) {
+            return (input.tapKeySig != null);
+          } else {
+            String publicKey = keyStore.getPublicKey(
+                WalletUtility.getAccountIndexFromDerivationPath(path.path),
+                isChange: WalletUtility.isChangeFromDerivationPath(path.path));
+            // getPublicKeyWithDerivationPath(path.path);
+            if (!input.signatureList
+                .any((element) => element.publicKey == publicKey)) {
+              return false;
+            }
+          }
+        }
+      }
+    }
+
+    return isSigned;
+  }
 }
 
 /// @nodoc
@@ -662,8 +687,11 @@ class PsbtInput {
 
   List<DerivationPath> get derivationPathList =>
       bip32Derivation == null ? tapBip32Derivation! : bip32Derivation!;
-  List<Signature> get signatureList =>
-      partialSig == null ? tapScriptSig! : partialSig!;
+  List<Signature> get signatureList => {
+        if (partialSig != null) ...partialSig!,
+        if (tapScriptSig != null) ...tapScriptSig!,
+        if (tapKeySig != null) ...[Signature(tapKeySig!, '')]
+      }.toList();
 
   int get requiredSignature {
     if (witnessScript == null) {
