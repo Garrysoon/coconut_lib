@@ -225,8 +225,7 @@ void main() {
     });
     group('get outAddress', () {
       test('Get address of psbt output', () {
-        expect(
-            output.outAaddress, 'tb1qcjx6kazryh26wzpr2p66w2s0f7nv29n07fx05a');
+        expect(output.outAddress, 'tb1qcjx6kazryh26wzpr2p66w2s0f7nv29n07fx05a');
       });
     });
     group('isChange', () {

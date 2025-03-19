@@ -729,7 +729,7 @@ class PsbtOutput {
   final int? outAmount; //0x03
   final ScriptPublicKey? outScript; //0x04
 
-  String get outAaddress => outScript!.getAddress();
+  String get outAddress => outScript!.getAddress();
 
   /// @nodoc
   bool get isChange {
