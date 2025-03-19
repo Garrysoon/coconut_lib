@@ -87,7 +87,7 @@ class Transaction {
       List<Utxo> utxoList,
       Map<String, int> paymentMap,
       String changeAddressDerivationPath,
-      int feeRate,
+      double feeRate,
       WalletBase wallet,
       {int version = 2,
       int lockTime = 0}) {
@@ -159,7 +159,7 @@ class Transaction {
       String receiveAddress,
       String changeAddressDerivationPath,
       int amount,
-      int feeRate,
+      double feeRate,
       WalletBase wallet,
       {int version = 2,
       int lockTime = 0}) {
@@ -171,7 +171,7 @@ class Transaction {
 
   /// Create a transaction for sending all Bitcoin in the wallet.
   factory Transaction.forSweep(
-      List<Utxo> utxoList, String address, int feeRate, WalletBase wallet,
+      List<Utxo> utxoList, String address, double feeRate, WalletBase wallet,
       {int version = 2, int lockTime = 0}) {
     List<TransactionInput> inputs = [];
     List<TransactionOutput> outputs = [];
@@ -837,7 +837,7 @@ class Transaction {
   }
 
   /// Estimate the fee of the transaction.
-  int estimateFee(int feeRatePerByte, AddressType addressType,
+  int estimateFee(double feeRatePerByte, AddressType addressType,
       {int? requiredSignature, int? totalSigner}) {
     double vByte = estimateVirtualByte(addressType,
         requiredSignature: requiredSignature, totalSigner: totalSigner);
@@ -845,7 +845,7 @@ class Transaction {
   }
 
   /// Add utxo to the transaction.
-  void addInputWithUtxo(Utxo newUtxo, int feeRate, WalletBase wallet,
+  void addInputWithUtxo(Utxo newUtxo, double feeRate, WalletBase wallet,
       {int? requiredSignature, int? totalSigner}) {
     for (TransactionInput input in inputs) {
       if (input.transactionHash == newUtxo.transactionHash &&
@@ -898,7 +898,7 @@ class Transaction {
   }
 
   /// Remove utxo from the transaction.
-  void removeInputWithUtxo(Utxo utxoToRemove, int feeRate, WalletBase wallet,
+  void removeInputWithUtxo(Utxo utxoToRemove, double feeRate, WalletBase wallet,
       {int? requiredSignature, int? totalSigner}) {
     if (!_utxoList.contains(utxoToRemove)) {
       throw Exception('UTXO not found in the UTXO list');
@@ -950,7 +950,7 @@ class Transaction {
     }
   }
 
-  void updateFeeRate(int feeRate, WalletBase wallet,
+  void updateFeeRate(double feeRate, WalletBase wallet,
       {int? requiredSignature, int? totalSigner}) {
     int fee = estimateFee(feeRate, wallet.addressType,
         requiredSignature: requiredSignature, totalSigner: totalSigner);

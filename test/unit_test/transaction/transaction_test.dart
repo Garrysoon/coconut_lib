@@ -314,7 +314,7 @@ void main() {
       List<Utxo> utxos = MockFactory.createUtxoList(count: 5);
       String receiveAddress = 'bcrt1q8e5ghfg8gpe4dlfv7qqck2c2jc47lnllul3puh';
       String changeAddressPath = '${vault.derivationPath}/1/0';
-      int feeRate = 2;
+      double feeRate = 2.0;
       test('Add input with utxo', () {
         Transaction tx = Transaction.forSinglePayment(utxos.sublist(0, 1),
             receiveAddress, changeAddressPath, 3200, feeRate, vault);
@@ -340,7 +340,7 @@ void main() {
             true);
       });
       test('Add utxo in dust change case', () {
-        int feeRate = 2;
+        double feeRate = 2.0;
 
         Transaction tx = Transaction.forBatchPayment(utxos.sublist(0, 3),
             {receiveAddress: 399300}, changeAddressPath, feeRate, vault);
@@ -371,7 +371,7 @@ void main() {
       List<Utxo> utxos = MockFactory.createUtxoList(count: 5);
       String receiveAddress = 'bcrt1q8e5ghfg8gpe4dlfv7qqck2c2jc47lnllul3puh';
       String changeAddressPath = '${vault.derivationPath}/1/0';
-      int feeRate = 2;
+      double feeRate = 2.0;
       test('Remove utxo in dust change case', () {
         Transaction tx = Transaction.forBatchPayment(utxos.sublist(0, 4),
             {receiveAddress: 299300}, changeAddressPath, feeRate, vault);
@@ -401,8 +401,8 @@ void main() {
       String receiveAddress = 'bcrt1q8e5ghfg8gpe4dlfv7qqck2c2jc47lnllul3puh';
       String changeAddressPath = '${vault.derivationPath}/1/0';
       test('Lower fee rate', () {
-        int beforeFeeRate = 4;
-        int afterFeeRate = 2;
+        double beforeFeeRate = 4;
+        double afterFeeRate = 2;
         Transaction tx = Transaction.forBatchPayment(utxos.sublist(0, 4),
             {receiveAddress: 24000}, changeAddressPath, beforeFeeRate, vault);
 
@@ -414,8 +414,8 @@ void main() {
       });
 
       test('Higher fee rate', () {
-        int beforeFeeRate = 2;
-        int afterFeeRate = 4;
+        double beforeFeeRate = 2;
+        double afterFeeRate = 4;
         Transaction tx = Transaction.forBatchPayment(utxos.sublist(0, 4),
             {receiveAddress: 240000}, changeAddressPath, beforeFeeRate, vault);
         int beforeChange = tx.outputs[1].amount;
@@ -426,8 +426,8 @@ void main() {
         expect(afterChange < beforeChange, true);
       });
       test('Higher fee rate and dust threshold', () {
-        int beforeFeeRate = 2;
-        int afterFeeRate = 5;
+        double beforeFeeRate = 2;
+        double afterFeeRate = 5;
 
         Transaction tx = Transaction.forBatchPayment(utxos.sublist(0, 4),
             {receiveAddress: 398200}, changeAddressPath, beforeFeeRate, vault);
@@ -448,8 +448,8 @@ void main() {
             true);
       });
       test('For sweep case', () {
-        int beforeFeeRate = 2;
-        int afterFeeRate = 5;
+        double beforeFeeRate = 2;
+        double afterFeeRate = 5;
 
         Transaction tx = Transaction.forSweep(
             utxos.sublist(0, 4), receiveAddress, beforeFeeRate, vault);
