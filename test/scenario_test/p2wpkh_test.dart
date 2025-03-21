@@ -26,4 +26,33 @@ void main() {
             .getSignedTransaction(wallet.addressType)
             .serialize());
   });
+
+  test('Batch transaction scenario', () {
+    NetworkType.setNetworkType(NetworkType.regtest);
+
+    SingleSignatureVault vault = MockFactory.createP2wpkhVault();
+
+    String receiver1 = vault.getAddress(11);
+    String receiver2 = vault.getAddress(12);
+
+    Utxo utxo = Utxo(
+        '81929c81f71c5168c63b3a76a13a56589397650568e3f31238bf37678249f7fb',
+        0,
+        21000,
+        "${vault.derivationPath}/0/10");
+
+    Map<String, int> receiveMap = {receiver1: 5000, receiver2: 5000};
+
+    String changeAddressDerivationPath = "m/84'/1'/0'/1/10";
+
+    Transaction unsignedTx = Transaction.forBatchPayment(
+        [utxo], receiveMap, changeAddressDerivationPath, 3, vault);
+
+    Psbt signedPsbt = Psbt.parse(vault.addSignatureToPsbt(
+        Psbt.fromTransaction(unsignedTx, vault).serialize()));
+
+    expect(
+        signedPsbt.getSignedTransaction(vault.addressType).serialize().hashCode,
+        923661255);
+  });
 }
