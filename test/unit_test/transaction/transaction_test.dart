@@ -437,21 +437,30 @@ void main() {
         double afterFeeRate = 1;
 
         Transaction tx = Transaction.forSweep(
-            utxos.sublist(0, 4), receiveAddress, beforeFeeRate, vault);
+            utxos.sublist(0, 1), receiveAddress, beforeFeeRate, vault);
         double beforeTotalOutput = 0;
-        tx.outputs.map((e) => beforeTotalOutput += e.amount);
+        for (TransactionOutput output in tx.outputs) {
+          beforeTotalOutput += output.amount;
+        }
 
         int beforeSendindAmount = tx.outputs[0].amount;
+
         tx.updateFeeRate(afterFeeRate, vault);
 
         double afterTotalOutput = 0;
-        tx.outputs.map((e) => afterTotalOutput += e.amount);
+        for (TransactionOutput output in tx.outputs) {
+          afterTotalOutput += output.amount;
+        }
+
+        print("afterTotalOutput : $afterTotalOutput");
 
         int afterSendAmount = tx.outputs[0].amount;
+        print("afterTotalOutput : $afterTotalOutput");
 
         expect(tx.outputs.length, 1);
-        expect(beforeSendindAmount >= afterSendAmount, true);
+        expect(beforeSendindAmount < afterSendAmount, true);
         expect(beforeTotalOutput < afterSendAmount, true);
+        expect(beforeTotalOutput < afterTotalOutput, true);
       });
     });
   });

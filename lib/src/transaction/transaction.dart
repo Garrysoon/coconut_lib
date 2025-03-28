@@ -963,7 +963,7 @@ class Transaction {
       if (outputs[0].amount <= fee) {
         throw Exception('Not enough amount for sending.');
       }
-      outputs[0].setAmount(outputs[0].amount - fee);
+      outputs[0].setAmount(totalInputAmount - fee);
       if (outputs[0].isDustOutput(wallet.addressType.isSegwit)) {
         throw Exception('Sending amount is under dust threshold.');
       }
