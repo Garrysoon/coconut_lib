@@ -449,17 +449,24 @@ void main() {
       });
       test('For sweep case', () {
         double beforeFeeRate = 2;
-        double afterFeeRate = 5;
+        double afterFeeRate = 1;
 
         Transaction tx = Transaction.forSweep(
             utxos.sublist(0, 4), receiveAddress, beforeFeeRate, vault);
 
+        double beforeTotalOutput = 0;
+        tx.outputs.map((e) => beforeTotalOutput += e.amount);
+
         int beforeSendindAmount = tx.outputs[0].amount;
         tx.updateFeeRate(afterFeeRate, vault);
+
+        double afterTotalOutput = 0;
+        tx.outputs.map((e) => afterTotalOutput += e.amount);
 
         int afterSendAmount = tx.outputs[0].amount;
         expect(tx.outputs.length, 1);
         expect(beforeSendindAmount >= afterSendAmount, true);
+        expect(beforeTotalOutput < afterSendAmount, true);
       });
     });
   });
