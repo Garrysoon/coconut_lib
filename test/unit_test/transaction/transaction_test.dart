@@ -63,21 +63,6 @@ void main() {
         expect(tx.utxoList.length, 2);
       });
     });
-    group('get totalSendingAmount', () {
-      test('Get total sending amount', () {
-        SingleSignatureVault vault = MockFactory.createP2wpkhVault();
-        List<Utxo> utxos = MockFactory.createUtxoList(count: 5);
-        Map<String, int> paymentMap = {
-          'bcrt1qzf8qs6qgyq9kgu225jatvvx0nvvm3u3ka5gf7w': 1000,
-          'bcrt1qwr2aleje6vh48xzh9djeap9qcnc7atf57l302c': 2000
-        };
-        String changeAddressPath = '${vault.derivationPath}/1/0';
-        Transaction tx = Transaction.forBatchPayment(
-            utxos, paymentMap, changeAddressPath, 1, vault);
-
-        expect(tx.totalSendingAmount, 3000);
-      });
-    });
 
     group('Transaction.withDefault', () {
       test('Generate default transaction', () {
@@ -457,19 +442,16 @@ void main() {
         tx.outputs.map((e) => beforeTotalOutput += e.amount);
 
         int beforeSendindAmount = tx.outputs[0].amount;
-        int beforeTotalSendingAmount = tx.totalSendingAmount;
         tx.updateFeeRate(afterFeeRate, vault);
 
         double afterTotalOutput = 0;
         tx.outputs.map((e) => afterTotalOutput += e.amount);
 
         int afterSendAmount = tx.outputs[0].amount;
-        int afterTotalSendingAmount = tx.totalSendingAmount;
 
         expect(tx.outputs.length, 1);
         expect(beforeSendindAmount >= afterSendAmount, true);
         expect(beforeTotalOutput < afterSendAmount, true);
-        expect(beforeTotalSendingAmount < afterTotalSendingAmount, true);
       });
     });
   });

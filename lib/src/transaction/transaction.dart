@@ -7,7 +7,7 @@ class Transaction {
   List<TransactionOutput> _outputs;
   Uint8List _lockTime;
   bool _isSegwit;
-  late Map<String, int> paymentMap;
+  late final Map<String, int> _paymentMap;
   late String? changeAddressDerivationPath;
 
   late List<Utxo> _utxoList = [];
@@ -59,9 +59,9 @@ class Transaction {
     return total;
   }
 
-  int get totalSendingAmount {
+  int _getTotalSendingAmount() {
     int total = 0;
-    for (var entry in paymentMap.entries) {
+    for (var entry in _paymentMap.entries) {
       total += entry.value;
     }
     return total;
@@ -147,7 +147,7 @@ class Transaction {
       }
     }
 
-    tx.paymentMap = paymentMap;
+    tx._paymentMap = paymentMap;
     tx.changeAddressDerivationPath = changeAddressDerivationPath;
     tx._utxoList = utxoList;
     return tx;
@@ -199,6 +199,10 @@ class Transaction {
     Transaction transaction = Transaction.withInputsAndOutputs(
         inputs, outputs, wallet.addressType,
         version: version, lockTime: lockTime);
+
+    transaction._paymentMap = {
+      sendingOutput.getAddress(): sendingOutput.amount
+    };
 
     double vByte = 0.0;
     if (!wallet.addressType.isMultisignature) {
@@ -880,7 +884,7 @@ class Transaction {
 
     int fee = estimateFee(feeRate, wallet.addressType,
         requiredSignature: requiredSignature, totalSigner: totalSigner);
-    int changeAmount = totalInputAmount - totalSendingAmount - fee;
+    int changeAmount = totalInputAmount - _getTotalSendingAmount() - fee;
     if (changeAmount < 0) {
       outputs.remove(changeOutput);
     } else {
@@ -938,7 +942,7 @@ class Transaction {
     _utxoList.remove(utxoToRemove);
     int fee = estimateFee(feeRate, wallet.addressType,
         requiredSignature: requiredSignature, totalSigner: totalSigner);
-    int changeAmount = totalInputAmount - totalSendingAmount - fee;
+    int changeAmount = totalInputAmount - _getTotalSendingAmount() - fee;
     if (changeAmount < 0) {
       outputs.remove(changeOutput);
     } else {
@@ -975,7 +979,7 @@ class Transaction {
           break;
         }
       }
-      int changeAmount = totalInputAmount - totalSendingAmount - fee;
+      int changeAmount = totalInputAmount - _getTotalSendingAmount() - fee;
 
       if (changeAmount < 0) {
         outputs.remove(changeOutput);
