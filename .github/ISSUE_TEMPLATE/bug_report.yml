@@ -14,6 +14,7 @@ body:
     attributes:
       label: Bug Description
       description: What happened?
+      placeholder: e.g. The app crashes when I click "Send"
 
   - type: textarea
     id: steps
@@ -21,28 +22,34 @@ body:
       label: Steps to Reproduce
       description: How can we reproduce the issue?
       placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
 
   - type: textarea
     id: vector
     attributes:
       label: Test Vector
-      description: What is your test parameters?
+      description: What are your test parameters?
       placeholder: |
-        Test mnemonic: 
-        Test PSBT: 
-        Test Descriptor: 
+        Test mnemonic: ...
+        Test PSBT: ...
+        Test Descriptor: ...
 
   - type: input
     id: expected
     attributes:
       label: Expected Behavior
       description: What did you expect to happen?
+      placeholder: e.g. The transaction should broadcast successfully
 
   - type: textarea
     id: logs
     attributes:
       label: Screenshots or Logs
       description: Add any screenshots or logs that help explain the issue.
+      placeholder: Paste screenshots or log output here.
 
   - type: input
     id: branch
@@ -67,3 +74,4 @@ body:
     attributes:
       label: Additional Comments
       description: Add any other context or information.
+      placeholder: Optional comments...
