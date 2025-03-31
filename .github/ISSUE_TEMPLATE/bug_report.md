@@ -16,6 +16,16 @@ assignees: ''
 
 ---
 
+## 🔥 Priority
+Select **one** priority level:
+
+- [ ] 🟥 Critical (blocks release)
+- [ ] 🟧 High
+- [ ] 🟨 Medium
+- [ ] 🟩 Low
+
+---
+
 ## 🐞 Description
 A clear and concise description of the bug.
 
