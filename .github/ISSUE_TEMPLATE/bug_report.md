@@ -1,4 +1,5 @@
 ---
+<<<<<<< HEAD
 name: Bug report
 about: Create a report to help us improve
 title: ''
@@ -8,6 +9,8 @@ assignees: ''
 ---
 
 ---
+=======
+>>>>>>> 4804299 (ADD:bug report template)
 name: 🐞 Bug Report
 about: Report a bug to help us improve the project.
 title: "[BUG] "
@@ -16,6 +19,7 @@ assignees: ''
 
 ---
 
+<<<<<<< HEAD
 ## 🔥 Priority
 Select **one** priority level:
 
@@ -26,6 +30,8 @@ Select **one** priority level:
 
 ---
 
+=======
+>>>>>>> 4804299 (ADD:bug report template)
 ## 🐞 Description
 A clear and concise description of the bug.
 
@@ -58,4 +64,8 @@ Branch on which you want to perform testing.
 ---
 
 ## 💬 Additional Comments
+<<<<<<< HEAD
 Add any other context about the problem here, if needed.
+=======
+Add any other context about the problem here, if needed.
+>>>>>>> 4804299 (ADD:bug report template)
