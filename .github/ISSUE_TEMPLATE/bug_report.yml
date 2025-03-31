@@ -1,0 +1,69 @@
+name: 🐞 Bug Report
+description: Report a bug to help us improve the project.
+title: "[BUG] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🐞 Description
+        Please describe the bug clearly and concisely.
+
+  - type: input
+    id: description
+    attributes:
+      label: Bug Description
+      description: What happened?
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce the issue?
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+
+  - type: input
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Screenshots or Logs
+      description: Add any screenshots or logs that help explain the issue.
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: e.g., macOS 14, Chrome 120
+
+  - type: input
+    id: branch
+    attributes:
+      label: Related Branch
+      placeholder: test
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 🔥 Priority
+      description: How urgent is this issue?
+      options:
+        - 🟥 Critical (blocks release)
+        - 🟧 High
+        - 🟨 Medium
+        - 🟩 Low
+      default: 2
+
+  - type: textarea
+    id: comments
+    attributes:
+      label: Additional Comments
+      description: Add any other context or information.
