@@ -21,10 +21,16 @@ body:
       label: Steps to Reproduce
       description: How can we reproduce the issue?
       placeholder: |
-        1. Go to '...'
-        2. Click on '...'
-        3. Scroll down to '...'
-        4. See error
+
+  - type: textarea
+    id: vector
+    attributes:
+      label: Test Vector
+      description: What is your test parameters?
+      placeholder: |
+        Test mnemonic: 
+        Test PSBT: 
+        Test Descriptor: 
 
   - type: input
     id: expected
@@ -39,16 +45,10 @@ body:
       description: Add any screenshots or logs that help explain the issue.
 
   - type: input
-    id: environment
-    attributes:
-      label: Environment
-      placeholder: e.g., macOS 14, Chrome 120
-
-  - type: input
     id: branch
     attributes:
-      label: Related Branch
-      placeholder: test
+      label: Branch for Test
+      placeholder: bug/feeRate-type-update
 
   - type: dropdown
     id: priority
