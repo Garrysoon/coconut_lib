@@ -127,15 +127,16 @@ class KeyStore {
         isShnorr: isSchnorr);
     String sig;
     if (!isSchnorr) {
-      String r = Codec.encodeHex(signature.sublist(0, 32));
-      if (signature[0] & 0x80 != 0) {
-        r = '00$r';
-      }
-      String rLength = Converter.decToHex(r.length ~/ 2);
-      String s = Codec.encodeHex(signature.sublist(32, 64));
-      String sLength = Converter.decToHex(s.length ~/ 2);
-      String rs = '02$rLength${r}02$sLength$s';
-      sig = '30${Converter.decToHex(rs.length ~/ 2)}${rs}01';
+      // String r = Codec.encodeHex(signature.sublist(0, 32));
+      // if (int.parse(r.substring(0, 2), radix: 16) & 0x80 != 0) {
+      //   r = '00$r';
+      // }
+      // String rLength = Converter.decToHex(r.length ~/ 2);
+      // String s = Codec.encodeHex(signature.sublist(32, 64));
+      // String sLength = Converter.decToHex(s.length ~/ 2);
+      // String rs = '02$rLength${r}02$sLength$s';
+      // sig = '30${Converter.decToHex(rs.length ~/ 2)}${rs}01';
+      sig = Codec.encodeHex(Converter.rawToDerSignature(signature));
     } else {
       sig = Codec.encodeHex(signature);
     }
@@ -181,12 +182,19 @@ class KeyStore {
 
     if (!isSchnorr) {
       //DER decoding
-      int rLen = sig[3];
-      Uint8List r = sig.sublist(4, 4 + rLen);
-      if (r[0] == 0) r = r.sublist(1);
-      int sLen = sig[4 + rLen + 1];
-      Uint8List s = sig.sublist(4 + rLen + 2, 4 + rLen + 2 + sLen);
-      Uint8List rs = Uint8List.fromList([...r, ...s]);
+      // int rLen = sig[3];
+      // Uint8List r = sig.sublist(4, 4 + rLen);
+      // if (rLen == 33 && r[0] == 0x00 && r[1] < 0x80) {
+      //   r = r.sublist(1);
+      // }
+      // int sLen = sig[4 + rLen + 1];
+      // Uint8List s = sig.sublist(4 + rLen + 2, 4 + rLen + 2 + sLen);
+
+      // if (sLen == 33 && s[0] == 0x00 && s[1] < 0x80) {
+      //   s = s.sublist(1);
+      // }
+      // Uint8List rs = Uint8List.fromList([...r, ...s]);
+      Uint8List rs = Converter.derToRawSignature(sig);
 
       return child.verify(msg, rs);
     } else {
