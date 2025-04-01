@@ -1,3 +1,9 @@
+## 0.9.0
+- Remove electrum connection
+- Taproot key-path spending support
+- Batch transaction support
+- UTXO selection support
+
 ## 0.8.2
 
 - UTXO selection support.
