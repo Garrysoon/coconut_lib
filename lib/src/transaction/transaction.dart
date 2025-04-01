@@ -7,7 +7,7 @@ class Transaction {
   List<TransactionOutput> _outputs;
   Uint8List _lockTime;
   bool _isSegwit;
-  late Map<String, int> paymentMap;
+  late final Map<String, int> _paymentMap;
   late String? changeAddressDerivationPath;
 
   late List<Utxo> _utxoList = [];
@@ -59,9 +59,9 @@ class Transaction {
     return total;
   }
 
-  int get totalSendingAmount {
+  int _getTotalSendingAmount() {
     int total = 0;
-    for (var entry in paymentMap.entries) {
+    for (var entry in _paymentMap.entries) {
       total += entry.value;
     }
     return total;
@@ -87,7 +87,7 @@ class Transaction {
       List<Utxo> utxoList,
       Map<String, int> paymentMap,
       String changeAddressDerivationPath,
-      int feeRate,
+      double feeRate,
       WalletBase wallet,
       {int version = 2,
       int lockTime = 0}) {
@@ -147,7 +147,7 @@ class Transaction {
       }
     }
 
-    tx.paymentMap = paymentMap;
+    tx._paymentMap = paymentMap;
     tx.changeAddressDerivationPath = changeAddressDerivationPath;
     tx._utxoList = utxoList;
     return tx;
@@ -159,7 +159,7 @@ class Transaction {
       String receiveAddress,
       String changeAddressDerivationPath,
       int amount,
-      int feeRate,
+      double feeRate,
       WalletBase wallet,
       {int version = 2,
       int lockTime = 0}) {
@@ -171,7 +171,7 @@ class Transaction {
 
   /// Create a transaction for sending all Bitcoin in the wallet.
   factory Transaction.forSweep(
-      List<Utxo> utxoList, String address, int feeRate, WalletBase wallet,
+      List<Utxo> utxoList, String address, double feeRate, WalletBase wallet,
       {int version = 2, int lockTime = 0}) {
     List<TransactionInput> inputs = [];
     List<TransactionOutput> outputs = [];
@@ -199,6 +199,10 @@ class Transaction {
     Transaction transaction = Transaction.withInputsAndOutputs(
         inputs, outputs, wallet.addressType,
         version: version, lockTime: lockTime);
+
+    transaction._paymentMap = {
+      sendingOutput.getAddress(): sendingOutput.amount
+    };
 
     double vByte = 0.0;
     if (!wallet.addressType.isMultisignature) {
@@ -837,7 +841,7 @@ class Transaction {
   }
 
   /// Estimate the fee of the transaction.
-  int estimateFee(int feeRatePerByte, AddressType addressType,
+  int estimateFee(double feeRatePerByte, AddressType addressType,
       {int? requiredSignature, int? totalSigner}) {
     double vByte = estimateVirtualByte(addressType,
         requiredSignature: requiredSignature, totalSigner: totalSigner);
@@ -845,7 +849,7 @@ class Transaction {
   }
 
   /// Add utxo to the transaction.
-  void addInputWithUtxo(Utxo newUtxo, int feeRate, WalletBase wallet,
+  void addInputWithUtxo(Utxo newUtxo, double feeRate, WalletBase wallet,
       {int? requiredSignature, int? totalSigner}) {
     for (TransactionInput input in inputs) {
       if (input.transactionHash == newUtxo.transactionHash &&
@@ -880,7 +884,7 @@ class Transaction {
 
     int fee = estimateFee(feeRate, wallet.addressType,
         requiredSignature: requiredSignature, totalSigner: totalSigner);
-    int changeAmount = totalInputAmount - totalSendingAmount - fee;
+    int changeAmount = totalInputAmount - _getTotalSendingAmount() - fee;
     if (changeAmount < 0) {
       outputs.remove(changeOutput);
     } else {
@@ -898,7 +902,7 @@ class Transaction {
   }
 
   /// Remove utxo from the transaction.
-  void removeInputWithUtxo(Utxo utxoToRemove, int feeRate, WalletBase wallet,
+  void removeInputWithUtxo(Utxo utxoToRemove, double feeRate, WalletBase wallet,
       {int? requiredSignature, int? totalSigner}) {
     if (!_utxoList.contains(utxoToRemove)) {
       throw Exception('UTXO not found in the UTXO list');
@@ -938,7 +942,7 @@ class Transaction {
     _utxoList.remove(utxoToRemove);
     int fee = estimateFee(feeRate, wallet.addressType,
         requiredSignature: requiredSignature, totalSigner: totalSigner);
-    int changeAmount = totalInputAmount - totalSendingAmount - fee;
+    int changeAmount = totalInputAmount - _getTotalSendingAmount() - fee;
     if (changeAmount < 0) {
       outputs.remove(changeOutput);
     } else {
@@ -950,7 +954,7 @@ class Transaction {
     }
   }
 
-  void updateFeeRate(int feeRate, WalletBase wallet,
+  void updateFeeRate(double feeRate, WalletBase wallet,
       {int? requiredSignature, int? totalSigner}) {
     int fee = estimateFee(feeRate, wallet.addressType,
         requiredSignature: requiredSignature, totalSigner: totalSigner);
@@ -959,7 +963,7 @@ class Transaction {
       if (outputs[0].amount <= fee) {
         throw Exception('Not enough amount for sending.');
       }
-      outputs[0].setAmount(outputs[0].amount - fee);
+      outputs[0].setAmount(totalInputAmount - fee);
       if (outputs[0].isDustOutput(wallet.addressType.isSegwit)) {
         throw Exception('Sending amount is under dust threshold.');
       }
@@ -975,7 +979,7 @@ class Transaction {
           break;
         }
       }
-      int changeAmount = totalInputAmount - totalSendingAmount - fee;
+      int changeAmount = totalInputAmount - _getTotalSendingAmount() - fee;
 
       if (changeAmount < 0) {
         outputs.remove(changeOutput);

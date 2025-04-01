@@ -85,7 +85,7 @@ void main() async {
   String receiverAddress = multisignatureWallet.getAddress(0);
   String changeAddress = singleSignatureWallet.getAddress(0, isChange: true);
   int sendingAmount = 1000;
-  int feeRate = 3;
+  double feeRate = 3.0;
   List<Utxo> utxosForSingleSignatureWallet = [
     Utxo('5c5fa04bc94647ee339083d6fd381a3b1ac4de7d7bfa966788971d62072a1e66', 1,
         100000000, "m/84'/1'/0'/0/68")

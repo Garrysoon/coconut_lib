@@ -63,21 +63,6 @@ void main() {
         expect(tx.utxoList.length, 2);
       });
     });
-    group('get totalSendingAmount', () {
-      test('Get total sending amount', () {
-        SingleSignatureVault vault = MockFactory.createP2wpkhVault();
-        List<Utxo> utxos = MockFactory.createUtxoList(count: 5);
-        Map<String, int> paymentMap = {
-          'bcrt1qzf8qs6qgyq9kgu225jatvvx0nvvm3u3ka5gf7w': 1000,
-          'bcrt1qwr2aleje6vh48xzh9djeap9qcnc7atf57l302c': 2000
-        };
-        String changeAddressPath = '${vault.derivationPath}/1/0';
-        Transaction tx = Transaction.forBatchPayment(
-            utxos, paymentMap, changeAddressPath, 1, vault);
-
-        expect(tx.totalSendingAmount, 3000);
-      });
-    });
 
     group('Transaction.withDefault', () {
       test('Generate default transaction', () {
@@ -314,7 +299,7 @@ void main() {
       List<Utxo> utxos = MockFactory.createUtxoList(count: 5);
       String receiveAddress = 'bcrt1q8e5ghfg8gpe4dlfv7qqck2c2jc47lnllul3puh';
       String changeAddressPath = '${vault.derivationPath}/1/0';
-      int feeRate = 2;
+      double feeRate = 2.0;
       test('Add input with utxo', () {
         Transaction tx = Transaction.forSinglePayment(utxos.sublist(0, 1),
             receiveAddress, changeAddressPath, 3200, feeRate, vault);
@@ -340,7 +325,7 @@ void main() {
             true);
       });
       test('Add utxo in dust change case', () {
-        int feeRate = 2;
+        double feeRate = 2.0;
 
         Transaction tx = Transaction.forBatchPayment(utxos.sublist(0, 3),
             {receiveAddress: 399300}, changeAddressPath, feeRate, vault);
@@ -371,7 +356,7 @@ void main() {
       List<Utxo> utxos = MockFactory.createUtxoList(count: 5);
       String receiveAddress = 'bcrt1q8e5ghfg8gpe4dlfv7qqck2c2jc47lnllul3puh';
       String changeAddressPath = '${vault.derivationPath}/1/0';
-      int feeRate = 2;
+      double feeRate = 2.0;
       test('Remove utxo in dust change case', () {
         Transaction tx = Transaction.forBatchPayment(utxos.sublist(0, 4),
             {receiveAddress: 299300}, changeAddressPath, feeRate, vault);
@@ -401,8 +386,8 @@ void main() {
       String receiveAddress = 'bcrt1q8e5ghfg8gpe4dlfv7qqck2c2jc47lnllul3puh';
       String changeAddressPath = '${vault.derivationPath}/1/0';
       test('Lower fee rate', () {
-        int beforeFeeRate = 4;
-        int afterFeeRate = 2;
+        double beforeFeeRate = 4;
+        double afterFeeRate = 2;
         Transaction tx = Transaction.forBatchPayment(utxos.sublist(0, 4),
             {receiveAddress: 24000}, changeAddressPath, beforeFeeRate, vault);
 
@@ -414,8 +399,8 @@ void main() {
       });
 
       test('Higher fee rate', () {
-        int beforeFeeRate = 2;
-        int afterFeeRate = 4;
+        double beforeFeeRate = 2;
+        double afterFeeRate = 4;
         Transaction tx = Transaction.forBatchPayment(utxos.sublist(0, 4),
             {receiveAddress: 240000}, changeAddressPath, beforeFeeRate, vault);
         int beforeChange = tx.outputs[1].amount;
@@ -426,8 +411,8 @@ void main() {
         expect(afterChange < beforeChange, true);
       });
       test('Higher fee rate and dust threshold', () {
-        int beforeFeeRate = 2;
-        int afterFeeRate = 5;
+        double beforeFeeRate = 2;
+        double afterFeeRate = 5;
 
         Transaction tx = Transaction.forBatchPayment(utxos.sublist(0, 4),
             {receiveAddress: 398200}, changeAddressPath, beforeFeeRate, vault);
@@ -448,18 +433,34 @@ void main() {
             true);
       });
       test('For sweep case', () {
-        int beforeFeeRate = 2;
-        int afterFeeRate = 5;
+        double beforeFeeRate = 2;
+        double afterFeeRate = 1;
 
         Transaction tx = Transaction.forSweep(
-            utxos.sublist(0, 4), receiveAddress, beforeFeeRate, vault);
+            utxos.sublist(0, 1), receiveAddress, beforeFeeRate, vault);
+        double beforeTotalOutput = 0;
+        for (TransactionOutput output in tx.outputs) {
+          beforeTotalOutput += output.amount;
+        }
 
         int beforeSendindAmount = tx.outputs[0].amount;
+
         tx.updateFeeRate(afterFeeRate, vault);
 
+        double afterTotalOutput = 0;
+        for (TransactionOutput output in tx.outputs) {
+          afterTotalOutput += output.amount;
+        }
+
+        print("afterTotalOutput : $afterTotalOutput");
+
         int afterSendAmount = tx.outputs[0].amount;
+        print("afterTotalOutput : $afterTotalOutput");
+
         expect(tx.outputs.length, 1);
-        expect(beforeSendindAmount >= afterSendAmount, true);
+        expect(beforeSendindAmount < afterSendAmount, true);
+        expect(beforeTotalOutput < afterSendAmount, true);
+        expect(beforeTotalOutput < afterTotalOutput, true);
       });
     });
   });
