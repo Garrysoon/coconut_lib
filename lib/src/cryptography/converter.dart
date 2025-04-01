@@ -190,4 +190,52 @@ class Converter {
 
     return result;
   }
+
+  static Uint8List rawToDerSignature(Uint8List raw) {
+    if (raw.length != 64) {
+      throw ArgumentError('Raw signature must be 64 bytes');
+    }
+
+    Uint8List r = _ensureDerInt(raw.sublist(0, 32));
+    Uint8List s = _ensureDerInt(raw.sublist(32, 64));
+
+    int totalLen = 2 + r.length + 2 + s.length;
+    return Uint8List.fromList(
+        [0x30, totalLen, 0x02, r.length, ...r, 0x02, s.length, ...s, 0x01]);
+  }
+
+  static Uint8List derToRawSignature(Uint8List der) {
+    der = der.sublist(0, der.length - 1);
+    if (der[0] != 0x30) throw FormatException('Invalid DER sequence');
+
+    int rLen = der[3];
+    Uint8List r = _normalizeRawInt(der.sublist(4, 4 + rLen));
+
+    int sStart = 4 + rLen + 2;
+    int sLen = der[sStart - 1];
+    Uint8List s = _normalizeRawInt(der.sublist(sStart, sStart + sLen));
+
+    return Uint8List.fromList([...r, ...s]);
+  }
+
+  static Uint8List _ensureDerInt(Uint8List raw) {
+    if (raw[0] & 0x80 != 0) {
+      return Uint8List.fromList([0x00, ...raw]);
+    }
+    return raw;
+  }
+
+  static Uint8List _normalizeRawInt(Uint8List derInt) {
+    // remove leading 0x00 if unnecessary
+    if (derInt.length == 33 && derInt[0] == 0x00) {
+      derInt = derInt.sublist(1);
+    }
+    if (derInt.length > 32) {
+      throw FormatException('Integer too long for raw signature');
+    }
+
+    Uint8List out = Uint8List(32);
+    out.setRange(32 - derInt.length, 32, derInt);
+    return out;
+  }
 }
