@@ -17,7 +17,7 @@ body:
       options:
         - Scenario test
         - Unit test
-      default: 2
+      default: 0
 
   - type: input
     id: area
