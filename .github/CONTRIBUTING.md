@@ -4,7 +4,7 @@ Thank you for your interest and contribution to Coconut Library. All contributor
 
 ## Commits
 
-All commits should have one of the following prefixes: REL, FIX, ADD, REF, TST, OPS, DOC. For example `"ADD: new feature"`.
+All commits should have one of the following prefixes: REL, FIX, ADD, REF, TST, OPS, DOC. For example `"ADD:new feature"`.
 Adding new feature is ADD, fixing a bug is FIX, something related to infrastructure is OPS etc. REL is for releases,  REF is for
 refactoring, DOC is for changing documentation (like this file).
 

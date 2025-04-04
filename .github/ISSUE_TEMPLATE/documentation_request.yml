@@ -1,0 +1,68 @@
+name: 📚 Documentation Update
+description: Request changes or additions to the documentation.
+title: "[DOCS] "
+labels: [documentation]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 📚 Documentation Request
+        Suggest improvements or updates to our documentation, guides, or code comments.
+
+  - type: input
+    id: location
+    attributes:
+      label: Affected Page or File
+      description: Where is the documentation that needs to be updated?
+      placeholder: e.g. README.md, docs/usage.md, comment in key_manager.dart
+
+  - type: textarea
+    id: current
+    attributes:
+      label: Current Documentation
+      description: What does the documentation currently say?
+      placeholder: |
+        e.g. "This function supports only single-sig wallets."
+
+  - type: textarea
+    id: suggested
+    attributes:
+      label: Suggested Update
+      description: What should it say instead?
+      placeholder: |
+        e.g. "Now supports both single-sig and 2-of-3 multisig wallets."
+
+  - type: textarea
+    id: reason
+    attributes:
+      label: Why Is This Update Needed?
+      description: Explain why the current documentation is incorrect or incomplete.
+      placeholder: |
+        - The implementation has changed
+        - The explanation is unclear or outdated
+        - This part is missing entirely
+
+  - type: input
+    id: branch
+    attributes:
+      label: Branch for Review
+      placeholder: doc/rel-0.9.0
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: ✏️ Priority
+      description: How important is this documentation update?
+      options:
+        - 🟥 Urgent (misleads users)
+        - 🟧 High (confusing or incomplete)
+        - 🟨 Medium (minor but helpful)
+        - 🟩 Low (nice to improve)
+      default: 2
+
+  - type: textarea
+    id: comments
+    attributes:
+      label: Additional Comments
+      description: Add any other context or links.
+      placeholder: Optional notes or references (e.g. related PRs)
