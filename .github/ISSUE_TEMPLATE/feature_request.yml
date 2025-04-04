@@ -1,0 +1,78 @@
+name: ✨ Feature Request
+description: Suggest a new feature or improvement for the project.
+title: "[FEATURE] "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ✨ Feature Request
+        Help us improve the project by suggesting a new feature or improvement.
+
+  - type: input
+    id: summary
+    attributes:
+      label: Feature Summary
+      description: What is the feature you'd like to propose?
+      placeholder: e.g. Add support for Taproot multisig
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: Why do you want this feature? What problem does it solve?
+      placeholder: |
+        - Users can't currently ...
+        - It would be helpful for ...
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe how you imagine the feature would work.
+      placeholder: |
+        - Add a new option to ...
+        - When users do X, the app will ...
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered other solutions or workarounds?
+      placeholder: |
+        - Using XYZ plugin
+        - Manually editing config files
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Expected Impact
+      description: What parts of the system would be affected?
+      placeholder: |
+        - This change will affect PSBT generation and signing flow
+        - Minor UI updates needed for...
+
+  - type: input
+    id: branch
+    attributes:
+      label: Branch for Test
+      placeholder: add/taproot-musig2
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 🚦 Priority
+      description: How important is this feature to you?
+      options:
+        - 🟥 Must-have (critical for adoption)
+        - 🟧 Important (adds significant value)
+        - 🟨 Nice to have
+        - 🟩 Low priority
+      default: 2
+
+  - type: textarea
+    id: comments
+    attributes:
+      label: Additional Comments
+      description: Anything else you want to add?
+      placeholder: Optional notes, links, or references

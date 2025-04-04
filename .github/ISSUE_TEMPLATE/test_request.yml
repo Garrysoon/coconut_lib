@@ -1,0 +1,76 @@
+name: 🧪 Test Case Request
+description: Request new or improved tests for specific parts of the codebase.
+title: "[TEST] "
+labels: [test]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🧪 Test Case Request
+        Help us improve the reliability of the codebase by suggesting a new test or improvement to existing tests.
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: type
+      description: Which type of test?
+      options:
+        - Scenario test
+        - Unit test
+      default: 2
+
+  - type: input
+    id: area
+    attributes:
+      label: Target Area
+      description: Which scenario, module or function needs better testing?
+      placeholder: e.g. wallet/key_store.dart, Script path spending scenario
+
+  - type: textarea
+    id: reason
+    attributes:
+      label: Why Is This Test Needed?
+      description: Explain why this test is important.
+      placeholder: |
+        - This logic is critical and currently lacks test coverage
+        - It failed in a previous release
+        - It handles edge cases like ...
+
+  - type: textarea
+    id: scenario
+    attributes:
+      label: Test Scenario
+      description: Describe what the test should cover.
+      placeholder: |
+        - 2-of-3 multisig signing with missing key
+        - Invalid PSBT input rejected correctly
+        - Output script matches expected Taproot scriptPubKey
+
+  - type: textarea
+    id: vector
+    attributes:
+      label: Test Vector (Optional)
+      description: If you have specific inputs, add them here.
+      placeholder: |
+        Mnemonic: ...
+        PSBT: ...
+        Expected signature: ...
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: ✅ Priority
+      description: How important is this test case?
+      options:
+        - 🟥 Critical (blocks production usage)
+        - 🟧 High (important for core logic)
+        - 🟨 Medium (nice to have)
+        - 🟩 Low (additional confidence only)
+      default: 2
+
+  - type: textarea
+    id: comments
+    attributes:
+      label: Additional Notes
+      description: Add any other context, links, or references.
+      placeholder: Optional comments...

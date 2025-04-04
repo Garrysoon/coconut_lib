@@ -1,0 +1,70 @@
+name: 🧹 Refactor Request
+description: Suggest a refactoring to improve the codebase without changing functionality.
+title: "[REFACTOR] "
+labels: [refactor]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🧹 Refactor Proposal
+        Suggest improvements to the code structure, readability, or maintainability.
+
+  - type: input
+    id: area
+    attributes:
+      label: Target Area
+      description: What part of the codebase should be refactored?
+      placeholder: e.g. transaction_builder.dart, key_manager module
+
+  - type: textarea
+    id: reason
+    attributes:
+      label: Reason for Refactoring
+      description: Why should this code be refactored?
+      placeholder: |
+        - The code is hard to read
+        - It violates the single responsibility principle
+        - Too much duplicate logic
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Refactoring Proposal
+      description: What changes would you suggest?
+      placeholder: |
+        - Extract method for ...
+        - Rename class ...
+        - Split into multiple files
+
+  - type: textarea
+    id: risks
+    attributes:
+      label: Potential Risks
+      description: Are there any risks or edge cases that need to be handled carefully?
+      placeholder: |
+        - Might affect PSBT validation
+        - Needs additional tests for...
+
+  - type: input
+    id: branch
+    attributes:
+      label: Branch for Test
+      placeholder: ref/psbt-restructuring
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 🧭 Priority
+      description: How important is this refactoring?
+      options:
+        - 🟥 High (code is currently problematic)
+        - 🟧 Medium (improves maintainability)
+        - 🟨 Low (minor cleanup)
+      default: 1
+
+  - type: textarea
+    id: comments
+    attributes:
+      label: Additional Comments
+      description: Add any other context or references.
+      placeholder: Optional notes or related links
