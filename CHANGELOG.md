@@ -1,3 +1,11 @@
+## 0.9.1
+- Split Ecc.signEcdsa and Ecc.signSchnorr into separate methods
+- Split HdWallet.sign into HdWallet.signEcdsa and HdWallet.signSchnorr
+- Split Ecc.verify into Ecc.verifyEcdsa and Ecc.verifySchnorr
+- Split HdWallet.verify into HdWallet.verifyEcdsa and HdWallet.verifySchnorr
+- Removed KeyStore.signWithDerivationPath(String message, String derivationPath, {bool isSchnorr = false})
+- Removed KeyStore.sign(String message, int addressIndex, {bool isChange = false, isSchnorr = false})
+
 ## 0.9.0
 - Remove electrum connection
 - Taproot key-path spending support
