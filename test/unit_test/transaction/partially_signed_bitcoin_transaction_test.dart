@@ -1,6 +1,5 @@
 @Tags(['unit'])
 import 'package:coconut_lib/coconut_lib.dart';
-import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
 
 import '../../mock_factory.dart';
@@ -94,7 +93,7 @@ void main() {
     });
     group('addSignature', () {
       test('Add signature to psbt', () {
-        unsignedPsbt.addSignature(
+        unsignedPsbt.addPartialSig(
             0,
             '3045022100de494cd0a05a5621d8303a024130fc43550af2ec456de026174c542dfb1706e5022037f358ddba9025abc70d19693014304158eda80877e00f4b9cea86d18d4fad9801',
             '0246c18ea7c5624b87e5f65a60842c9a22b27ae7e3630a95abeb35455259761824');
@@ -194,7 +193,7 @@ void main() {
     group('addSignature', () {
       test('Add signature into the psbt input', () {
         expect(
-            () => multisigInput.addSignature(
+            () => multisigInput.addPartialSig(
                 '3045022100d5bf91f97ad7ee474c320f821744a59d10bc225aa6709ee70f7776b53f28515702203d15ca1b7c7ebd44a7991868b99168ce9963e0dccc48ea47cce91a317a5cdae401',
                 '02d6481c1e9ead3f86508ec5d4b515089ae40505f642901e078824184e910d3363'),
             returnsNormally);

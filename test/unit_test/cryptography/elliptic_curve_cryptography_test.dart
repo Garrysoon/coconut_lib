@@ -327,11 +327,11 @@ void main() {
         expect(result!.length, equals(32));
       });
     });
-    group('sign', () {
+    group('signEcdsa', () {
       test('Valid hash and private key', () {
         Uint8List hash = Uint8List.fromList(List.filled(32, 0x01));
         Uint8List privateKey = Uint8List.fromList(List.filled(32, 0x02));
-        Uint8List signature = Ecc.sign(hash, privateKey);
+        Uint8List signature = Ecc.signEcdsa(hash, privateKey);
 
         expect(signature.length, equals(64));
 
@@ -353,7 +353,8 @@ void main() {
         Uint8List invalidHash = Uint8List(31); // Too short
         Uint8List privateKey = Uint8List.fromList(List.filled(32, 0x02));
 
-        expect(() => Ecc.sign(invalidHash, privateKey), throwsArgumentError);
+        expect(
+            () => Ecc.signEcdsa(invalidHash, privateKey), throwsArgumentError);
       });
 
       test(
@@ -362,60 +363,64 @@ void main() {
         Uint8List hash = Uint8List.fromList(List.filled(32, 0x01));
         Uint8List invalidPrivateKey = Uint8List(31); // Too short
 
-        expect(() => Ecc.sign(hash, invalidPrivateKey), throwsArgumentError);
+        expect(
+            () => Ecc.signEcdsa(hash, invalidPrivateKey), throwsArgumentError);
       });
 
       test('Invalid: Private key is zero (should throw ArgumentError)', () {
         Uint8List hash = Uint8List.fromList(List.filled(32, 0x01));
         Uint8List zeroPrivateKey = Uint8List(32); // Zero private key
 
-        expect(() => Ecc.sign(hash, zeroPrivateKey), throwsArgumentError);
+        expect(() => Ecc.signEcdsa(hash, zeroPrivateKey), throwsArgumentError);
       });
 
       test('Invalid: Private key too large (should throw ArgumentError)', () {
         Uint8List hash = Uint8List.fromList(List.filled(32, 0x01));
         Uint8List tooLargePrivateKey = encodeBigInt(Ecc.n);
 
-        expect(() => Ecc.sign(hash, tooLargePrivateKey), throwsArgumentError);
+        expect(
+            () => Ecc.signEcdsa(hash, tooLargePrivateKey), throwsArgumentError);
       });
 
-      test('Sign schnorr signature (case 1)', () {
-        Uint8List hash = Codec.decodeHex(
-            '7E2D58D8B3BCDF1ABADEC7829054F90DDA9805AAB56C77333024B9D0A508B75C');
-        Uint8List privateKey = Codec.decodeHex(
-            'C90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B14E5C9');
-        Uint8List auxRand = Codec.decodeHex(
-            'C87AA53824B4D7AE2EB035A2B5BBBCCC080E76CDC6D1692C4B0B62D798E6D906');
+      group('signSchnorr', () {
+        test('Sign schnorr signature (case 1)', () {
+          Uint8List hash = Codec.decodeHex(
+              '7E2D58D8B3BCDF1ABADEC7829054F90DDA9805AAB56C77333024B9D0A508B75C');
+          Uint8List privateKey = Codec.decodeHex(
+              'C90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B14E5C9');
+          Uint8List auxRand = Codec.decodeHex(
+              'C87AA53824B4D7AE2EB035A2B5BBBCCC080E76CDC6D1692C4B0B62D798E6D906');
 
-        String signature =
-            '5831aaeed7b44bb74e5eab94ba9d4294c49bcf2a60728d8b4c200f50dd313c1bab745879a5ad954a72c45a91c3a51d3c7adea98d82f8481e0e1e03674a6f3fb7';
+          String signature =
+              '5831aaeed7b44bb74e5eab94ba9d4294c49bcf2a60728d8b4c200f50dd313c1bab745879a5ad954a72c45a91c3a51d3c7adea98d82f8481e0e1e03674a6f3fb7';
 
-        expect(
-            Codec.encodeHex(
-                Ecc.sign(hash, privateKey, isSchnorr: true, auxRand: auxRand)),
-            signature);
-      });
+          expect(
+              Codec.encodeHex(
+                  Ecc.signSchnorr(hash, privateKey, auxRand: auxRand)),
+              signature);
+        });
 
-      test('Sign schnorr signature (case 2)', () {
-        Uint8List hash = Codec.decodeHex(
-            '243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89');
-        Uint8List privateKey = Codec.decodeHex(
-            'B7E151628AED2A6ABF7158809CF4F3C762E7160F38B4DA56A784D9045190CFEF');
-        Uint8List auxRand = Codec.decodeHex(
-            '0000000000000000000000000000000000000000000000000000000000000001');
+        test('Sign schnorr signature (case 2)', () {
+          Uint8List hash = Codec.decodeHex(
+              '243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89');
+          Uint8List privateKey = Codec.decodeHex(
+              'B7E151628AED2A6ABF7158809CF4F3C762E7160F38B4DA56A784D9045190CFEF');
+          Uint8List auxRand = Codec.decodeHex(
+              '0000000000000000000000000000000000000000000000000000000000000001');
 
-        String signature =
-            '6896bd60eeae296db48a229ff71dfe071bde413e6d43f917dc8dcf8c78de33418906d11ac976abccb20b091292bff4ea897efcb639ea871cfa95f6de339e4b0a';
+          String signature =
+              '6896bd60eeae296db48a229ff71dfe071bde413e6d43f917dc8dcf8c78de33418906d11ac976abccb20b091292bff4ea897efcb639ea871cfa95f6de339e4b0a';
 
-        expect(
-            Codec.encodeHex(
-                Ecc.sign(hash, privateKey, isSchnorr: true, auxRand: auxRand)),
-            signature);
+          expect(
+              Codec.encodeHex(
+                  Ecc.signSchnorr(hash, privateKey, auxRand: auxRand)),
+              signature);
+        });
       });
     });
 
     group('verify', () {
-      test('Valid hash, public key, and signature', () {
+      test('Valid hash, public key, and signature (case 1)', () {
         Uint8List hash = Codec.decodeHex(
             '9f990c2cd1b7655c411450d01611b79070f50e1f01e18d59eb55e16f4433a1a6');
         Uint8List q = Codec.decodeHex(
@@ -423,7 +428,7 @@ void main() {
         Uint8List signature = Codec.decodeHex(
             'de494cd0a05a5621d8303a024130fc43550af2ec456de026174c542dfb1706e537f358ddba9025abc70d19693014304158eda80877e00f4b9cea86d18d4fad98');
         expect(
-            Ecc.verify(Uint8List.fromList(hash), Uint8List.fromList(q),
+            Ecc.verifyEcdsa(Uint8List.fromList(hash), Uint8List.fromList(q),
                 Uint8List.fromList(signature)),
             isTrue);
       });
@@ -438,7 +443,7 @@ void main() {
               encodeBigInt(BigInt.from(987654321)),
         );
 
-        expect(() => Ecc.verify(invalidHash, publicKey, signature),
+        expect(() => Ecc.verifyEcdsa(invalidHash, publicKey, signature),
             throwsArgumentError);
       });
 
@@ -452,7 +457,7 @@ void main() {
               encodeBigInt(BigInt.from(987654321)),
         );
 
-        expect(() => Ecc.verify(hash, invalidPublicKey, signature),
+        expect(() => Ecc.verifyEcdsa(hash, invalidPublicKey, signature),
             throwsArgumentError);
       });
 
@@ -464,7 +469,7 @@ void main() {
             Uint8List.fromList([0x02] + List.filled(32, 0x02));
         Uint8List invalidSignature = Uint8List(63); // Too short
 
-        expect(() => Ecc.verify(hash, publicKey, invalidSignature),
+        expect(() => Ecc.verifyEcdsa(hash, publicKey, invalidSignature),
             throwsArgumentError);
       });
 
@@ -476,7 +481,7 @@ void main() {
         Uint8List signature = Codec.decodeHex(
             'de494cd0a05a5621d8303a024130fc43550af2ec456de026174c542dfb1706e537f358ddba9025abc70d19693014304158eda80877e00f4b9cea86d18d4fad23');
         expect(
-            Ecc.verify(Uint8List.fromList(hash), Uint8List.fromList(q),
+            Ecc.verifyEcdsa(Uint8List.fromList(hash), Uint8List.fromList(q),
                 Uint8List.fromList(signature)),
             isFalse);
       });
@@ -488,7 +493,7 @@ void main() {
         Uint8List signature = Codec.decodeHex(
             'de494cd0a05a5621d8303a024130fc43550af2ec456de026174c542dfb1706e537f358ddba9025abc70d19693014304158eda80877e00f4b9cea86d18d4fad98');
         expect(
-            Ecc.verify(
+            Ecc.verifyEcdsa(
                 Uint8List.fromList(hash), q, Uint8List.fromList(signature)),
             isFalse);
       });
@@ -502,7 +507,7 @@ void main() {
         Uint8List signature = Codec.decodeHex(
             'E907831F80848D1069A5371B402410364BDF1C5F8307B0084C55F1CE2DCA821525F66A4A85EA8B71E482A74F382D2CE5EBEEE8FDB2172F477DF4900D310536C0');
 
-        expect(Ecc.verify(hash, publicKey, signature, isSchnorr: true), isTrue);
+        expect(Ecc.verifySchnorr(hash, publicKey, signature), isTrue);
       });
       test('Verify schnorr signature (bip340 - index 1)', () {
         Uint8List hash = Codec.decodeHex(
@@ -512,7 +517,7 @@ void main() {
         Uint8List signature = Codec.decodeHex(
             '6896BD60EEAE296DB48A229FF71DFE071BDE413E6D43F917DC8DCF8C78DE33418906D11AC976ABCCB20B091292BFF4EA897EFCB639EA871CFA95F6DE339E4B0A');
 
-        expect(Ecc.verify(hash, publicKey, signature, isSchnorr: true), isTrue);
+        expect(Ecc.verifySchnorr(hash, publicKey, signature), isTrue);
       });
       test('Verify schnorr signature (bip340 - index 2)', () {
         Uint8List hash = Codec.decodeHex(
@@ -522,7 +527,7 @@ void main() {
         Uint8List signature = Codec.decodeHex(
             '5831AAEED7B44BB74E5EAB94BA9D4294C49BCF2A60728D8B4C200F50DD313C1BAB745879A5AD954A72C45A91C3A51D3C7ADEA98D82F8481E0E1E03674A6F3FB7');
 
-        expect(Ecc.verify(hash, publicKey, signature, isSchnorr: true), isTrue);
+        expect(Ecc.verifySchnorr(hash, publicKey, signature), isTrue);
       });
       test('Verify schnorr signature (bip340 - index 3)', () {
         Uint8List hash = Codec.decodeHex(
@@ -532,7 +537,7 @@ void main() {
         Uint8List signature = Codec.decodeHex(
             '7EB0509757E246F19449885651611CB965ECC1A187DD51B64FDA1EDC9637D5EC97582B9CB13DB3933705B32BA982AF5AF25FD78881EBB32771FC5922EFC66EA3');
 
-        expect(Ecc.verify(hash, publicKey, signature, isSchnorr: true), isTrue);
+        expect(Ecc.verifySchnorr(hash, publicKey, signature), isTrue);
       });
 
       //Test vector from https://github.com/bitcoin/bips/blob/master/bip-0341/wallet-test-vectors.json
@@ -549,9 +554,7 @@ void main() {
         // expect(Encoder.encodeHex(hdWallet.getTweakedPrivateKey()),
         //     tweakedPrivateKey);
         Uint8List tweakedPublicKey = hdWallet.getTweakedPublicKey();
-        expect(
-            Ecc.verify(sigHash, tweakedPublicKey, signature, isSchnorr: true),
-            isTrue);
+        expect(Ecc.verifySchnorr(sigHash, tweakedPublicKey, signature), isTrue);
       });
       test('Verify schnorr signature (bip341 - line 302)', () {
         String internalPrivateKey =
@@ -571,9 +574,7 @@ void main() {
         //     tweakedPrivateKey);
         Uint8List tweakedPublicKey =
             hdWallet.getTweakedPublicKey(merkleRoot: merkleRoot);
-        expect(
-            Ecc.verify(sigHash, tweakedPublicKey, signature, isSchnorr: true),
-            isTrue);
+        expect(Ecc.verifySchnorr(sigHash, tweakedPublicKey, signature), isTrue);
       });
       test('Verify schnorr signature (bip341 - lline 323)', () {
         String internalPrivateKey =
@@ -595,9 +596,7 @@ void main() {
             tweakedPrivateKey);
         Uint8List tweakedPublicKey =
             hdWallet.getTweakedPublicKey(merkleRoot: merkleRoot);
-        expect(
-            Ecc.verify(sigHash, tweakedPublicKey, signature, isSchnorr: true),
-            isTrue);
+        expect(Ecc.verifySchnorr(sigHash, tweakedPublicKey, signature), isTrue);
       });
       test('Verify schnorr signature (bip341 - lline 350)', () {
         String internalPrivateKey =
@@ -619,9 +618,7 @@ void main() {
             tweakedPrivateKey);
         Uint8List tweakedPublicKey =
             hdWallet.getTweakedPublicKey(merkleRoot: merkleRoot);
-        expect(
-            Ecc.verify(sigHash, tweakedPublicKey, signature, isSchnorr: true),
-            isTrue);
+        expect(Ecc.verifySchnorr(sigHash, tweakedPublicKey, signature), isTrue);
       });
     });
   });

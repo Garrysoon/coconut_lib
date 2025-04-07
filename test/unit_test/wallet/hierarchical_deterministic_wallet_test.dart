@@ -70,8 +70,8 @@ void main() {
     group('sign', () {
       test('Get signature with ecdsa', () {
         String hex = Hash.sha256("Message");
-        expect(Codec.encodeHex(hdWallet.sign(Codec.decodeHex(hex))),
-            'ea10cba17d4603d90deeb5bee645ac362d2e88da75aff555a66db12df132939b73c0e4d7e78ae921fc3e929cec58b70fed71166618bea91c81c64df652dac028');
+        expect(Codec.encodeHex(hdWallet.signEcdsa(Codec.decodeHex(hex))),
+            '3045022100ea10cba17d4603d90deeb5bee645ac362d2e88da75aff555a66db12df132939b022073c0e4d7e78ae921fc3e929cec58b70fed71166618bea91c81c64df652dac02801');
       });
       //Test vector from : https://github.com/bitcoin/bips/blob/master/bip-0340/test-vectors.csv
       test('Get signature with schnorr', () {
@@ -200,7 +200,7 @@ void main() {
       test('Verify success', () {
         String hex = Hash.sha256("Message");
         expect(
-            hdWallet.verify(
+            hdWallet.verifyEcdsa(
                 Codec.decodeHex(hex),
                 Codec.decodeHex(
                     'ea10cba17d4603d90deeb5bee645ac362d2e88da75aff555a66db12df132939b73c0e4d7e78ae921fc3e929cec58b70fed71166618bea91c81c64df652dac028')),
@@ -209,7 +209,7 @@ void main() {
       test('Verify failed', () {
         String hex = Hash.sha256("Message");
         expect(
-            hdWallet.verify(
+            hdWallet.verifyEcdsa(
                 Codec.decodeHex(hex),
                 Codec.decodeHex(
                     'ea10cba17d4603d90deeb5bee645ac362d2e88da75aff555a66db12df132939b73c0e4d7e78ae921fc3e929cec58b70fed71166618bea91c81c64df652dac027')),
@@ -231,7 +231,7 @@ void main() {
             HDWallet(Codec.decodeHex(internalPrivateKey), null, Uint8List(0));
         // expect(Encoder.encodeHex(hdWallet.getTweakedPrivateKey()),
         //     tweakedPrivateKey);
-        expect(hdWallet.verify(sigHash, signature, isSchnorr: true), isTrue);
+        expect(hdWallet.verifySchnorr(sigHash, signature, true), isTrue);
       });
       test('Verify schnorr signature (bip341 - lline 302)', () {
         String internalPrivateKey =
@@ -252,8 +252,8 @@ void main() {
         //         hdWallet.getTweakedPrivateKey(merkleRoot: merkleRoot)),
         //     tweakedPrivateKey);
         expect(
-            hdWallet.verify(sigHash, signature,
-                isSchnorr: true, merkleRoot: merkleRoot),
+            hdWallet.verifySchnorr(sigHash, signature, true,
+                merkleRoot: merkleRoot),
             isTrue);
       });
       test('Verify schnorr signature (bip341 - lline 323)', () {
@@ -275,8 +275,8 @@ void main() {
                 hdWallet.getTweakedPrivateKey(merkleRoot: merkleRoot)),
             tweakedPrivateKey);
         expect(
-            hdWallet.verify(sigHash, signature,
-                isSchnorr: true, merkleRoot: merkleRoot),
+            hdWallet.verifySchnorr(sigHash, signature, true,
+                merkleRoot: merkleRoot),
             isTrue);
       });
       test('Verify schnorr signature (bip341 - lline 350)', () {
@@ -298,8 +298,8 @@ void main() {
                 hdWallet.getTweakedPrivateKey(merkleRoot: merkleRoot)),
             tweakedPrivateKey);
         expect(
-            hdWallet.verify(sigHash, signature,
-                isSchnorr: true, merkleRoot: merkleRoot),
+            hdWallet.verifySchnorr(sigHash, signature, true,
+                merkleRoot: merkleRoot),
             isTrue);
       });
     });

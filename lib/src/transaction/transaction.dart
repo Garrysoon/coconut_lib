@@ -656,7 +656,7 @@ class Transaction {
   }
 
   /// check if the signature is valid in the transaction.
-  bool validateSignature(
+  bool validateEcdsa(
       int inputIndex, TransactionOutput utxo, AddressType addressType,
       {String? witnessScript}) {
     // 1. Generate sigHash
@@ -707,7 +707,7 @@ class Transaction {
           Uint8List s = sig.sublist(4 + rLen + 2, 4 + rLen + 2 + sLen);
           Uint8List rs = Uint8List.fromList([...r, ...s]);
 
-          if (Ecc.verify(msg, pub, rs)) {
+          if (Ecc.verifyEcdsa(msg, pub, rs)) {
             validSigs += 1;
             continue;
           }
@@ -725,30 +725,31 @@ class Transaction {
       Uint8List sig = Codec.decodeHex(signature);
       Uint8List pub = Codec.decodeHex(publicKey);
 
-      int rLen = sig[3];
-      Uint8List r = sig.sublist(4, 4 + rLen);
-      if (r[0] == 0) r = r.sublist(1);
-      int sLen = sig[4 + rLen + 1];
-      Uint8List s = sig.sublist(4 + rLen + 2, 4 + rLen + 2 + sLen);
-      Uint8List rs = Uint8List.fromList([...r, ...s]);
+      Uint8List rawSignature = Converter.derToRawSignature(sig);
 
-      return Ecc.verify(msg, pub, rs);
+      // int rLen = sig[3];
+      // Uint8List r = sig.sublist(4, 4 + rLen);
+      // if (r[0] == 0) r = r.sublist(1);
+      // int sLen = sig[4 + rLen + 1];
+      // Uint8List s = sig.sublist(4 + rLen + 2, 4 + rLen + 2 + sLen);
+      // Uint8List rs = Uint8List.fromList([...r, ...s]);
+
+      return Ecc.verifyEcdsa(msg, pub, rawSignature);
     } else {
       throw Exception('Unsupported Address Type');
     }
   }
 
   /// Validate taproot signature
-  bool validateTaprootSignature(
-      int inputIndex, List<TransactionOutput> utxoList) {
+  bool validateSchnorr(int inputIndex, List<TransactionOutput> utxoList) {
     Uint8List sigHash =
         Codec.decodeHex(getTaprootSigHash(inputIndex, utxoList));
     // Uint8List publicKey = Encoder.decodeHex(
     //     "02${TransactionOutput.parse(utxoList[inputIndex]).scriptPubKey.commands[1]}");
     Uint8List publicKey = utxoList[inputIndex].scriptPubKey.commands[1];
     Uint8List signature = Codec.decodeHex(inputs[inputIndex].witnessList[0]);
-    bool isValid = Ecc.verify(sigHash, publicKey, signature, isSchnorr: true) ||
-        Ecc.verify(sigHash, publicKey, signature, isSchnorr: true);
+    bool isValid = Ecc.verifySchnorr(sigHash, publicKey, signature) ||
+        Ecc.verifySchnorr(sigHash, publicKey, signature);
     return isValid;
   }
 

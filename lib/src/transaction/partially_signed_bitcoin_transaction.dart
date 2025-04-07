@@ -448,14 +448,19 @@ class Psbt {
   }
 
   /// Add a signature to the PSBT.
-  void addSignature(int inputIndex, String signature, String publicKey) {
-    inputs[inputIndex].addSignature(signature, publicKey);
+  void addPartialSig(int inputIndex, String signature, String publicKey) {
+    inputs[inputIndex].addPartialSig(signature, publicKey);
     psbtMap["inputs"][inputIndex]["02$publicKey"] = signature;
   }
 
-  void addTaprootSignature(int inputIndex, String signature) {
-    inputs[inputIndex].addTaprootKeyPathSpendingSignature(signature);
+  void addTapKeySig(int inputIndex, String signature) {
+    inputs[inputIndex].addTapKeySig(signature);
     psbtMap["inputs"][inputIndex]["13"] = signature;
+  }
+
+  void addTapScriptSig(int inputIndex, String signature, String publicKey) {
+    inputs[inputIndex].addTapScriptSig(signature, publicKey);
+    psbtMap["inputs"][inputIndex]["14$publicKey"] = signature;
   }
 
   static int _getOffset(int prefix) {
@@ -592,7 +597,7 @@ class Psbt {
             addressType, inputs[i].partialSig!,
             witnessScript: inputs[i].witnessScript);
 
-        if (signedTransaction.validateSignature(
+        if (signedTransaction.validateEcdsa(
             i, inputs[i].witnessUtxo!, addressType,
             witnessScript: inputs[i].witnessScript!.rawSerialize())) {
           continue;
@@ -608,7 +613,7 @@ class Psbt {
         }
         signedTransaction.inputs[i]
             .setSignature(addressType, inputs[i].partialSig!);
-        if (signedTransaction.validateSignature(
+        if (signedTransaction.validateEcdsa(
             i, inputs[i].witnessUtxo!, addressType)) {
           continue;
         } else {
@@ -625,7 +630,7 @@ class Psbt {
         if (inputs[i].tapKeySig != null) {
           signedTransaction.inputs[i]
               .setTaprootKeyPathSpendingSignature(inputs[i].tapKeySig!);
-          if (signedTransaction.validateTaprootSignature(i, utxoList)) {
+          if (signedTransaction.validateSchnorr(i, utxoList)) {
             continue;
           } else {
             throw Exception('Invalid Signatures');
@@ -714,12 +719,16 @@ class PsbtInput {
     return 0;
   }
 
-  addSignature(String signature, String publicKey) {
+  addPartialSig(String signature, String publicKey) {
     partialSig!.add(Signature(signature, publicKey));
   }
 
-  addTaprootKeyPathSpendingSignature(String signature) {
+  addTapKeySig(String signature) {
     tapKeySig = signature;
+  }
+
+  addTapScriptSig(String signature, String publicKey) {
+    tapScriptSig!.add(Signature(signature, publicKey));
   }
 }
 

@@ -74,36 +74,7 @@ void main() {
         expect(keyStore.getPrivateKey(0, isChange: true), privateKey);
       });
     });
-    group('sign', () {
-      test('No seed exception', () {
-        String message = '1234567890ABCDEF';
-        SingleSignatureWallet wallet = SingleSignatureWallet.fromDescriptor(
-            MockFactory.createP2wpkhVault().descriptor);
-        expect(
-            () => wallet.keyStore.sign(message, 0), throwsA(isA<Exception>()));
-      });
-      test('Signature with recevie private key', () {
-        String message = '1234567890ABCDEF';
-        String hashedMessage = Hash.sha256(message);
-        expect(keyStore.sign(hashedMessage, 0),
-            '30450221008381590828444d6bb82cc7dcbbe64364cd12b16ced846643f369a2ee613b80bd02205a2680bffe958c69dfac6feba5bef01e93b4c30a5819624b02965c906ca4abfe01');
-      });
-      test('Signature with change private key', () {
-        String message = '1234567890ABCDEF';
-        String hashedMessage = Hash.sha256(message);
-        expect(keyStore.sign(hashedMessage, 0, isChange: true),
-            '30440220525634740bc3fe58323e2eac200330e6f982ce8a410464040df07fe8b19a442c022003d6e3c369728f1553a17650192b064b77e2d16f4f43d852d455e03ead3e76ed01');
-      });
-    });
-    group('signWithDerivationPath', () {
-      test('Signature with derivation path', () {
-        String message = '1234567890ABCDEF';
-        String hashedMessage = Hash.sha256(message);
-        expect(
-            keyStore.signWithDerivationPath(hashedMessage, "m/84'/1'/0'/0/0"),
-            '30450221008381590828444d6bb82cc7dcbbe64364cd12b16ced846643f369a2ee613b80bd02205a2680bffe958c69dfac6feba5bef01e93b4c30a5819624b02965c906ca4abfe01');
-      });
-    });
+
     group('getPublicKey', () {
       test('Get public key', () {
         expect(keyStore.getPublicKey(0),
@@ -124,27 +95,6 @@ void main() {
       });
     });
 
-    group('validateSignature', () {
-      test('Validate signature', () {
-        String message = '1234567890ABCDEF';
-        String hashedMessage = Hash.sha256(message);
-        String signature =
-            '30450221008381590828444d6bb82cc7dcbbe64364cd12b16ced846643f369a2ee613b80bd02205a2680bffe958c69dfac6feba5bef01e93b4c30a5819624b02965c906ca4abfe01';
-        expect(keyStore.validateSignature(signature, hashedMessage, 0), true);
-      });
-    });
-    group('validateSignatureWithDerivationPath', () {
-      test('Validate signature with derivation path', () {
-        String message = '1234567890ABCDEF';
-        String hashedMessage = Hash.sha256(message);
-        String signature =
-            '30450221008381590828444d6bb82cc7dcbbe64364cd12b16ced846643f369a2ee613b80bd02205a2680bffe958c69dfac6feba5bef01e93b4c30a5819624b02965c906ca4abfe01';
-        expect(
-            keyStore.validateSignatureWithDerivationPath(
-                signature, hashedMessage, "m/84'/1'/0'/0/0"),
-            true);
-      });
-    });
     group('canSignToPsbt', () {
       test('Check sign possibility with wrong key store', () {
         Psbt psbt = MockFactory.createP2wpkhUnsignedPsbt();

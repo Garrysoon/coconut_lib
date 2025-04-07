@@ -119,42 +119,42 @@ class KeyStore {
   }
 
 //sign.
-  String sign(String message, int addressIndex,
-      {bool isChange = false, isSchnorr = false}) {
-    if (!hasSeed) throw Exception('No private key in this key store');
-    HDWallet child = getChildHdWallet(isChange).derive(addressIndex);
-    Uint8List signature = child.sign(Uint8List.fromList(HEX.decode(message)),
-        isShnorr: isSchnorr);
-    String sig;
-    if (!isSchnorr) {
-      // String r = Codec.encodeHex(signature.sublist(0, 32));
-      // if (int.parse(r.substring(0, 2), radix: 16) & 0x80 != 0) {
-      //   r = '00$r';
-      // }
-      // String rLength = Converter.decToHex(r.length ~/ 2);
-      // String s = Codec.encodeHex(signature.sublist(32, 64));
-      // String sLength = Converter.decToHex(s.length ~/ 2);
-      // String rs = '02$rLength${r}02$sLength$s';
-      // sig = '30${Converter.decToHex(rs.length ~/ 2)}${rs}01';
-      sig = Codec.encodeHex(Converter.rawToDerSignature(signature));
-    } else {
-      sig = Codec.encodeHex(signature);
-    }
-    return sig;
-  }
+  // String sign(String message, int addressIndex,
+  //     {bool isChange = false, isSchnorr = false}) {
+  //   if (!hasSeed) throw Exception('No private key in this key store');
+  //   HDWallet child = getChildHdWallet(isChange).derive(addressIndex);
+  //   Uint8List signature = child.sign(Uint8List.fromList(HEX.decode(message)),
+  //       isShnorr: isSchnorr);
+  //   String sig;
+  //   if (!isSchnorr) {
+  //     // String r = Codec.encodeHex(signature.sublist(0, 32));
+  //     // if (int.parse(r.substring(0, 2), radix: 16) & 0x80 != 0) {
+  //     //   r = '00$r';
+  //     // }
+  //     // String rLength = Converter.decToHex(r.length ~/ 2);
+  //     // String s = Codec.encodeHex(signature.sublist(32, 64));
+  //     // String sLength = Converter.decToHex(s.length ~/ 2);
+  //     // String rs = '02$rLength${r}02$sLength$s';
+  //     // sig = '30${Converter.decToHex(rs.length ~/ 2)}${rs}01';
+  //     sig = Codec.encodeHex(Converter.rawToDerSignature(signature));
+  //   } else {
+  //     sig = Codec.encodeHex(signature);
+  //   }
+  //   return sig;
+  // }
 
 //sign with derivation path.
-  String signWithDerivationPath(String message, String derivationPath,
-      {bool isSchnorr = false}) {
-    if (!WalletUtility.validateDerivationPath(derivationPath)) {
-      throw Exception('Invalid derivation path');
-    }
-    List<String> pathList = derivationPath.split('/');
-    int index = int.parse(pathList.last);
-    int changeIndex = int.parse(pathList[pathList.length - 2]);
-    return sign(message, index,
-        isChange: changeIndex == 1, isSchnorr: isSchnorr);
-  }
+  // String signWithDerivationPath(String message, String derivationPath,
+  //     {bool isSchnorr = false}) {
+  //   if (!WalletUtility.validateDerivationPath(derivationPath)) {
+  //     throw Exception('Invalid derivation path');
+  //   }
+  //   List<String> pathList = derivationPath.split('/');
+  //   int index = int.parse(pathList.last);
+  //   int changeIndex = int.parse(pathList[pathList.length - 2]);
+  //   return sign(message, index,
+  //       isChange: changeIndex == 1, isSchnorr: isSchnorr);
+  // }
 
   /// Get the public key of the key store using index.
   String getPublicKey(int addressIndex,
@@ -170,47 +170,6 @@ class KeyStore {
     } else {
       return HEX.encode((child.publicKey).toList());
     }
-  }
-
-  /// Validate the signatured from this key store.
-  bool validateSignature(String signature, String message, int addressIndex,
-      {bool isChange = false, bool isSchnorr = false}) {
-    Uint8List sig = Codec.decodeHex(signature);
-    Uint8List msg = Codec.decodeHex(message);
-
-    HDWallet child = getChildHdWallet(isChange).derive(addressIndex);
-
-    if (!isSchnorr) {
-      //DER decoding
-      // int rLen = sig[3];
-      // Uint8List r = sig.sublist(4, 4 + rLen);
-      // if (rLen == 33 && r[0] == 0x00 && r[1] < 0x80) {
-      //   r = r.sublist(1);
-      // }
-      // int sLen = sig[4 + rLen + 1];
-      // Uint8List s = sig.sublist(4 + rLen + 2, 4 + rLen + 2 + sLen);
-
-      // if (sLen == 33 && s[0] == 0x00 && s[1] < 0x80) {
-      //   s = s.sublist(1);
-      // }
-      // Uint8List rs = Uint8List.fromList([...r, ...s]);
-      Uint8List rs = Converter.derToRawSignature(sig);
-
-      return child.verify(msg, rs);
-    } else {
-      return child.verify(msg, sig, isSchnorr: isSchnorr);
-    }
-  }
-
-  /// Validate the signatured from this key store with derivation path.
-  bool validateSignatureWithDerivationPath(
-      String signature, String message, String derivationPath,
-      {bool isSchnorr = false}) {
-    List<String> pathList = derivationPath.split('/');
-    int index = int.parse(pathList.last);
-    int changeIndex = int.parse(pathList[pathList.length - 2]);
-    return validateSignature(signature, message, index,
-        isChange: changeIndex == 1, isSchnorr: isSchnorr);
   }
 
   ///Check if the PSBT can be signed from this vault.
@@ -243,79 +202,116 @@ class KeyStore {
     }
     Psbt psbtObject = Psbt.parse(psbt);
     if (canSignToPsbt(psbtObject.serialize()) == false) {
-      throw Exception('Vault : This vault can not sign this PSBT');
+      throw Exception('This vault can not sign this PSBT');
+    }
+    if (psbtObject.inputs.length !=
+        psbtObject.unsignedTransaction!.inputs.length) {
+      throw Exception('Not enought psbt inputs or transaction inputs');
     }
 
-    bool isSchnorr = false;
-    if (addressType.isTaproot) {
-      isSchnorr = true;
-    }
+    for (int inputIndex = 0;
+        inputIndex < psbtObject.unsignedTransaction!.inputs.length;
+        inputIndex++) {
+      PsbtInput psbtInput = psbtObject.inputs[inputIndex];
 
-    for (int i = 0; i < psbtObject.unsignedTransaction!.inputs.length; i++) {
-      PsbtInput thisInput = psbtObject.inputs[i];
-
-      if (thisInput.requiredSignature <= thisInput.signedCount) {
+      if (psbtInput.requiredSignature <= psbtInput.signedCount) {
         continue;
       }
 
-      // Generate sig hash
-      String sigHash;
-      if (isSchnorr) {
-        List<TransactionOutput> utxoList = [];
-        for (int i = 0;
-            i < psbtObject.unsignedTransaction!.inputs.length;
-            i++) {
-          utxoList.add(psbtObject.inputs[i].witnessUtxo!);
-        }
-        sigHash =
-            psbtObject.unsignedTransaction!.getTaprootSigHash(i, utxoList);
-      } else {
-        TransactionOutput utxo = thisInput.witnessUtxo!;
+      // 1. Generate sig hash
+      late String sigHash;
+
+      if (!addressType.isTaproot) {
+        // ECDSA
+        TransactionOutput utxo = psbtInput.witnessUtxo!;
         if (addressType == AddressType.p2wsh) {
-          String? witnessScript = thisInput.witnessScript!.rawSerialize();
-          sigHash = psbtObject.unsignedTransaction!
-              .getSigHash(i, utxo, addressType, witnessScript: witnessScript);
+          String? witnessScript = psbtInput.witnessScript!.rawSerialize();
+          sigHash = psbtObject.unsignedTransaction!.getSigHash(
+              inputIndex, utxo, addressType,
+              witnessScript: witnessScript);
         } else {
-          sigHash =
-              psbtObject.unsignedTransaction!.getSigHash(i, utxo, addressType);
+          sigHash = psbtObject.unsignedTransaction!
+              .getSigHash(inputIndex, utxo, addressType);
         }
+      } else {
+        // Taproot
+        List<TransactionOutput> utxoList = [];
+        for (int j = 0;
+            j < psbtObject.unsignedTransaction!.inputs.length;
+            j++) {
+          utxoList.add(psbtObject.inputs[j].witnessUtxo!);
+        }
+        sigHash = psbtObject.unsignedTransaction!
+            .getTaprootSigHash(inputIndex, utxoList);
       }
 
-      //Add signature
-      for (int j = 0; j < thisInput.derivationPathList.length; j++) {
-        if (thisInput.derivationPathList[j].masterFingerprint !=
+      // 2. Calculate signatures and get public keys
+      List<String> signatureList = [];
+      List<String> publicKeyList = [];
+      for (int pathIndex = 0;
+          pathIndex < psbtInput.derivationPathList.length;
+          pathIndex++) {
+        if (psbtInput.derivationPathList[pathIndex].masterFingerprint !=
             masterFingerprint) {
           continue;
         }
+        String derivationPath = psbtInput.derivationPathList[pathIndex].path;
+        HDWallet hdWallet = getChildHdWallet(
+                WalletUtility.isChangeFromDerivationPath(derivationPath))
+            .derive(WalletUtility.getAccountIndexFromDerivationPath(
+                derivationPath));
+        publicKeyList.add(getPublicKey(
+            psbtInput.derivationPathList[pathIndex].accountIndex,
+            isChange: psbtInput.derivationPathList[pathIndex].isChange,
+            applyTweak: addressType.applyTweak));
 
-        //TODO: implement code for the wallet is musig2 or script path
-        String publicKey = getPublicKey(
-            thisInput.derivationPathList[j].accountIndex,
-            isChange: thisInput.derivationPathList[j].isChange,
-            applyTweak: isSchnorr);
-        String signature = signWithDerivationPath(
-            sigHash, thisInput.derivationPathList[j].path,
-            isSchnorr: isSchnorr);
-
-        // Validate signature
-        if (!validateSignatureWithDerivationPath(
-            signature, sigHash, thisInput.derivationPathList[j].path,
-            isSchnorr: isSchnorr)) {
-          throw Exception('Invalid signature');
-        }
-        if (addressType == AddressType.p2trKeyPathSpending ||
-            addressType == AddressType.p2trMusig2) {
-          psbtObject.addTaprootSignature(i, signature);
+        if (!addressType.isTaproot) {
+          // ECDSA
+          signatureList.add(
+              Codec.encodeHex(hdWallet.signEcdsa(Codec.decodeHex(sigHash))));
         } else {
-          psbtObject.addSignature(i, signature, publicKey);
+          //Schnorr
+          signatureList.add(Codec.encodeHex(hdWallet.signSchnorr(
+              Codec.decodeHex(sigHash), addressType.applyTweak)));
         }
       }
-      // String publicKey =
-      //     getPublicKeyWithDerivationPath(thisInput.derivationPathList!.path);
-      // String signature =
-      //     signWithDerivationPath(sigHash, thisInput.derivationPathList!.path);
-      // if (validateSignatureWithDerivationPath(
-      //     signature, sigHash, thisInput.derivationPathList!.path)) {}
+
+      // 3. Validate signature
+      for (int j = 0; j < signatureList.length; j++) {
+        Uint8List signature = Codec.decodeHex(signatureList[j]);
+        Uint8List publicKey = Codec.decodeHex(publicKeyList[j]);
+        if (!addressType.isTaproot) {
+          // ECDSA
+          if (!Ecc.verifyEcdsa(Codec.decodeHex(sigHash), publicKey,
+              Converter.derToRawSignature(signature))) {
+            throw Exception('Invalid signature');
+          }
+        } else {
+          // Schnorr
+          if (!Ecc.verifySchnorr(
+              Codec.decodeHex(sigHash), publicKey, signature)) {
+            throw Exception('Invalid signature');
+          }
+        }
+      }
+
+      // 4. Attach signature to PSBT
+      for (int j = 0; j < signatureList.length; j++) {
+        if (!addressType.isTaproot) {
+          // ECDSA
+          psbtObject.addPartialSig(
+              inputIndex, signatureList[j], publicKeyList[j]);
+        } else {
+          // Taproot
+          if (addressType.applyTweak) {
+            // Key path
+            psbtObject.addTapKeySig(j, signatureList[j]);
+          } else {
+            // Script path
+            psbtObject.addTapScriptSig(j, signatureList[j], publicKeyList[j]);
+          }
+        }
+      }
     }
     return psbtObject.serialize();
   }

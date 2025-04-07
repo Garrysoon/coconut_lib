@@ -161,14 +161,14 @@ class HDWallet {
     });
   }
 
-  /// @nodoc
-  Uint8List sign(Uint8List hash, {isShnorr = false, Uint8List? auxRand}) {
-    if (isShnorr) {
-      return Ecc.sign(hash, getTweakedPrivateKey(),
-          isSchnorr: isShnorr, auxRand: auxRand);
-    } else {
-      return Ecc.sign(hash, privateKey!, isSchnorr: isShnorr);
-    }
+  Uint8List signEcdsa(Uint8List message) {
+    return Converter.rawToDerSignature(Ecc.signEcdsa(message, privateKey!));
+  }
+
+  Uint8List signSchnorr(Uint8List message, bool applyTweak,
+      {Uint8List? auxRand}) {
+    Uint8List secretKey = applyTweak ? getTweakedPrivateKey() : privateKey!;
+    return Ecc.signSchnorr(message, secretKey, auxRand: auxRand);
   }
 
   // Returns the tweaked private key for Taproot/MuSig2.
@@ -235,15 +235,17 @@ class HDWallet {
     return tweakedPubKey.sublist(1);
   }
 
-  /// @nodoc
-  verify(Uint8List hash, Uint8List signature,
-      {bool isSchnorr = false, Uint8List? merkleRoot}) {
-    if (isSchnorr) {
-      Uint8List tweakedPublicKey = getTweakedPublicKey(merkleRoot: merkleRoot);
-      // Uint8List tweakedPublicKey = publicKey.sublist(1);
-      return Ecc.verify(hash, tweakedPublicKey, signature, isSchnorr: true);
+  verifyEcdsa(Uint8List message, Uint8List signature) {
+    return Ecc.verifyEcdsa(message, publicKey, signature);
+  }
+
+  verifySchnorr(Uint8List message, Uint8List signature, bool applyTweak,
+      {Uint8List? merkleRoot}) {
+    if (applyTweak) {
+      return Ecc.verifySchnorr(
+          message, getTweakedPublicKey(merkleRoot: merkleRoot), signature);
     } else {
-      return Ecc.verify(hash, publicKey, signature);
+      return Ecc.verifySchnorr(message, publicKey, signature);
     }
   }
 

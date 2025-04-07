@@ -182,19 +182,10 @@ class Ecc {
     return dt;
   }
 
-  static Uint8List sign(Uint8List hash, Uint8List x,
-      {isSchnorr = false, Uint8List? auxRand}) {
-    if (isSchnorr) {
-      return _signSchnorr(hash, x, auxRand: auxRand);
-    } else {
-      return _signECDSA(hash, x);
-    }
-  }
-
-  static Uint8List _signECDSA(Uint8List hash, Uint8List x) {
-    if (!isScalar(hash)) throw ArgumentError(THROW_BAD_HASH);
-    if (!isPrivate(x)) throw ArgumentError(THROW_BAD_PRIVATE);
-    ECSignature sig = deterministicGenerateK(hash, x);
+  static Uint8List signEcdsa(Uint8List message, Uint8List secretKey) {
+    if (!isScalar(message)) throw ArgumentError(THROW_BAD_HASH);
+    if (!isPrivate(secretKey)) throw ArgumentError(THROW_BAD_PRIVATE);
+    ECSignature sig = deterministicGenerateK(message, secretKey);
     Uint8List buffer = Uint8List(64);
     buffer.setRange(0, 32, _encodeBigInt(sig.r));
     BigInt s;
@@ -204,18 +195,19 @@ class Ecc {
       s = sig.s;
     }
     buffer.setRange(32, 64, _encodeBigInt(s));
+    // print("Signature : ${Codec.encodeHex(buffer)}");
     return buffer;
   }
 
-  static Uint8List _signSchnorr(Uint8List msg, Uint8List seckey,
+  static Uint8List signSchnorr(Uint8List message, Uint8List secretKey,
       {Uint8List? auxRand}) {
-    if (!isPrivate(seckey)) throw ArgumentError(THROW_BAD_PRIVATE);
-    if (msg.length != 32) throw ArgumentError("Message must be 32 bytes");
+    if (!isPrivate(secretKey)) throw ArgumentError(THROW_BAD_PRIVATE);
+    if (message.length != 32) throw ArgumentError("Message must be 32 bytes");
     if (auxRand != null && auxRand.length != 32) {
       throw ArgumentError("auxRand must be 32 bytes");
     }
 
-    BigInt d0 = fromBuffer(seckey);
+    BigInt d0 = fromBuffer(secretKey);
     if (d0 <= BigInt.zero || d0 >= n) {
       throw ArgumentError("Secret key out of range");
     }
@@ -238,7 +230,7 @@ class Ecc {
     }
 
     Uint8List k0Bytes = Codec.decodeHex(Hash.taggedHash(
-        "BIP0340/nonce", Uint8List.fromList([...t, ...P_x, ...msg])));
+        "BIP0340/nonce", Uint8List.fromList([...t, ...P_x, ...message])));
     BigInt k0 = fromBuffer(k0Bytes) % n;
     if (k0 == BigInt.zero) {
       throw Exception(
@@ -246,8 +238,9 @@ class Ecc {
     }
 
     ECPoint? R = G * k0;
-    if (R == null || R.isInfinity)
+    if (R == null || R.isInfinity) {
       throw Exception("Failed to generate R point.");
+    }
     if (R.y!.toBigInteger()!.isOdd) {
       k0 = n - k0;
       R = G * k0;
@@ -256,7 +249,7 @@ class Ecc {
     Uint8List R_x = getEncoded(R, false).sublist(1, 33);
 
     Uint8List eBytes = Codec.decodeHex(Hash.taggedHash(
-        "BIP0340/challenge", Uint8List.fromList([...R_x, ...P_x, ...msg])));
+        "BIP0340/challenge", Uint8List.fromList([...R_x, ...P_x, ...message])));
     BigInt e = fromBuffer(eBytes) % n;
 
     BigInt s = (k0 + e * d0) % n;
@@ -276,57 +269,55 @@ class Ecc {
     // print("Public Key: ${Encoder.encodeHex(getEncoded(P, true))}");
     // print("Message: ${Encoder.encodeHex(msg)}");
 
-    if (!verify(msg, getEncoded(P, true).sublist(1), signature,
-        isSchnorr: true)) {
+    if (!verifySchnorr(message, getEncoded(P, true).sublist(1), signature)) {
       throw Exception("The created signature does not pass verification.");
     }
 
     return signature;
   }
 
-  static bool verify(Uint8List msg, Uint8List q, Uint8List signature,
-      {bool isSchnorr = false}) {
-    if (!isScalar(msg)) throw ArgumentError(THROW_BAD_HASH);
-    if (!isPoint(q)) throw ArgumentError(THROW_BAD_POINT);
+  static bool verifyEcdsa(
+      Uint8List message, Uint8List publicKey, Uint8List signature) {
+    if (!isScalar(message)) throw ArgumentError(THROW_BAD_HASH);
+    if (!isPoint(publicKey)) throw ArgumentError(THROW_BAD_POINT);
     if (!isSignature(signature)) throw ArgumentError(THROW_BAD_SIGNATURE);
 
-    // print("---in verify---");
-    // print("msg: ${Encoder.encodeHex(msg)}");
-    // print("q: ${Encoder.encodeHex(q)}");
-    // print("signature: ${Encoder.encodeHex(signature)}");
-    // print("---end verify---");
+    ECPoint? Q = decodeFrom(publicKey);
+    BigInt r = fromBuffer(signature.sublist(0, 32));
+    BigInt s = fromBuffer(signature.sublist(32, 64));
 
-    if (isSchnorr) {
-      Uint8List R_x = signature.sublist(0, 32);
-      Uint8List sBytes = signature.sublist(32, 64);
-      BigInt s = fromBuffer(sBytes);
-      if (s >= n) return false;
+    final signer = ECDSASigner(null, HMac(SHA256Digest(), 64));
+    signer.init(false, PublicKeyParameter(ECPublicKey(Q, secp256k1)));
 
-      Uint8List pubkeyWithPrefix = Uint8List.fromList([0x02, ...q]);
+    return signer.verifySignature(message, ECSignature(r, s));
+  }
 
-      ECPoint? P = decodeFrom(pubkeyWithPrefix);
-      if (P == null || P.isInfinity) return false;
+  static bool verifySchnorr(
+      Uint8List message, Uint8List publicKey, Uint8List signature) {
+    if (!isScalar(message)) throw ArgumentError(THROW_BAD_HASH);
+    if (!isPoint(publicKey)) throw ArgumentError(THROW_BAD_POINT);
+    if (!isSignature(signature)) throw ArgumentError(THROW_BAD_SIGNATURE);
 
-      Uint8List eBytes = Codec.decodeHex(Hash.taggedHash(
-          "BIP0340/challenge", Uint8List.fromList([...R_x, ...q, ...msg])));
-      BigInt e = fromBuffer(eBytes) % n;
+    Uint8List R_x = signature.sublist(0, 32);
+    Uint8List sBytes = signature.sublist(32, 64);
+    BigInt s = fromBuffer(sBytes);
+    if (s >= n) return false;
 
-      ECPoint? R_prime = (G * s)! + (P * (n - e));
-      if (R_prime == null || R_prime.isInfinity) return false;
+    Uint8List pubkeyWithPrefix = Uint8List.fromList([0x02, ...publicKey]);
 
-      Uint8List R_prime_x = getEncoded(R_prime, false).sublist(1, 33);
-      bool isValid = R_prime_x.toString() == R_x.toString();
-      return isValid;
-    } else {
-      ECPoint? Q = decodeFrom(q);
-      BigInt r = fromBuffer(signature.sublist(0, 32));
-      BigInt s = fromBuffer(signature.sublist(32, 64));
+    ECPoint? P = decodeFrom(pubkeyWithPrefix);
+    if (P == null || P.isInfinity) return false;
 
-      final signer = ECDSASigner(null, HMac(SHA256Digest(), 64));
-      signer.init(false, PublicKeyParameter(ECPublicKey(Q, secp256k1)));
+    Uint8List eBytes = Codec.decodeHex(Hash.taggedHash("BIP0340/challenge",
+        Uint8List.fromList([...R_x, ...publicKey, ...message])));
+    BigInt e = fromBuffer(eBytes) % n;
 
-      return signer.verifySignature(msg, ECSignature(r, s));
-    }
+    ECPoint? R_prime = (G * s)! + (P * (n - e));
+    if (R_prime == null || R_prime.isInfinity) return false;
+
+    Uint8List R_prime_x = getEncoded(R_prime, false).sublist(1, 33);
+    bool isValid = R_prime_x.toString() == R_x.toString();
+    return isValid;
   }
 
   /// Decode a BigInt from bytes in big-endian encoding.

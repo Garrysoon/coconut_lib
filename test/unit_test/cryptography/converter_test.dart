@@ -126,5 +126,28 @@ void main() {
             throwsException);
       });
     });
+    group("derToRawSignature", () {
+      test("Get raw signature from der (case 1)", () {
+        String der =
+            '3044022051b558cdf6c0b2380798708ee596de9dfcffe8482cda01cd6532c6a2c34f79cd022031615f5c1b73eda34ec496f133c2e8a6cc04dd3683de1991c869fb8cbd33f18a01';
+        String raw =
+            '51b558cdf6c0b2380798708ee596de9dfcffe8482cda01cd6532c6a2c34f79cd31615f5c1b73eda34ec496f133c2e8a6cc04dd3683de1991c869fb8cbd33f18a';
+        expect(
+            Codec.encodeHex(Converter.derToRawSignature(Codec.decodeHex(der))),
+            raw);
+      });
+    });
+
+    group("derToRawSignature", () {
+      test("Get raw signature from der (case 1)", () {
+        String der =
+            '3044022051b558cdf6c0b2380798708ee596de9dfcffe8482cda01cd6532c6a2c34f79cd022031615f5c1b73eda34ec496f133c2e8a6cc04dd3683de1991c869fb8cbd33f18a01';
+        String raw =
+            '51b558cdf6c0b2380798708ee596de9dfcffe8482cda01cd6532c6a2c34f79cd31615f5c1b73eda34ec496f133c2e8a6cc04dd3683de1991c869fb8cbd33f18a';
+        expect(
+            Codec.encodeHex(Converter.rawToDerSignature(Codec.decodeHex(raw))),
+            der);
+      });
+    });
   });
 }
