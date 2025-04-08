@@ -79,5 +79,11 @@ void main() {
         }
       });
     });
+
+    group('getAddregatedPublilcKey', () {
+      test('Get aggregatedPublicKey', () {
+        
+      });
+    });
   });
 }

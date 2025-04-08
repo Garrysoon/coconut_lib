@@ -297,8 +297,31 @@ class AddressType {
   //BIP0327
   static String getP2trMusig2Address(
       List<String> publicKeys, int requiredSignature) {
-    //TODO: get musig2 address
-    return "";
+    if (requiredSignature > publicKeys.length) {
+      throw Exception(
+          "requiredSignature cannot be greater than the number of pubkeys");
+    }
+    if (requiredSignature != publicKeys.length) {
+      throw Exception(
+          "In MuSig2, the number of public keys must equal the required signatures");
+    }
+
+    // Sort public keys lexicographically
+    publicKeys.sort();
+
+    // Convert public keys to bytes
+    List<Uint8List> pubKeysBytes =
+        publicKeys.map((hex) => Codec.decodeHex(hex)).toList();
+
+    // Concatenate all public keys
+    String concatenatedPubkeys =
+        pubKeysBytes.map((e) => Codec.encodeHex(e)).join('');
+
+    // Calculate the internal key (tweak) using SHA256
+    String internalKey = Hash.sha256fromHex(concatenatedPubkeys);
+
+    // Get the Taproot address using the internal key
+    return getTaprootAddress(internalKey);
   }
 
   static String getP2trScriptPathSpendingAddress(

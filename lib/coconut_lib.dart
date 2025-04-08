@@ -34,6 +34,7 @@ part 'src/wallet/key_store.dart';
 part 'src/wallet/multisignature_vault.dart';
 part 'src/wallet/multisignature_wallet.dart';
 part 'src/wallet/multisignature_wallet_base.dart';
+part 'src/wallet/musig2_session.dart';
 part 'src/wallet/seed.dart';
 part 'src/wallet/single_signature_vault.dart';
 part 'src/wallet/single_signature_wallet.dart';

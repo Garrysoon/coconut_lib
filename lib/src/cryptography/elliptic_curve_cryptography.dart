@@ -110,6 +110,28 @@ class Ecc {
     return getEncoded(pp, compressed);
   }
 
+  static Uint8List? pointMultiplyScalar(
+      Uint8List p, Uint8List tweak, bool compressed) {
+    Uint8List adjustedP =
+        (p.length == 32) ? Uint8List.fromList([0x02, ...p]) : p;
+
+    BigInt tt = fromBuffer(tweak);
+    ECPoint? pp = (decodeFrom(adjustedP)! * tt) as ECPoint;
+    if (pp.isInfinity) return null;
+    return getEncoded(pp, compressed);
+  }
+
+  static Uint8List? pointCombine(Uint8List p, Uint8List q, bool compressed) {
+    if (!isPoint(p)) throw ArgumentError(THROW_BAD_POINT);
+    if (!isPoint(q)) throw ArgumentError(THROW_BAD_POINT);
+
+    ECPoint? pp = decodeFrom(p);
+    ECPoint? qq = decodeFrom(q);
+    ECPoint? pq = (pp! + qq!) as ECPoint;
+    if (pq.isInfinity) return null;
+    return getEncoded(pq, compressed);
+  }
+
   static Uint8List? pointAddScalar(
       Uint8List p, Uint8List tweak, bool isCompressed) {
     if (!isPoint(p)) throw ArgumentError(THROW_BAD_POINT);
