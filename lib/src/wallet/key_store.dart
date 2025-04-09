@@ -114,7 +114,7 @@ class KeyStore {
           merkleRoot: merkleRoot, aggregatedPublicKey: aggregatedPublicKey));
     } else {
       //print("priv : " + Converter.bytesToHex(child.privateKey!.toList()));
-      return child.getMasterPrivateKey();
+      return Codec.encodeHex(child.privateKey!);
     }
   }
 
@@ -314,6 +314,82 @@ class KeyStore {
       }
     }
     return psbtObject.serialize();
+  }
+
+  String getMuSig2SecretNonce(String sigHash, String aggregatedPublicKey,
+      int accountIndex, bool isChange,
+      {Uint8List? extraInput}) {
+    Uint8List secretKey =
+        Codec.decodeHex(getPrivateKey(accountIndex, isChange: isChange));
+    Uint8List publicKey =
+        Codec.decodeHex(getPublicKey(accountIndex, isChange: isChange));
+    Uint8List aggPubkey = Codec.decodeHex(aggregatedPublicKey);
+    Uint8List message = Codec.decodeHex(sigHash);
+    Uint8List rand = Hash.sha160fromByte(
+        Uint8List.fromList([...secretKey, ...aggPubkey, ...message]));
+
+    // Test vector
+    // Uint8List rand = Codec.decodeHex(
+    //     '659da54c7b484598ba29fb2600b9e400a8e4536de1f69906fec3549156f4223f');
+    // Uint8List secretKey = Codec.decodeHex(
+    //     '0202020202020202020202020202020202020202020202020202020202020202');
+    // Uint8List publicKey = Codec.decodeHex(
+    //     "024D4B6CD1361032CA9BD2AEB9D900AA4D45D9EAD80AC9423374C451A7254D0766");
+    // Uint8List aggPubkey = Codec.decodeHex(
+    //     "0707070707070707070707070707070707070707070707070707070707070707");
+    // Uint8List message = Codec.decodeHex(
+    //     "0101010101010101010101010101010101010101010101010101010101010101");
+    // Uint8List extraInput = Codec.decodeHex(
+    //     "0808080808080808080808080808080808080808080808080808080808080808");
+
+    // Step 1: rand' ← 32-byte uniform random
+
+    // Step 3: Normalize optional arguments
+    Uint8List mPrefixed;
+    final len = message.length;
+    final lenBytes = Uint8List(8)..buffer.asByteData().setUint64(0, len);
+    mPrefixed = Uint8List.fromList([0x01, ...lenBytes, ...message]);
+    extraInput ??= Uint8List(0);
+    final extraLenBytes = Uint8List(4)
+      ..buffer.asByteData().setUint32(0, extraInput.length);
+
+    // Step 4: compute k1, k2
+    Uint8List? k1, k2;
+    List<Uint8List> scalars = [];
+    for (int i = 1; i <= 2; i++) {
+      final prefix = Uint8List.fromList([i - 1]);
+      final input = Uint8List.fromList([
+        ...rand,
+        // 1,
+        publicKey.length,
+        ...publicKey,
+        // 1,
+        aggPubkey.length,
+        ...aggPubkey,
+        ...mPrefixed,
+        ...extraLenBytes,
+        ...extraInput,
+        ...prefix
+      ]);
+      final hash = Codec.decodeHex(Hash.taggedHash("MuSig/nonce", input));
+      scalars.add(hash);
+    }
+    k1 = scalars[0];
+    k2 = scalars[1];
+    return Codec.encodeHex(Uint8List.fromList([...k1, ...k2, ...publicKey]));
+  }
+
+  String getMuSig2PublicNonce(String sigHash, String aggregatedPublicKey,
+      int accountIndex, bool isChange,
+      {Uint8List? extraInput}) {
+    Uint8List secretNonce = Codec.decodeHex(getMuSig2SecretNonce(
+        sigHash, aggregatedPublicKey, accountIndex, isChange,
+        extraInput: extraInput));
+    final k1 = secretNonce.sublist(0, 32);
+    final k2 = secretNonce.sublist(32, 64);
+    final r1 = Ecc.pointFromScalar(k1, true);
+    final r2 = Ecc.pointFromScalar(k2, true);
+    return Codec.encodeHex(Uint8List.fromList([...r1!, ...r2!]));
   }
 
   ///@nodoc

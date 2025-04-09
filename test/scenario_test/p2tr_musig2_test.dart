@@ -9,6 +9,7 @@ void main() {
     NetworkType.setNetworkType(NetworkType.regtest);
     MultisignatureVault vault = MockFactory.createP2trMusig2Vault();
 
-    print(vault.getAddregatedPublilcKey(0, true));
+    Psbt unsignedPsbt = MockFactory.createP2trMuSigUnsignedPsbt();
+    print(unsignedPsbt.getAggregatedPublicNonce(0));
   });
 }

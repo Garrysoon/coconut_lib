@@ -22,7 +22,7 @@ class AddressType {
   bool get isMultisignature =>
       name == 'p2sh' ||
       name == 'p2wsh' ||
-      name == 'p2trMusig2' ||
+      name == 'p2trMuSig2' ||
       name == 'p2trScriptPathSpending';
 
   /// Check if the address type is for single signature.
@@ -31,7 +31,7 @@ class AddressType {
   // Check if the address type is for taproot.
   bool get isTaproot => name.startsWith('p2tr');
 
-  bool get applyTweak => name == 'p2trKeyPathSpending' || name == 'p2trMusig2';
+  bool get applyTweak => name == 'p2trKeyPathSpending' || name == 'p2trMuSig2';
 
   /// @nodoc
   final int versionForMainnet;
@@ -93,8 +93,8 @@ class AddressType {
       getP2trKeyPathSpendingAddress,
       getWrongMultisigatureAddress);
 
-  static AddressType p2trMusig2 = AddressType._('p2trMusig2', 86, 'bc1', 'P2TR',
-      0x0488b21e, 0x043587cf, getWrongAddress, getP2trMusig2Address);
+  static AddressType p2trMuSig2 = AddressType._('p2trMuSig2', 86, 'bc1', 'P2TR',
+      0x0488b21e, 0x043587cf, getWrongAddress, getP2trMuSig2Address);
 
   static AddressType p2trScriptPathSpending = AddressType._(
       'p2trScriptPathSpending',
@@ -114,7 +114,7 @@ class AddressType {
         p2sh,
         p2wsh,
         p2trKeyPathSpending,
-        p2trMusig2,
+        p2trMuSig2,
         p2trScriptPathSpending
       ];
 
@@ -295,7 +295,7 @@ class AddressType {
   }
 
   //BIP0327
-  static String getP2trMusig2Address(
+  static String getP2trMuSig2Address(
       List<String> publicKeys, int requiredSignature) {
     if (requiredSignature > publicKeys.length) {
       throw Exception(
