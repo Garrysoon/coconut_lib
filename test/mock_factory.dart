@@ -195,4 +195,29 @@ abstract class MockFactory {
 
     return Transaction.withInputsAndOutputs(inputs, outputs, addressType);
   }
+
+  static SingleSignatureVault createMindVault() {
+    // FP : 382892b6
+    // addr : ...8mgl
+    return SingleSignatureVault.fromMnemonic(
+        "mind shy assist luxury isolate family spray fabric twice seven bargain fan",
+        passphrase: "qwerty");
+  }
+
+  static SingleSignatureVault createClickVault() {
+    //FP : f75f5ab5
+    //addr : ... yfma
+    return SingleSignatureVault.fromMnemonic(
+        "click exotic patient apple fence abandon abandon abandon abandon abandon abandon abstract");
+  }
+
+  static SingleSignatureVault createThankVault() {
+    SingleSignatureVault vault = SingleSignatureVault.fromMnemonic(
+        "thank split shrimp error own spirit slow glow act evidence globe slight",
+        passphrase:
+            "f4137717e5b9750f09af0168609b73201a4c5d528ebcb22ef4360d0efc77f88e");
+    //FP: a419d566
+    //addr : ... 5jk
+    return vault;
+  }
 }

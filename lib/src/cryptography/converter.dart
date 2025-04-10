@@ -218,11 +218,30 @@ class Converter {
     return Uint8List.fromList([...r, ...s]);
   }
 
-  static Uint8List _ensureDerInt(Uint8List raw) {
-    if (raw[0] & 0x80 != 0) {
-      return Uint8List.fromList([0x00, ...raw]);
+  // static Uint8List _ensureDerInt(Uint8List raw) {
+  //   if (raw[0] & 0x80 != 0) {
+  //     return Uint8List.fromList([0x00, ...raw]);
+  //   }
+  //   return raw;
+  // }
+
+  static Uint8List _ensureDerInt(Uint8List rawInt) {
+    // 앞의 불필요한 0x00 제거
+    int offset = 0;
+    while (offset < rawInt.length - 1 &&
+        rawInt[offset] == 0x00 &&
+        (rawInt[offset + 1] & 0x80) == 0) {
+      offset++;
     }
-    return raw;
+
+    Uint8List cleaned = rawInt.sublist(offset);
+
+    // 만약 최상위 비트가 1이면 → 양수 표현 위해 앞에 0x00 붙이기
+    if (cleaned.isNotEmpty && (cleaned[0] & 0x80) != 0) {
+      return Uint8List.fromList([0x00, ...cleaned]);
+    } else {
+      return cleaned;
+    }
   }
 
   static Uint8List _normalizeRawInt(Uint8List derInt) {
