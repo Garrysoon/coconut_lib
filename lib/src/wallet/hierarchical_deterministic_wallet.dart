@@ -171,6 +171,26 @@ class HDWallet {
     return Ecc.signSchnorr(message, secretKey, auxRand: auxRand);
   }
 
+  Uint8List signSchnorrForMuSig2(
+      Uint8List message,
+      Uint8List aggregatedPublicKey,
+      Uint8List aggregatedPublicNonce,
+      Uint8List secretNonce,
+      List<Uint8List> participantPublicKeys) {
+    if (secretNonce.length < 64) {
+      throw ArgumentError("Secret nonce too short: ${secretNonce.length}");
+    }
+
+    return Ecc.signSchnorrForMuSig2(
+        message,
+        aggregatedPublicKey,
+        aggregatedPublicNonce,
+        privateKey!,
+        secretNonce,
+        Ecc.compressPoint(publicKey, isXOnly: true),
+        participantPublicKeys);
+  }
+
   // Returns the tweaked private key for Taproot/MuSig2.
   Uint8List getTweakedPrivateKey(
       {Uint8List? merkleRoot, Uint8List? aggregatedPublicKey}) {

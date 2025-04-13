@@ -102,6 +102,9 @@ abstract class MultisignatureWalletBase extends WalletBase {
   @override
   bool canSignToPsbt(String psbt) {
     for (KeyStore keyStore in keyStoreList) {
+      if (!keyStore.hasSeed) {
+        continue;
+      }
       if (keyStore.canSignToPsbt(psbt)) {
         return true;
       }
@@ -126,7 +129,8 @@ abstract class MultisignatureWalletBase extends WalletBase {
     return signedPsbt;
   }
 
-  String getAddregatedPublilcKey(int addressIndex, bool isChange) {
+  String getAddregatedPublilcKey(int addressIndex, bool isChange,
+      {bool isSort = true}) {
     List<String> publicKeysHex = keyStoreList
         .map((keyStore) =>
             keyStore.getPublicKey(addressIndex, isChange: isChange))
@@ -138,17 +142,67 @@ abstract class MultisignatureWalletBase extends WalletBase {
     //   '023590A94E768F8E1815C2F24B4D80A8E3149316C3518CE7B7AD338368D038CA66'
     // ];
 
-    List<Uint8List> publicKeysBytes =
-        publicKeysHex.map((e) => Codec.decodeHex(e)).toList();
+    if (isSort) {
+      publicKeysHex.sort();
+    }
 
+    return Codec.encodeHex(aggregatePublicKey(publicKeysHex, true));
+
+    // List<Uint8List> publicKeysBytes =
+    //     publicKeysHex.map((e) => Codec.decodeHex(e)).toList();
+
+    // Uint8List secondKey = Uint8List(0);
+    // for (String key in publicKeysHex) {
+    //   if (publicKeysHex[0] != key) {
+    //     secondKey = Codec.decodeHex(key);
+    //     break;
+    //   }
+    // }
+    // String concatenatedPublicKey = publicKeysHex.map((e) => e).join();
+
+    // Uint8List Q = publicKeysBytes[0];
+    // for (int i = 0; i < publicKeysBytes.length; i++) {
+    //   Uint8List coefficient = Uint8List(0);
+    //   if (Codec.encodeHex(publicKeysBytes[i]) == Codec.encodeHex(secondKey)) {
+    //     coefficient = Uint8List.fromList(List<int>.generate(
+    //         32,
+    //         (i) => int.parse(
+    //             BigInt.one
+    //                 .toRadixString(16)
+    //                 .padLeft(64, '0')
+    //                 .substring(i * 2, i * 2 + 2),
+    //             radix: 16)));
+    //   } else {
+    //     String data = Hash.taggedHash(
+    //             'KeyAgg list', Codec.decodeHex(concatenatedPublicKey)) +
+    //         Codec.encodeHex(publicKeysBytes[i]);
+    //     coefficient = Codec.decodeHex(
+    //         Hash.taggedHash('KeyAgg coefficient', Codec.decodeHex(data)));
+    //   }
+    //   if (i == 0) {
+    //     Q = Ecc.pointMultiplyScalar(publicKeysBytes[i], coefficient, true)!;
+    //   } else {
+    //     Q = Ecc.pointCombine(
+    //         Q,
+    //         Ecc.pointMultiplyScalar(publicKeysBytes[i], coefficient, true)!,
+    //         true)!;
+    //   }
+    // }
+    // return Codec.encodeHex(Q).substring(2);
+  }
+
+  static Uint8List aggregatePublicKey(
+      List<String> publicKeyList, bool isXOnly) {
+    List<Uint8List> publicKeysBytes =
+        publicKeyList.map((e) => Codec.decodeHex(e)).toList();
     Uint8List secondKey = Uint8List(0);
-    for (String key in publicKeysHex) {
-      if (publicKeysHex[0] != key) {
+    for (String key in publicKeyList) {
+      if (publicKeyList[0] != key) {
         secondKey = Codec.decodeHex(key);
         break;
       }
     }
-    String concatenatedPublicKey = publicKeysHex.map((e) => e).join();
+    String concatenatedPublicKey = publicKeyList.map((e) => e).join();
 
     Uint8List Q = publicKeysBytes[0];
     for (int i = 0; i < publicKeysBytes.length; i++) {
@@ -178,6 +232,10 @@ abstract class MultisignatureWalletBase extends WalletBase {
             true)!;
       }
     }
-    return Codec.encodeHex(Q).substring(2);
+    if (isXOnly) {
+      return Q.sublist(1);
+    } else {
+      return Q;
+    }
   }
 }

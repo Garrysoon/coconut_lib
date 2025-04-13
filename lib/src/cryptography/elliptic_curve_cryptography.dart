@@ -102,6 +102,32 @@ class Ecc {
     return value;
   }
 
+  static Uint8List compressPoint(Uint8List point, {bool isXOnly = false}) {
+    ECPoint ecPoint;
+
+    if (point.length == 32) {
+      // x-only → assume even y (try 0x02, fallback to 0x03)
+      try {
+        ecPoint =
+            secp256k1.curve.decodePoint(Uint8List.fromList([0x02, ...point]))!;
+      } catch (_) {
+        ecPoint =
+            secp256k1.curve.decodePoint(Uint8List.fromList([0x03, ...point]))!;
+      }
+    } else if (point.length == 33 || point.length == 65) {
+      ecPoint = secp256k1.curve.decodePoint(point)!;
+    } else {
+      throw ArgumentError(
+          "Unsupported public key format (length: ${point.length})");
+    }
+
+    if (isXOnly) {
+      return ecPoint.getEncoded(false).sublist(1, 33); // x-only
+    } else {
+      return ecPoint.getEncoded(true); // compressed
+    }
+  }
+
   static Uint8List? pointFromScalar(Uint8List d, bool compressed) {
     if (!isPrivate(d)) throw ArgumentError(THROW_BAD_PRIVATE);
     BigInt dd = fromBuffer(d);
@@ -276,6 +302,7 @@ class Ecc {
 
     BigInt s = (k0 + e * d0) % n;
 
+    // Convert s to hex
     Uint8List sBytes = toBuffer(s);
     if (sBytes.length < 32) {
       Uint8List paddedS = Uint8List(32);
@@ -296,6 +323,139 @@ class Ecc {
     }
 
     return signature;
+  }
+
+  static Uint8List signSchnorrForMuSig2(
+      Uint8List message, // 32B
+      Uint8List aggregatedPubKey, // 32B x-only
+      Uint8List aggregatedPubNonce, // 32B x-only (R.x)
+      Uint8List privateKey, // 32B
+      Uint8List secretNonce, // 32B
+      Uint8List publicKey, // 32B
+      List<Uint8List> participantPublicKeys, // List of 32B
+      {bool isFullSignature = true} // New parameter to control return format
+      ) {
+    if (message.length != 32) {
+      throw ArgumentError("sighash must be 32 bytes (got ${message.length})");
+    }
+    if (aggregatedPubKey.length != 32 && aggregatedPubKey.length != 33) {
+      throw ArgumentError(
+          "aggregatedPubKey must be 32 or 33 bytes (got ${aggregatedPubKey.length})");
+    }
+    if (aggregatedPubNonce.length != 66) {
+      throw ArgumentError(
+          "aggregatedPubNonce must be 66 bytes (got ${aggregatedPubNonce.length})");
+    }
+    if (privateKey.length != 32) {
+      throw ArgumentError(
+          "privateKey must be 32 bytes (got ${privateKey.length})");
+    }
+    if (secretNonce.length != 97) {
+      throw ArgumentError(
+          "secret nonce must be 97 bytes (got ${secretNonce.length})");
+    }
+    if (publicKey.length != 32 && publicKey.length != 33) {
+      throw ArgumentError(
+          "public key must be 32 or 33 bytes (got ${publicKey.length})");
+    }
+
+    if (publicKey.length == 32) {
+      publicKey = Uint8List.fromList([0x02, ...publicKey]);
+    }
+
+    for (int i = 0; i < participantPublicKeys.length; i++) {
+      if (participantPublicKeys[i].length == 32) {
+        participantPublicKeys[i][0] = 2;
+      }
+    }
+
+    if (aggregatedPubKey.length == 32) {
+      aggregatedPubKey = Uint8List.fromList([0x02, ...aggregatedPubKey]);
+    }
+
+    //get sessiont context
+    late BigInt b;
+    late ECPoint r;
+    late BigInt e;
+
+    b = fromBuffer(Codec.decodeHex(Hash.taggedHash(
+        "MuSig/noncecoef",
+        Uint8List.fromList([
+          ...aggregatedPubNonce,
+          ...aggregatedPubKey.sublist(1),
+          ...message
+        ]))));
+
+    final r1 = decodeFrom(aggregatedPubNonce.sublist(0, 33))!;
+    final r2 = decodeFrom(aggregatedPubNonce.sublist(33, 66))!;
+
+    r = (r1 + r2 * b)!;
+
+    // Get R_x (32 bytes) from r point
+    Uint8List R_x = getEncoded(r, false).sublist(1, 33);
+
+    e = fromBuffer(Codec.decodeHex(Hash.taggedHash(
+        "BIP0340/challenge",
+        Uint8List.fromList(
+            [...R_x, ...aggregatedPubKey.sublist(1), ...message]))));
+
+    //calculate a
+    late BigInt a;
+    Uint8List L = Codec.decodeHex(Hash.taggedHash('KeyAgg list',
+        Uint8List.fromList(participantPublicKeys.expand((x) => x).toList())));
+    late Uint8List secondKey;
+    for (int keyIndex = 1;
+        keyIndex < participantPublicKeys.length;
+        keyIndex++) {
+      if (participantPublicKeys[0] != participantPublicKeys[keyIndex]) {
+        secondKey = participantPublicKeys[keyIndex];
+      }
+    }
+    if (publicKey == secondKey) {
+      a = BigInt.one;
+    } else {
+      a = fromBuffer(Codec.decodeHex(
+              Hash.taggedHash('KeyAgg coefficient', L + publicKey))) %
+          n;
+    }
+
+    // g
+    BigInt g = aggregatedPubKey[0] == 2 ? BigInt.one : n - BigInt.one;
+
+    //calculate d
+    BigInt d = g * fromBuffer(privateKey) % n;
+
+    //calculate s
+    BigInt k1 =
+        Converter.hexToBigDec(Codec.encodeHex(secretNonce.sublist(0, 32)));
+    BigInt k2 =
+        Converter.hexToBigDec(Codec.encodeHex(secretNonce.sublist(32, 64)));
+
+    if (r.y!.toBigInteger()!.isOdd) {
+      k1 = n - k1;
+      k2 = n - k2;
+    }
+
+    BigInt s = (k1 + b * k2 + e * a * d) % n;
+
+    // Convert s to hex
+    Uint8List sBytes = toBuffer(s);
+    if (sBytes.length < 32) {
+      Uint8List paddedS = Uint8List(32);
+      paddedS.setAll(32 - sBytes.length, sBytes);
+      sBytes = paddedS;
+    } else if (sBytes.length > 32) {
+      throw Exception("s value is too large!");
+    }
+
+    if (isFullSignature) {
+      // Return R_x || s (64 bytes)
+      final signature = Uint8List.fromList([...R_x, ...sBytes]);
+      return signature;
+    } else {
+      // Return only s (32 bytes)
+      return sBytes;
+    }
   }
 
   static bool verifyEcdsa(
@@ -340,6 +500,113 @@ class Ecc {
     Uint8List R_prime_x = getEncoded(R_prime, false).sublist(1, 33);
     bool isValid = R_prime_x.toString() == R_x.toString();
     return isValid;
+  }
+
+  static bool verifySchnorrForMuSig2(
+    Uint8List message, // 32B
+    Uint8List signature, // 64B = R_x || s
+    Uint8List aggregatedPubKey, // 32B x-only
+    Uint8List aggregatedPubNonceBytes, // 32B x-only R.x
+  ) {
+    print('Debug - verifySchnorrForMuSig2:');
+    print('message: ${Codec.encodeHex(message)}');
+    print('signature: ${Codec.encodeHex(signature)}');
+    print('aggregatedPubKey: ${Codec.encodeHex(aggregatedPubKey)}');
+    print(
+        'aggregatedPubNonceBytes: ${Codec.encodeHex(aggregatedPubNonceBytes)}');
+
+    final curve = ECDomainParameters('secp256k1').curve;
+
+    if (message.length != 32) {
+      throw ArgumentError("message must be 32 bytes (got ${message.length})");
+    }
+    if (signature.length != 64) {
+      throw ArgumentError(
+          "signature must be 64 bytes (got ${signature.length})");
+    }
+    if (aggregatedPubKey.length != 32) {
+      throw ArgumentError(
+          "aggregatedPubKey must be 32 bytes (got ${aggregatedPubKey.length})");
+    }
+    if (aggregatedPubNonceBytes.length != 32) {
+      throw ArgumentError(
+          "aggregatedPubNonceBytes must be 32 bytes (got ${aggregatedPubNonceBytes.length})");
+    }
+
+    final R_x = signature.sublist(0, 32);
+    final s = fromBuffer(signature.sublist(32, 64));
+    print('s value: $s');
+    if (s >= n) return false;
+
+    ECPoint P;
+    try {
+      P = curve.decodePoint(Uint8List.fromList([0x02, ...aggregatedPubKey]))!;
+      print('P decoded with prefix 0x02');
+    } catch (_) {
+      P = curve.decodePoint(Uint8List.fromList([0x03, ...aggregatedPubKey]))!;
+      print('P decoded with prefix 0x03');
+    }
+    print('P.x: ${P.x!.toBigInteger()}');
+    print('P.y: ${P.y!.toBigInteger()}');
+
+    // Use R_x from signature to decode R point
+    ECPoint R;
+    try {
+      // First try with 0x02 prefix (even y)
+      R = curve.decodePoint(Uint8List.fromList([0x02, ...R_x]))!;
+      print('R decoded with prefix 0x02');
+
+      // Verify that R.x matches R_x from signature
+      if (R.x!.toBigInteger() != fromBuffer(R_x)) {
+        // If not, try with 0x03 prefix (odd y)
+        R = curve.decodePoint(Uint8List.fromList([0x03, ...R_x]))!;
+        print('R decoded with prefix 0x03');
+      }
+    } catch (_) {
+      print('Failed to decode R point');
+      return false;
+    }
+
+    // Verify that R.x matches R_x from signature
+    if (R.x!.toBigInteger() != fromBuffer(R_x)) {
+      print('R.x does not match R_x from signature');
+      return false;
+    }
+
+    print('R.x: ${R.x!.toBigInteger()}');
+    print('R.y: ${R.y!.toBigInteger()}');
+
+    final e = fromBuffer(Codec.decodeHex(Hash.taggedHash(
+            "BIP0340/challenge",
+            Uint8List.fromList([
+              ...R_x,
+              ...aggregatedPubKey,
+              ...message,
+            ])))) %
+        n;
+    print('e in verify: $e');
+
+    final sG = G * s;
+    print('sG.x: ${sG!.x!.toBigInteger()}');
+    print('sG.y: ${sG.y!.toBigInteger()}');
+
+    final eP = P * e;
+    print('eP.x: ${eP!.x!.toBigInteger()}');
+    print('eP.y: ${eP.y!.toBigInteger()}');
+
+    final R_plus_eP = R + eP;
+    print('R_plus_eP.x: ${R_plus_eP!.x!.toBigInteger()}');
+    print('R_plus_eP.y: ${R_plus_eP.y!.toBigInteger()}');
+
+    final pointsEqual = sG == R_plus_eP;
+    print('sG == R + eP: $pointsEqual');
+
+    final yIsEven = !sG.y!.toBigInteger()!.isOdd;
+    print('sG.y is even: $yIsEven');
+
+    final result = pointsEqual && yIsEven;
+    print('verification result: $result');
+    return result;
   }
 
   /// Decode a BigInt from bytes in big-endian encoding.

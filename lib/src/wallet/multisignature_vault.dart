@@ -67,6 +67,26 @@ class MultisignatureVault extends MultisignatureWalletBase {
     }
   }
 
+  String addMuSig2PublicNonce(String psbt) {
+    if (addressType != AddressType.p2trMuSig2) {
+      throw Exception("Only MuSig2 needs public nonce.");
+    }
+    if (!canSignToPsbt(psbt)) {
+      throw Exception('No keyStore can sign to the PSBT.');
+    }
+
+    String nonceAddedPsbt = psbt;
+
+    for (KeyStore keyStore in keyStoreList) {
+      if (!keyStore.hasSeed) continue;
+      if (keyStore.canSignToPsbt(psbt)) {
+        nonceAddedPsbt = keyStore.addMuSig2PublicNonceToPsbt(nonceAddedPsbt);
+      }
+    }
+
+    return nonceAddedPsbt;
+  }
+
   /// Get Json string of the multisignature vault.
   String toJson() {
     return jsonEncode({

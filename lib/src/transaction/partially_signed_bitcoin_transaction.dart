@@ -41,6 +41,26 @@ class Psbt {
         return sendingAmount;
       }();
 
+  AddressType? get addressType => () {
+        if (inputs[0].bip32Derivation != null) {
+          if (inputs[0].witnessScript == null) {
+            return AddressType.p2wpkh;
+          } else {
+            return AddressType.p2wsh;
+          }
+        } else if (inputs[0].tapBip32Derivation != null) {
+          if (inputs[0].muSig2AggregatedPublicKey != null) {
+            return AddressType.p2trMuSig2;
+          } else if (inputs[0].tapLeafScript != null) {
+            return AddressType.p2trScriptPathSpending;
+          } else {
+            return AddressType.p2trKeyPathSpending;
+          }
+        } else {
+          return null;
+        }
+      }();
+
   /// @nodoc
   Psbt(this.psbtMap) {
     unsignedTransaction =
@@ -76,8 +96,8 @@ class Psbt {
       String? taprootKeyPathSpendingSignature;
 
       // field for musig2
-      late String? muSig2AggregatedPublicKey;
-      late List<String>? muSig2participantPubKeyList;
+      String? muSig2AggregatedPublicKey;
+      List<String>? muSig2participantPubKeyList;
       Map<String, String>? muSig2PubNonces;
       List<Signature>? muSig2PartialSigs;
 
@@ -129,15 +149,17 @@ class Psbt {
         if (key.startsWith('1a')) {
           muSig2AggregatedPublicKey = key.substring(2);
           String concatenatedPubKeys = psbtMap["inputs"][i][key];
-          muSig2participantPubKeyList = [];
-          if (concatenatedPubKeys.length % 33 != 0) {
-            throw Exception("Invalid participant public key");
+          muSig2participantPubKeyList ??= [];
+          if (concatenatedPubKeys.length % 66 != 0) {
+            throw Exception(
+                "Invalid participant public key list: length is not multiple of 66 (got ${concatenatedPubKeys.length})");
           }
-          int numberOfKeys = (concatenatedPubKeys.length / 33).ceil();
-          for (int i = 0; i < numberOfKeys; i = i + 33) {
-            muSig2participantPubKeyList!
-                .add(concatenatedPubKeys.substring(i, i + 32));
+          int numberOfKeys = concatenatedPubKeys.length ~/ 66;
+          for (int i = 0; i < numberOfKeys; i++) {
+            final hexPart = concatenatedPubKeys.substring(i * 66, (i + 1) * 66);
+            muSig2participantPubKeyList!.add(hexPart);
           }
+          muSig2participantPubKeyList!.sort();
         }
 
         // 27: 'MUSIG2_PUB_NONCE'
@@ -167,8 +189,13 @@ class Psbt {
             witnessUtxo, tapBip32Derivation, taprootKeyPathSpendingSignature));
       } else if (tapBip32Derivation.isNotEmpty &&
           muSig2AggregatedPublicKey != null) {
-        inputs.add(PsbtInput.forMuSig2(witnessUtxo, muSig2AggregatedPublicKey,
-            muSig2participantPubKeyList, muSig2PubNonces, muSig2PartialSigs));
+        inputs.add(PsbtInput.forMuSig2(
+            witnessUtxo,
+            tapBip32Derivation,
+            muSig2AggregatedPublicKey,
+            muSig2participantPubKeyList,
+            muSig2PubNonces,
+            muSig2PartialSigs));
       }
     }
 
@@ -374,15 +401,17 @@ class Psbt {
             keyStoreIndex < multisignatureWallet.keyStoreList.length;
             keyStoreIndex++) {
           // MUSIG2_PUB_NONCE
-          inputData[musig2PubNonceType +
-                  publicKeys[keyStoreIndex] +
-                  aggregatePubKey] =
-              multisignatureWallet.keyStoreList[keyStoreIndex]
-                  .getMuSig2PublicNonce(
-                      tx.getTaprootSigHash(i, witnessUtxoList),
-                      aggregatePubKey,
-                      tx.utxoList[i].accountIndex,
-                      tx.utxoList[i].isChange);
+          if (multisignatureWallet.keyStoreList[keyStoreIndex].hasSeed) {
+            inputData[musig2PubNonceType +
+                    publicKeys[keyStoreIndex] +
+                    aggregatePubKey] =
+                multisignatureWallet.keyStoreList[keyStoreIndex]
+                    .getMuSig2PublicNonce(
+                        tx.getTaprootSigHash(i, witnessUtxoList),
+                        aggregatePubKey,
+                        tx.utxoList[i].accountIndex,
+                        tx.utxoList[i].isChange);
+          }
         }
       }
       psbtData["inputs"].add(inputData);
@@ -555,7 +584,7 @@ class Psbt {
 
   void addMuSig2PubNonce(int inputIndex, String publicKey, String nonce) {
     inputs[inputIndex].addMuSig2PubNonce(publicKey, nonce);
-    psbtMap["inputs"][inputIndex]["1b$nonce"] = "";
+    psbtMap["inputs"][inputIndex]["1b$publicKey"] = nonce;
   }
 
   void addMuSig2PartialSig(int inputIndex, String signature, String publicKey) {
@@ -825,6 +854,7 @@ class PsbtInput {
 
   PsbtInput.forMuSig2(
       this.witnessUtxo,
+      this.tapBip32Derivation,
       this.muSig2AggregatedPublicKey,
       this.muSig2ParticipantPubkeys,
       this.muSig2PubNonces,
@@ -891,31 +921,59 @@ class PsbtInput {
     List<Uint8List> publicNonces =
         muSig2PubNonces!.values.map((hex) => Codec.decodeHex(hex)).toList();
 
-    //Test
-    // publicNonces = [
-    //   Codec.decodeHex(
-    //       "020151C80F435648DF67A22B749CD798CE54E0321D034B92B709B567D60A42E66603BA47FBC1834437B3212E89A84D8425E7BF12E0245D98262268EBDCB385D50641"),
-    //   Codec.decodeHex(
-    //       "03FF406FFD8ADB9CD29877E4985014F66A59F6CD01C0E88CAA8E5F3166B1F676A60248C264CDD57D3C24D79990B0F865674EB62A0F9018277A95011B41BFC193B833")
-    // ];
-    // expect : 035FE1873B4F2967F52FEA4A06AD5A8ECCBE9D0FD73068012C894E2E87CCB5804B024725377345BDE0E9C33AF3C43C0A29A9249F2F2956FA8CFEB55C8573D0262DC8
-
     if (publicNonces.isEmpty) {
       throw Exception('No public nonces found');
     }
 
+    // if (publicNonces[0].length != 66) {
+    //   throw ArgumentError('Public nonce #0 must be 66 bytes');
+    // }
+
+    // Uint8List r1 = publicNonces[0].sublist(0, 33);
+    // Uint8List r2 = publicNonces[0].sublist(33, 66);
+    // for (int i = 1; i < publicNonces.length; i++) {
+    //   final nonce = publicNonces[i];
+    //   if (nonce.length != 66) {
+    //     throw ArgumentError('Public nonce #$i must be 66 bytes');
+    //   }
+    //   r1 = Ecc.pointCombine(r1, nonce.sublist(0, 33), true)!;
+    //   r2 = Ecc.pointCombine(r2, nonce.sublist(33, 66), true)!;
+    // }
+
+    // return Codec.encodeHex(Uint8List.fromList([...r1, ...r2]));
+    return Codec.encodeHex(aggregatePublicNonce(publicNonces));
+  }
+
+  static Uint8List aggregatePublicNonce(List<Uint8List> publicNonces) {
+    if (publicNonces.isEmpty) {
+      throw ArgumentError('At least one public nonce required');
+    }
+    if (publicNonces[0].length != 66) {
+      throw ArgumentError('Public nonce #0 must be 66 bytes');
+    }
+
+    //TODO:Delete
+    for (Uint8List p in publicNonces) {
+      print("PUB : ${Codec.encodeHex(p)}");
+    }
+
     Uint8List r1 = publicNonces[0].sublist(0, 33);
     Uint8List r2 = publicNonces[0].sublist(33, 66);
+
     for (int i = 1; i < publicNonces.length; i++) {
       final nonce = publicNonces[i];
       if (nonce.length != 66) {
-        throw ArgumentError('pubnonce #$i must be 66 bytes');
+        throw ArgumentError('Public nonce #$i must be 66 bytes');
       }
-      r1 = Ecc.pointCombine(r1, nonce.sublist(0, 33), true)!;
-      r2 = Ecc.pointCombine(r2, nonce.sublist(33, 66), true)!;
+
+      final r1i = nonce.sublist(0, 33);
+      final r2i = nonce.sublist(33, 66);
+
+      r1 = Ecc.pointCombine(r1, r1i, true) ?? Uint8List(33);
+      r2 = Ecc.pointCombine(r2, r2i, true) ?? Uint8List(33);
     }
 
-    return Codec.encodeHex(Uint8List.fromList([...r1, ...r2]));
+    return Uint8List.fromList([...r1, ...r2]);
   }
 }
 

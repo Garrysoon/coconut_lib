@@ -1,4 +1,6 @@
 @Tags(['unit'])
+import 'dart:typed_data';
+
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
 
@@ -117,6 +119,121 @@ void main() {
         String signedPsbtText = MockFactory.createP2wpkhVault()
             .addSignatureToPsbt(unsignedPsbt.serialize());
         expect(signedPsbtText.hashCode, 1025914823);
+      });
+    });
+
+    group('calculateSecretNonce', () {
+      //Test vector from https://github.com/bitcoin/bips/blob/master/bip-0327/vectors/nonce_gen_vectors.json
+      test('Generate secret nonce (deterministic case)', () {
+        Uint8List rand = Codec.decodeHex(
+            '659da54c7b484598ba29fb2600b9e400a8e4536de1f69906fec3549156f4223f');
+        Uint8List secretKey = Codec.decodeHex(
+            '0202020202020202020202020202020202020202020202020202020202020202');
+        Uint8List publicKey = Codec.decodeHex(
+            "024D4B6CD1361032CA9BD2AEB9D900AA4D45D9EAD80AC9423374C451A7254D0766");
+        Uint8List aggPubkey = Codec.decodeHex(
+            "0707070707070707070707070707070707070707070707070707070707070707");
+        Uint8List message = Codec.decodeHex(
+            "0101010101010101010101010101010101010101010101010101010101010101");
+        Uint8List extraInput = Codec.decodeHex(
+            "0808080808080808080808080808080808080808080808080808080808080808");
+
+        String secretNonce = Codec.encodeHex(KeyStore.calculateSecretNonce(
+            rand, secretKey, publicKey, aggPubkey, message, extraInput));
+        expect(secretNonce.toUpperCase(),
+            'B114E502BEAA4E301DD08A50264172C84E41650E6CB726B410C0694D59EFFB6495B5CAF28D045B973D63E3C99A44B807BDE375FD6CB39E46DC4A511708D0E9D2024D4B6CD1361032CA9BD2AEB9D900AA4D45D9EAD80AC9423374C451A7254D0766');
+      });
+
+      test('Generate secret nonce (non deterministic case 1)', () {
+        Uint8List rand = Codec.decodeHex(
+            '0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F');
+        Uint8List secretKey = Codec.decodeHex(
+            '0202020202020202020202020202020202020202020202020202020202020202');
+        Uint8List publicKey = Codec.decodeHex(
+            "024D4B6CD1361032CA9BD2AEB9D900AA4D45D9EAD80AC9423374C451A7254D0766");
+        Uint8List aggPubkey = Codec.decodeHex(
+            "0707070707070707070707070707070707070707070707070707070707070707");
+        Uint8List message = Codec.decodeHex(
+            "0101010101010101010101010101010101010101010101010101010101010101");
+        Uint8List extraInput = Codec.decodeHex(
+            "0808080808080808080808080808080808080808080808080808080808080808");
+
+        String secretNonce = Codec.encodeHex(KeyStore.calculateSecretNonce(
+            rand, secretKey, publicKey, aggPubkey, message, extraInput,
+            isDeterministic: false));
+        expect(secretNonce.toUpperCase(),
+            'B114E502BEAA4E301DD08A50264172C84E41650E6CB726B410C0694D59EFFB6495B5CAF28D045B973D63E3C99A44B807BDE375FD6CB39E46DC4A511708D0E9D2024D4B6CD1361032CA9BD2AEB9D900AA4D45D9EAD80AC9423374C451A7254D0766');
+      });
+
+      test('Generate secret nonce (non deterministic case 2)', () {
+        Uint8List rand = Codec.decodeHex(
+            '0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F');
+        Uint8List secretKey = Codec.decodeHex(
+            '0202020202020202020202020202020202020202020202020202020202020202');
+        Uint8List publicKey = Codec.decodeHex(
+            "024D4B6CD1361032CA9BD2AEB9D900AA4D45D9EAD80AC9423374C451A7254D0766");
+        Uint8List aggPubkey = Codec.decodeHex(
+            "0707070707070707070707070707070707070707070707070707070707070707");
+        Uint8List message = Codec.decodeHex("");
+        Uint8List extraInput = Codec.decodeHex(
+            "0808080808080808080808080808080808080808080808080808080808080808");
+
+        String secretNonce = Codec.encodeHex(KeyStore.calculateSecretNonce(
+            rand, secretKey, publicKey, aggPubkey, message, extraInput,
+            isDeterministic: false));
+        expect(secretNonce.toUpperCase(),
+            'E862B068500320088138468D47E0E6F147E01B6024244AE45EAC40ACE5929B9F0789E051170B9E705D0B9EB49049A323BBBBB206D8E05C19F46C6228742AA7A9024D4B6CD1361032CA9BD2AEB9D900AA4D45D9EAD80AC9423374C451A7254D0766');
+      });
+      test('Generate secret nonce (non deterministic case 3)', () {
+        Uint8List rand = Codec.decodeHex(
+            '0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F0F');
+        Uint8List secretKey = Codec.decodeHex(
+            '0202020202020202020202020202020202020202020202020202020202020202');
+        Uint8List publicKey = Codec.decodeHex(
+            "024D4B6CD1361032CA9BD2AEB9D900AA4D45D9EAD80AC9423374C451A7254D0766");
+        Uint8List aggPubkey = Codec.decodeHex(
+            "0707070707070707070707070707070707070707070707070707070707070707");
+        Uint8List message = Codec.decodeHex(
+            "2626262626262626262626262626262626262626262626262626262626262626262626262626");
+        Uint8List extraInput = Codec.decodeHex(
+            "0808080808080808080808080808080808080808080808080808080808080808");
+
+        String secretNonce = Codec.encodeHex(KeyStore.calculateSecretNonce(
+            rand, secretKey, publicKey, aggPubkey, message, extraInput,
+            isDeterministic: false));
+        expect(secretNonce.toUpperCase(),
+            '3221975ACBDEA6820EABF02A02B7F27D3A8EF68EE42787B88CBEFD9AA06AF3632EE85B1A61D8EF31126D4663A00DD96E9D1D4959E72D70FE5EBB6E7696EBA66F024D4B6CD1361032CA9BD2AEB9D900AA4D45D9EAD80AC9423374C451A7254D0766');
+      });
+    });
+
+    group('calculatePublicNonce', () {
+      //Test vector from https://github.com/bitcoin/bips/blob/master/bip-0327/vectors/nonce_gen_vectors.json
+      test('Generate public nonce (case 1)', () {
+        Uint8List secretNonce = Codec.decodeHex(
+            'B114E502BEAA4E301DD08A50264172C84E41650E6CB726B410C0694D59EFFB6495B5CAF28D045B973D63E3C99A44B807BDE375FD6CB39E46DC4A511708D0E9D2024D4B6CD1361032CA9BD2AEB9D900AA4D45D9EAD80AC9423374C451A7254D0766');
+
+        String publicNonce =
+            Codec.encodeHex(KeyStore.calculatePublicNonce(secretNonce));
+        expect(publicNonce.toUpperCase(),
+            '02F7BE7089E8376EB355272368766B17E88E7DB72047D05E56AA881EA52B3B35DF02C29C8046FDD0DED4C7E55869137200FBDBFE2EB654267B6D7013602CAED3115A');
+      });
+      test('Generate public nonce (case 2)', () {
+        Uint8List secretNonce = Codec.decodeHex(
+            'E862B068500320088138468D47E0E6F147E01B6024244AE45EAC40ACE5929B9F0789E051170B9E705D0B9EB49049A323BBBBB206D8E05C19F46C6228742AA7A9024D4B6CD1361032CA9BD2AEB9D900AA4D45D9EAD80AC9423374C451A7254D0766');
+
+        String publicNonce =
+            Codec.encodeHex(KeyStore.calculatePublicNonce(secretNonce));
+        expect(publicNonce.toUpperCase(),
+            '023034FA5E2679F01EE66E12225882A7A48CC66719B1B9D3B6C4DBD743EFEDA2C503F3FD6F01EB3A8E9CB315D73F1F3D287CAFBB44AB321153C6287F407600205109');
+      });
+      test('Generate public nonce (case 3)', () {
+        Uint8List secretNonce = Codec.decodeHex(
+            '3221975ACBDEA6820EABF02A02B7F27D3A8EF68EE42787B88CBEFD9AA06AF3632EE85B1A61D8EF31126D4663A00DD96E9D1D4959E72D70FE5EBB6E7696EBA66F024D4B6CD1361032CA9BD2AEB9D900AA4D45D9EAD80AC9423374C451A7254D0766');
+
+        String publicNonce =
+            Codec.encodeHex(KeyStore.calculatePublicNonce(secretNonce));
+        expect(publicNonce.toUpperCase(),
+            '02E5BBC21C69270F59BD634FCBFA281BE9D76601295345112C58954625BF23793A021307511C79F95D38ACACFF1B4DA98228B77E65AA216AD075E9673286EFB4EAF3');
       });
     });
     group('toJson', () {

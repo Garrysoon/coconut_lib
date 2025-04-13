@@ -381,45 +381,95 @@ void main() {
         expect(
             () => Ecc.signEcdsa(hash, tooLargePrivateKey), throwsArgumentError);
       });
+    });
 
-      group('signSchnorr', () {
-        test('Sign schnorr signature (case 1)', () {
-          Uint8List hash = Codec.decodeHex(
-              '7E2D58D8B3BCDF1ABADEC7829054F90DDA9805AAB56C77333024B9D0A508B75C');
-          Uint8List privateKey = Codec.decodeHex(
-              'C90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B14E5C9');
-          Uint8List auxRand = Codec.decodeHex(
-              'C87AA53824B4D7AE2EB035A2B5BBBCCC080E76CDC6D1692C4B0B62D798E6D906');
+    group('signSchnorr', () {
+      test('Sign schnorr signature (case 1)', () {
+        Uint8List hash = Codec.decodeHex(
+            '7E2D58D8B3BCDF1ABADEC7829054F90DDA9805AAB56C77333024B9D0A508B75C');
+        Uint8List privateKey = Codec.decodeHex(
+            'C90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B14E5C9');
+        Uint8List auxRand = Codec.decodeHex(
+            'C87AA53824B4D7AE2EB035A2B5BBBCCC080E76CDC6D1692C4B0B62D798E6D906');
 
-          String signature =
-              '5831aaeed7b44bb74e5eab94ba9d4294c49bcf2a60728d8b4c200f50dd313c1bab745879a5ad954a72c45a91c3a51d3c7adea98d82f8481e0e1e03674a6f3fb7';
+        String signature =
+            '5831aaeed7b44bb74e5eab94ba9d4294c49bcf2a60728d8b4c200f50dd313c1bab745879a5ad954a72c45a91c3a51d3c7adea98d82f8481e0e1e03674a6f3fb7';
 
-          expect(
-              Codec.encodeHex(
-                  Ecc.signSchnorr(hash, privateKey, auxRand: auxRand)),
-              signature);
-        });
+        expect(
+            Codec.encodeHex(
+                Ecc.signSchnorr(hash, privateKey, auxRand: auxRand)),
+            signature);
+      });
 
-        test('Sign schnorr signature (case 2)', () {
-          Uint8List hash = Codec.decodeHex(
-              '243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89');
-          Uint8List privateKey = Codec.decodeHex(
-              'B7E151628AED2A6ABF7158809CF4F3C762E7160F38B4DA56A784D9045190CFEF');
-          Uint8List auxRand = Codec.decodeHex(
-              '0000000000000000000000000000000000000000000000000000000000000001');
+      test('Sign schnorr signature (case 2)', () {
+        Uint8List hash = Codec.decodeHex(
+            '243F6A8885A308D313198A2E03707344A4093822299F31D0082EFA98EC4E6C89');
+        Uint8List privateKey = Codec.decodeHex(
+            'B7E151628AED2A6ABF7158809CF4F3C762E7160F38B4DA56A784D9045190CFEF');
+        Uint8List auxRand = Codec.decodeHex(
+            '0000000000000000000000000000000000000000000000000000000000000001');
 
-          String signature =
-              '6896bd60eeae296db48a229ff71dfe071bde413e6d43f917dc8dcf8c78de33418906d11ac976abccb20b091292bff4ea897efcb639ea871cfa95f6de339e4b0a';
+        String signature =
+            '6896bd60eeae296db48a229ff71dfe071bde413e6d43f917dc8dcf8c78de33418906d11ac976abccb20b091292bff4ea897efcb639ea871cfa95f6de339e4b0a';
 
-          expect(
-              Codec.encodeHex(
-                  Ecc.signSchnorr(hash, privateKey, auxRand: auxRand)),
-              signature);
-        });
+        expect(
+            Codec.encodeHex(
+                Ecc.signSchnorr(hash, privateKey, auxRand: auxRand)),
+            signature);
       });
     });
 
-    group('verify', () {
+    group('signSchnorrForMuSig2', () {
+      //Test case from : https://github.com/bitcoin/bips/blob/master/bip-0327/vectors/sign_verify_vectors.json
+      test('Get partial signature for musig2 (case 1)', () {
+        Uint8List message = Codec.decodeHex(
+            '599c67ea410d005b9da90817cf03ed3b1c868e4da4edf00a5880b0082c237869');
+        List<Uint8List> participantPublicKeys = [
+          Codec.decodeHex(
+              '03935f972da013f80ae011890fa89b67a27b7be6ccb24d3274d18b2d4067f261a9'),
+          Codec.decodeHex(
+              '02d2dc6f5df7c56acf38c7fa0ae7a759ae30e19b37359dfde015872324c7ef6e05')
+        ];
+        Uint8List aggregatedPubKey =
+            MultisignatureWalletBase.aggregatePublicKey([
+          '03935f972da013f80ae011890fa89b67a27b7be6ccb24d3274d18b2d4067f261a9',
+          '02d2dc6f5df7c56acf38c7fa0ae7a759ae30e19b37359dfde015872324c7ef6e05'
+        ], true);
+        Uint8List privateKey = Codec.decodeHex(
+            '7fb9e0e687ada1eebf7ecfe2f21e73ebdb51a7d450948dfe8d76d7f2d1007671');
+        Uint8List secretNonce = Codec.decodeHex(
+            '803b1a9843bbb36cf28f81e49fde20031bcc6f41e1654758ea44501856dfa6b696b5084a3512dcd821059b3ef039431574d7662478ceb399c7098abc2ec6722603935f972da013f80ae011890fa89b67a27b7be6ccb24d3274d18b2d4067f261a9');
+        Uint8List aggregatedPubNonce = Codec.decodeHex(
+            '0341432722c5cd0268d829c702cf0d1cbce57033eed201fd335191385227c3210c03d377f2d258b64aadc0e16f26462323d701d286046a2ea93365656afd9875982b');
+        Uint8List publicKey = Codec.decodeHex(
+            '03935f972da013f80ae011890fa89b67a27b7be6ccb24d3274d18b2d4067f261a9');
+        expect(
+            Codec.encodeHex(Ecc.signSchnorrForMuSig2(
+                message,
+                aggregatedPubKey,
+                aggregatedPubNonce,
+                privateKey,
+                secretNonce,
+                publicKey,
+                participantPublicKeys,
+                isFullSignature: false)),
+            'b15d2cd3c3d22b04dae438ce653f6b4ecf042f42cfded7c41b64aaf9b4af53fb');
+        expect(
+            Ecc.signSchnorrForMuSig2(
+                    message,
+                    aggregatedPubKey,
+                    aggregatedPubNonce,
+                    privateKey,
+                    secretNonce,
+                    publicKey,
+                    participantPublicKeys,
+                    isFullSignature: true)
+                .length,
+            64);
+      });
+    });
+
+    group('verifyEcdsa', () {
       test('Valid hash, public key, and signature (case 1)', () {
         Uint8List hash = Codec.decodeHex(
             '9f990c2cd1b7655c411450d01611b79070f50e1f01e18d59eb55e16f4433a1a6');
@@ -499,6 +549,9 @@ void main() {
       });
 
       // Test vector from https://github.com/bitcoin/bips/blob/master/bip-0340/test-vectors.csv
+    });
+
+    group('verifySchnorr', () {
       test('Verify schnorr signature (bip340 - index 0)', () {
         Uint8List hash = Codec.decodeHex(
             '0000000000000000000000000000000000000000000000000000000000000000');

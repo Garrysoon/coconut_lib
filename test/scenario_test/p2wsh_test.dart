@@ -15,6 +15,8 @@ void main() {
 
     Psbt unsignedTx = MockFactory.createP2wshUnsignedPsbt();
 
+    expect(unsignedTx.addressType, AddressType.p2wsh);
+
     String signedPsbtText = vault.addSignatureToPsbt(unsignedTx.serialize());
 
     Transaction signedTransaction =

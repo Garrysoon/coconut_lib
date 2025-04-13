@@ -1,4 +1,6 @@
 @Tags(['unit'])
+import 'dart:typed_data';
+
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
 
@@ -197,6 +199,36 @@ void main() {
                 '3045022100d5bf91f97ad7ee474c320f821744a59d10bc225aa6709ee70f7776b53f28515702203d15ca1b7c7ebd44a7991868b99168ce9963e0dccc48ea47cce91a317a5cdae401',
                 '02d6481c1e9ead3f86508ec5d4b515089ae40505f642901e078824184e910d3363'),
             returnsNormally);
+      });
+    });
+    group('aggregatePublicNonce', () {
+      //Test vector from : https://github.com/bitcoin/bips/blob/master/bip-0327/vectors/nonce_agg_vectors.json
+      test('Get aggregated public nonce (case 1)', () {
+        List<Uint8List> nonces = [
+          Codec.decodeHex(
+              "020151C80F435648DF67A22B749CD798CE54E0321D034B92B709B567D60A42E66603BA47FBC1834437B3212E89A84D8425E7BF12E0245D98262268EBDCB385D50641"),
+          Codec.decodeHex(
+              "03FF406FFD8ADB9CD29877E4985014F66A59F6CD01C0E88CAA8E5F3166B1F676A60248C264CDD57D3C24D79990B0F865674EB62A0F9018277A95011B41BFC193B833")
+        ];
+
+        expect(
+            Codec.encodeHex(PsbtInput.aggregatePublicNonce(nonces))
+                .toUpperCase(),
+            '035FE1873B4F2967F52FEA4A06AD5A8ECCBE9D0FD73068012C894E2E87CCB5804B024725377345BDE0E9C33AF3C43C0A29A9249F2F2956FA8CFEB55C8573D0262DC8');
+      });
+
+      test('Get aggregated public nonce (case 2)', () {
+        List<Uint8List> nonces = [
+          Codec.decodeHex(
+              "020151C80F435648DF67A22B749CD798CE54E0321D034B92B709B567D60A42E6660279BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798"),
+          Codec.decodeHex(
+              "03FF406FFD8ADB9CD29877E4985014F66A59F6CD01C0E88CAA8E5F3166B1F676A60379BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798")
+        ];
+
+        expect(
+            Codec.encodeHex(PsbtInput.aggregatePublicNonce(nonces))
+                .toUpperCase(),
+            '035FE1873B4F2967F52FEA4A06AD5A8ECCBE9D0FD73068012C894E2E87CCB5804B000000000000000000000000000000000000000000000000000000000000000000');
       });
     });
   });
