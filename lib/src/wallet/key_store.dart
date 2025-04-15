@@ -399,13 +399,10 @@ class KeyStore {
               throw Exception('Invalid signature');
             }
           } else if (addressType == AddressType.p2trMuSig2) {
-            if (!Ecc.verifySchnorrForMuSig2(
-                Codec.decodeHex(sigHash),
-                signature,
+            if (!Ecc.verifySchnorr(
                 Codec.decodeHex(psbtInput.muSig2AggregatedPublicKey!),
-                Ecc.compressPoint(
-                    Codec.decodeHex(psbtInput.getAggregatedPublicNonce()),
-                    isXOnly: true))) {
+                Codec.decodeHex(sigHash),
+                signature)) {
               throw Exception('Invalid signature');
             }
           } else {

@@ -455,17 +455,16 @@ void main() {
                 isFullSignature: false)),
             'b15d2cd3c3d22b04dae438ce653f6b4ecf042f42cfded7c41b64aaf9b4af53fb');
         expect(
-            Ecc.signSchnorrForMuSig2(
-                    message,
-                    aggregatedPubKey,
-                    aggregatedPubNonce,
-                    privateKey,
-                    secretNonce,
-                    publicKey,
-                    participantPublicKeys,
-                    isFullSignature: true)
-                .length,
-            64);
+            Codec.encodeHex(Ecc.signSchnorrForMuSig2(
+                message,
+                aggregatedPubKey,
+                aggregatedPubNonce,
+                privateKey,
+                secretNonce,
+                publicKey,
+                participantPublicKeys,
+                isFullSignature: true)),
+            '041da22223ce65c92c9a0d6c2cac828aaf1eee56304fec371ddf91ebb2b9ef09b15d2cd3c3d22b04dae438ce653f6b4ecf042f42cfded7c41b64aaf9b4af53fb');
       });
     });
 
@@ -672,6 +671,19 @@ void main() {
         Uint8List tweakedPublicKey =
             hdWallet.getTweakedPublicKey(merkleRoot: merkleRoot);
         expect(Ecc.verifySchnorr(sigHash, tweakedPublicKey, signature), isTrue);
+      });
+
+      test('Verify schnorr signature for musig2', () {
+        Uint8List message = Codec.decodeHex(
+            '599c67ea410d005b9da90817cf03ed3b1c868e4da4edf00a5880b0082c237869');
+        Uint8List aggregatedPubKey =
+            MultisignatureWalletBase.aggregatePublicKey([
+          '03935f972da013f80ae011890fa89b67a27b7be6ccb24d3274d18b2d4067f261a9',
+          '02d2dc6f5df7c56acf38c7fa0ae7a759ae30e19b37359dfde015872324c7ef6e05'
+        ], true);
+        Uint8List signature = Codec.decodeHex(
+            '041da22223ce65c92c9a0d6c2cac828aaf1eee56304fec371ddf91ebb2b9ef0912f1038025857fedeb3ff696f8b99fa4bb2c5812f6095a2e0004ec99ce18de1e');
+        print(Ecc.verifySchnorr(message, aggregatedPubKey, signature));
       });
     });
   });
