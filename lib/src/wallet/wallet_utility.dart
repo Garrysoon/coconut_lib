@@ -205,4 +205,52 @@ abstract class WalletUtility {
     List<String> pathList = derivationPath.split('/');
     return pathList[pathList.length - 2] == '1';
   }
+
+  static Uint8List aggregatePublicKey(
+      List<String> publicKeyList, bool isXOnly) {
+    List<Uint8List> publicKeysBytes =
+        publicKeyList.map((e) => Codec.decodeHex(e)).toList();
+    Uint8List secondKey = Uint8List(0);
+    for (String key in publicKeyList) {
+      if (publicKeyList[0] != key) {
+        secondKey = Codec.decodeHex(key);
+        break;
+      }
+    }
+    String concatenatedPublicKey = publicKeyList.map((e) => e).join();
+
+    Uint8List Q = publicKeysBytes[0];
+    for (int i = 0; i < publicKeysBytes.length; i++) {
+      Uint8List coefficient = Uint8List(0);
+      if (Codec.encodeHex(publicKeysBytes[i]) == Codec.encodeHex(secondKey)) {
+        coefficient = Uint8List.fromList(List<int>.generate(
+            32,
+            (i) => int.parse(
+                BigInt.one
+                    .toRadixString(16)
+                    .padLeft(64, '0')
+                    .substring(i * 2, i * 2 + 2),
+                radix: 16)));
+      } else {
+        String data = Hash.taggedHash(
+                'KeyAgg list', Codec.decodeHex(concatenatedPublicKey)) +
+            Codec.encodeHex(publicKeysBytes[i]);
+        coefficient = Codec.decodeHex(
+            Hash.taggedHash('KeyAgg coefficient', Codec.decodeHex(data)));
+      }
+      if (i == 0) {
+        Q = Ecc.pointMultiplyScalar(publicKeysBytes[i], coefficient, true)!;
+      } else {
+        Q = Ecc.pointCombine(
+            Q,
+            Ecc.pointMultiplyScalar(publicKeysBytes[i], coefficient, true)!,
+            true)!;
+      }
+    }
+    if (isXOnly) {
+      return Q.sublist(1);
+    } else {
+      return Q;
+    }
+  }
 }

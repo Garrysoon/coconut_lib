@@ -183,7 +183,6 @@ class HDWallet {
 
     return Ecc.signSchnorrForMuSig2(
         message,
-        aggregatedPublicKey,
         aggregatedPublicNonce,
         privateKey!,
         secretNonce,

@@ -773,27 +773,23 @@ class Psbt {
         }
       }
     } else if (addressType == AddressType.p2trMuSig2) {
-      // for (int i = 0; i < inputs.length; i++) {
-      //   if (inputs[i].musig2PartialSigs == null ||
-      //       inputs[i].musig2PartialSigs!.length < inputs[i].requiredSignature) {
-      //     throw Exception('Not enough MuSig2 signatures');
-      //   }
-
-      //   // Aggregate MuSig2 signatures
-      //   String aggregatedSig = _aggregateMuSig2Signatures(
-      //       inputs[i].musig2ParticipantPubkeys!,
-      //       inputs[i].musig2PubNonces!,
-      //       inputs[i].musig2PartialSigs!);
-
-      //   signedTransaction.inputs[i]
-      //       .setTaprootKeyPathSpendingSignature(aggregatedSig);
-
-      //   if (signedTransaction.validateSchnorr(i, [inputs[i].witnessUtxo!])) {
-      //     continue;
-      //   } else {
-      //     throw Exception('Invalid MuSig2 signatures');
-      //   }
-      // }
+      List<TransactionOutput> utxoList = [];
+      for (int i = 0; i < inputs.length; i++) {
+        utxoList.add(inputs[i].witnessUtxo!);
+      }
+      for (int i = 0; i < inputs.length; i++) {
+        if (inputs[i].totalSinger < inputs[i].requiredSignature) {
+          throw Exception('Not enough signatures');
+        }
+        if (signedTransaction.validateSchnorr(i, utxoList)) {
+          continue;
+        } else {
+          throw Exception('Invalid Signatures');
+        }
+      }
+      //aggregate partial sigs
+      String aggregatedPartialSig = '';
+      // Ecc.getAggregatedSignature(inputs[0].muSig2PartialSigs!);
     } else {
       throw Exception('Unsupported Address Type');
     }
@@ -924,23 +920,6 @@ class PsbtInput {
     if (publicNonces.isEmpty) {
       throw Exception('No public nonces found');
     }
-
-    // if (publicNonces[0].length != 66) {
-    //   throw ArgumentError('Public nonce #0 must be 66 bytes');
-    // }
-
-    // Uint8List r1 = publicNonces[0].sublist(0, 33);
-    // Uint8List r2 = publicNonces[0].sublist(33, 66);
-    // for (int i = 1; i < publicNonces.length; i++) {
-    //   final nonce = publicNonces[i];
-    //   if (nonce.length != 66) {
-    //     throw ArgumentError('Public nonce #$i must be 66 bytes');
-    //   }
-    //   r1 = Ecc.pointCombine(r1, nonce.sublist(0, 33), true)!;
-    //   r2 = Ecc.pointCombine(r2, nonce.sublist(33, 66), true)!;
-    // }
-
-    // return Codec.encodeHex(Uint8List.fromList([...r1, ...r2]));
     return Codec.encodeHex(aggregatePublicNonce(publicNonces));
   }
 
@@ -952,7 +931,6 @@ class PsbtInput {
       throw ArgumentError('Public nonce #0 must be 66 bytes');
     }
 
-    //TODO:Delete
     for (Uint8List p in publicNonces) {
       print("PUB : ${Codec.encodeHex(p)}");
     }

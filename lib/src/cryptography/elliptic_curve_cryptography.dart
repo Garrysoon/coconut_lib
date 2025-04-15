@@ -369,41 +369,41 @@ class Ecc {
     return isValid;
   }
 
-  static bool verifySchnorrForMuSig2(
-      Uint8List aggregatedPubKey, Uint8List message, Uint8List signature) {
-    if (aggregatedPubKey.length != 32 && aggregatedPubKey.length != 33) {
-      throw ArgumentError(
-          "aggregatedPubKey must be 32 or 33 bytes (got ${aggregatedPubKey.length})");
-    }
+  // static bool verifySchnorrForMuSig2(
+  //     Uint8List aggregatedPubKey, Uint8List message, Uint8List signature) {
+  //   if (aggregatedPubKey.length != 32 && aggregatedPubKey.length != 33) {
+  //     throw ArgumentError(
+  //         "aggregatedPubKey must be 32 or 33 bytes (got ${aggregatedPubKey.length})");
+  //   }
 
-    if (message.length != 32) {
-      throw ArgumentError("message must be 32 bytes (got ${message.length})");
-    }
+  //   if (message.length != 32) {
+  //     throw ArgumentError("message must be 32 bytes (got ${message.length})");
+  //   }
 
-    if (signature.length != 64) {
-      throw ArgumentError(
-          "signature must be 64 bytes (got ${signature.length})");
-    }
+  //   if (signature.length != 64) {
+  //     throw ArgumentError(
+  //         "signature must be 64 bytes (got ${signature.length})");
+  //   }
 
-    if (aggregatedPubKey.length == 32) {
-      aggregatedPubKey = Uint8List.fromList([0x02, ...aggregatedPubKey]);
-    }
+  //   if (aggregatedPubKey.length == 32) {
+  //     aggregatedPubKey = Uint8List.fromList([0x02, ...aggregatedPubKey]);
+  //   }
 
-    BigInt r = fromBuffer(signature.sublist(0, 32));
-    BigInt s = fromBuffer(signature.sublist(32, 64));
-    ECPoint? P = decodeFrom(aggregatedPubKey);
-    if (P == null ||
-        r >= Converter.hexToBigDec(Codec.encodeHex(EC_P)) ||
-        s >= n) return false;
-    BigInt e = fromBuffer(Codec.decodeHex(Hash.taggedHash("BIP0340/challenge",
-        signature.sublist(0, 32) + aggregatedPubKey.sublist(1) + message)));
+  //   BigInt r = fromBuffer(signature.sublist(0, 32));
+  //   BigInt s = fromBuffer(signature.sublist(32, 64));
+  //   ECPoint? P = decodeFrom(aggregatedPubKey);
+  //   if (P == null ||
+  //       r >= Converter.hexToBigDec(Codec.encodeHex(EC_P)) ||
+  //       s >= n) return false;
+  //   BigInt e = fromBuffer(Codec.decodeHex(Hash.taggedHash("BIP0340/challenge",
+  //       signature.sublist(0, 32) + aggregatedPubKey.sublist(1) + message)));
 
-    ECPoint R = ((G * s)! + P * (n - e))!;
-    if (R.y!.toBigInteger()!.isOdd || R.x!.toBigInteger() != r) {
-      return false;
-    }
-    return true;
-  }
+  //   ECPoint R = ((G * s)! + P * (n - e))!;
+  //   if (R.y!.toBigInteger()!.isOdd || R.x!.toBigInteger() != r) {
+  //     return false;
+  //   }
+  //   return true;
+  // }
 
   /// Decode a BigInt from bytes in big-endian encoding.
   static BigInt _decodeBigInt(List<int> bytes) {
@@ -478,7 +478,6 @@ class Ecc {
 
   static Uint8List signSchnorrForMuSig2(
       Uint8List message, // 32B
-      Uint8List aggregatedPubKey, // 32B x-only
       Uint8List aggregatedPubNonce, // 32B x-only (R.x)
       Uint8List privateKey, // 32B
       Uint8List secretNonce, // 32B
@@ -488,10 +487,6 @@ class Ecc {
       ) {
     if (message.length != 32) {
       throw ArgumentError("sighash must be 32 bytes (got ${message.length})");
-    }
-    if (aggregatedPubKey.length != 32 && aggregatedPubKey.length != 33) {
-      throw ArgumentError(
-          "aggregatedPubKey must be 32 or 33 bytes (got ${aggregatedPubKey.length})");
     }
     if (aggregatedPubNonce.length != 66) {
       throw ArgumentError(
@@ -517,42 +512,34 @@ class Ecc {
     for (int i = 0; i < participantPublicKeys.length; i++) {
       if (participantPublicKeys[i].length == 32) {
         participantPublicKeys[i][0] = 2;
+      } else if (participantPublicKeys[i].length != 33) {
+        throw ArgumentError(
+            "participantPublicKeys must be 32 or 33 bytes (got ${participantPublicKeys[i].length})");
       }
     }
 
-    if (aggregatedPubKey.length == 32) {
-      aggregatedPubKey = Uint8List.fromList([0x02, ...aggregatedPubKey]);
-    }
-
     //get sessiont context
+    Uint8List q = WalletUtility.aggregatePublicKey(
+        participantPublicKeys.map((e) => Codec.encodeHex(e)).toList(), false);
     late BigInt b;
     late ECPoint r;
     late BigInt e;
 
     b = fromBuffer(Codec.decodeHex(Hash.taggedHash(
         "MuSig/noncecoef",
-        Uint8List.fromList([
-          ...aggregatedPubNonce,
-          ...aggregatedPubKey.sublist(1),
-          ...message
-        ]))));
-    print('Debug - b: $b');
+        Uint8List.fromList(
+            [...aggregatedPubNonce, ...q.sublist(1), ...message]))));
 
     final r1 = decodeFrom(aggregatedPubNonce.sublist(0, 33))!;
     final r2 = decodeFrom(aggregatedPubNonce.sublist(33, 66))!;
 
     r = (r1 + r2 * b)!;
-    print('Debug - r.x: ${r.x!.toBigInteger()}');
-    print('Debug - r.y: ${r.y!.toBigInteger()}');
 
     // Get R_x (32 bytes) from r point
     Uint8List R_x = getEncoded(r, false).sublist(1, 33);
 
-    e = fromBuffer(Codec.decodeHex(Hash.taggedHash(
-        "BIP0340/challenge",
-        Uint8List.fromList(
-            [...R_x, ...aggregatedPubKey.sublist(1), ...message]))));
-    print('Debug - e: $e');
+    e = fromBuffer(Codec.decodeHex(Hash.taggedHash("BIP0340/challenge",
+        Uint8List.fromList([...R_x, ...q.sublist(1), ...message]))));
 
     //calculate a
     late BigInt a;
@@ -575,7 +562,10 @@ class Ecc {
     }
 
     // g
-    BigInt g = aggregatedPubKey[0] == 2 ? BigInt.one : n - BigInt.one;
+    BigInt g = BigInt.one;
+    if (decodeFrom(q)!.y!.toBigInteger()!.isOdd) {
+      g = n - BigInt.one;
+    }
 
     //calculate d
     BigInt d = g * fromBuffer(privateKey) % n;
@@ -611,5 +601,68 @@ class Ecc {
       // Return only s (32 bytes)
       return sBytes;
     }
+  }
+
+  static String getAggregatedSignatureForMuSig2(
+    Uint8List aggregatedPubKey,
+    Uint8List aggregatedPubNonce,
+    Uint8List message,
+    List<String> signatureList,
+  ) {
+    if (aggregatedPubKey.length != 32 && aggregatedPubKey.length != 33) {
+      throw ArgumentError(
+          "public key must be 32 or 33 bytes (got ${aggregatedPubKey.length})");
+    }
+    if (aggregatedPubNonce.length != 66) {
+      throw ArgumentError(
+          "aggregatedPubNonce must be 66 bytes (got ${aggregatedPubNonce.length})");
+    }
+    if (message.length != 32) {
+      throw ArgumentError("message must be 32 bytes (got ${message.length})");
+    }
+    if (aggregatedPubKey.length == 32) {
+      aggregatedPubKey = Uint8List.fromList([0x02, ...aggregatedPubKey]);
+    }
+    late BigInt b;
+    late ECPoint r;
+    late BigInt e;
+    final BigInt tacc = BigInt.from(0);
+
+    b = fromBuffer(Codec.decodeHex(Hash.taggedHash(
+        "MuSig/noncecoef",
+        Uint8List.fromList([
+          ...aggregatedPubNonce,
+          ...aggregatedPubKey.sublist(1),
+          ...message
+        ]))));
+
+    final r1 = decodeFrom(aggregatedPubNonce.sublist(0, 33))!;
+    final r2 = decodeFrom(aggregatedPubNonce.sublist(33, 66))!;
+
+    r = (r1 + r2 * b)!;
+
+    // Get R_x (32 bytes) from r point
+    Uint8List R_x = getEncoded(r, false).sublist(1, 33);
+
+    e = fromBuffer(Codec.decodeHex(Hash.taggedHash(
+        "BIP0340/challenge",
+        Uint8List.fromList(
+            [...R_x, ...aggregatedPubKey.sublist(1), ...message]))));
+    BigInt s = BigInt.zero;
+    for (int i = 0; i < signatureList.length; i++) {
+      Uint8List signature = Codec.decodeHex(signatureList[i]);
+      if (signature.length == 64) {
+        s += fromBuffer(signature.sublist(32, 64));
+      } else {
+        s += fromBuffer(signature);
+      }
+      s = s % n;
+    }
+    BigInt g = BigInt.one;
+    if (decodeFrom(aggregatedPubKey)!.y!.toBigInteger()!.isOdd) {
+      g = n - BigInt.one;
+    }
+    s = (s + e * g * tacc) % n;
+    return Codec.encodeHex(R_x + Codec.decodeHex(Converter.bigDecToHex(s)));
   }
 }

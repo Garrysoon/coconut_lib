@@ -430,11 +430,6 @@ void main() {
           Codec.decodeHex(
               '02d2dc6f5df7c56acf38c7fa0ae7a759ae30e19b37359dfde015872324c7ef6e05')
         ];
-        Uint8List aggregatedPubKey =
-            MultisignatureWalletBase.aggregatePublicKey([
-          '03935f972da013f80ae011890fa89b67a27b7be6ccb24d3274d18b2d4067f261a9',
-          '02d2dc6f5df7c56acf38c7fa0ae7a759ae30e19b37359dfde015872324c7ef6e05'
-        ], true);
         Uint8List privateKey = Codec.decodeHex(
             '7fb9e0e687ada1eebf7ecfe2f21e73ebdb51a7d450948dfe8d76d7f2d1007671');
         Uint8List secretNonce = Codec.decodeHex(
@@ -446,7 +441,6 @@ void main() {
         expect(
             Codec.encodeHex(Ecc.signSchnorrForMuSig2(
                 message,
-                aggregatedPubKey,
                 aggregatedPubNonce,
                 privateKey,
                 secretNonce,
@@ -457,7 +451,6 @@ void main() {
         expect(
             Codec.encodeHex(Ecc.signSchnorrForMuSig2(
                 message,
-                aggregatedPubKey,
                 aggregatedPubNonce,
                 privateKey,
                 secretNonce,
@@ -676,14 +669,35 @@ void main() {
       test('Verify schnorr signature for musig2', () {
         Uint8List message = Codec.decodeHex(
             '599c67ea410d005b9da90817cf03ed3b1c868e4da4edf00a5880b0082c237869');
-        Uint8List aggregatedPubKey =
-            MultisignatureWalletBase.aggregatePublicKey([
+        Uint8List aggregatedPubKey = WalletUtility.aggregatePublicKey([
           '03935f972da013f80ae011890fa89b67a27b7be6ccb24d3274d18b2d4067f261a9',
           '02d2dc6f5df7c56acf38c7fa0ae7a759ae30e19b37359dfde015872324c7ef6e05'
         ], true);
         Uint8List signature = Codec.decodeHex(
             '041da22223ce65c92c9a0d6c2cac828aaf1eee56304fec371ddf91ebb2b9ef0912f1038025857fedeb3ff696f8b99fa4bb2c5812f6095a2e0004ec99ce18de1e');
         print(Ecc.verifySchnorr(message, aggregatedPubKey, signature));
+      });
+    });
+
+    group('getAggregatedSignatureForMuSig2', () {
+      test('Get aggregated signature for musig2', () {
+        Uint8List aggregatedPubKey = Codec.decodeHex(
+            'f68803d6235df99eb72f251d832b52029a64ae2c195a15823bd85f9577478408');
+        Uint8List aggregatedPubNonce = Codec.decodeHex(
+            '0341432722c5cd0268d829c702cf0d1cbce57033eed201fd335191385227c3210c03d377f2d258b64aadc0e16f26462323d701d286046a2ea93365656afd9875982b');
+        Uint8List message = Codec.decodeHex(
+            '599c67ea410d005b9da90817cf03ed3b1c868e4da4edf00a5880b0082c237869');
+        List<String> signatureList = [
+          'b15d2cd3c3d22b04dae438ce653f6b4ecf042f42cfded7c41b64aaf9b4af53fb',
+          '6193d6ac61b354e9105bbdc8937a3454a6d705b6d57322a5a472a02ce99fcb64'
+        ];
+
+        String aggregatedSignature = Ecc.getAggregatedSignatureForMuSig2(
+            aggregatedPubKey, aggregatedPubNonce, message, signatureList);
+        expect(aggregatedSignature,
+            '041da22223ce65c92c9a0d6c2cac828aaf1eee56304fec371ddf91ebb2b9ef0912f1038025857fedeb3ff696f8b99fa4bb2c5812f6095a2e0004ec99ce18de1e');
+        //O:041da22223ce65c92c9a0d6c2cac828aaf1eee56304fec371ddf91ebb2b9ef0912f1038025857fedeb3ff696f8b99fa4bb2c5812f6095a2e0004ec99ce18de1e
+        //  041da22223ce65c92c9a0d6c2cac828aaf1eee56304fec371ddf91ebb2b9ef09c1875cc6d58df9a1f1354874f8375a104c9835d79190060cc5cbccfb162cc602
       });
     });
   });
