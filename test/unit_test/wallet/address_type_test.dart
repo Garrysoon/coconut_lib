@@ -84,8 +84,8 @@ void main() {
           // print(vault.derivationPath);
           // print(keyStore.getPublicKey(0, isSchnorr: true));
           expect(
-              AddressType.p2trKeyPathSpending
-                  .getAddress(keyStore.getPublicKey(2, applyTweak: true)),
+              AddressType.p2trKeyPathSpending.getAddress(
+                  keyStore.getPublicKey(2, applyTweak: true, isXOnly: true)),
               'bc1p4trvc4y8hu4cyj93vytg57dx5853d9qjrs9w7ctamn5gn6frgawqtkpnv8');
         });
         test('getWrondAddress', () {
@@ -103,8 +103,8 @@ void main() {
               "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
               addressType: AddressType.p2trKeyPathSpending);
           expect(
-              AddressType.p2trKeyPathSpending
-                  .getAddress(vault.keyStore.getPublicKey(0, applyTweak: true)),
+              AddressType.p2trKeyPathSpending.getAddress(vault.keyStore
+                  .getPublicKey(0, applyTweak: true, isXOnly: true)),
               'bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr');
         });
         test('getP2trKeyPathSpendingAddress (case 2)', () {
@@ -114,8 +114,8 @@ void main() {
               addressType: AddressType.p2trKeyPathSpending);
 
           expect(
-              AddressType.p2trKeyPathSpending
-                  .getAddress(vault.keyStore.getPublicKey(1, applyTweak: true)),
+              AddressType.p2trKeyPathSpending.getAddress(vault.keyStore
+                  .getPublicKey(1, applyTweak: true, isXOnly: true)),
               'bc1p4qhjn9zdvkux4e44uhx8tc55attvtyu358kutcqkudyccelu0was9fqzwh');
         });
         test('getP2trKeyPathSpendingAddress (case 3)', () {
@@ -126,7 +126,8 @@ void main() {
 
           expect(
               AddressType.p2trKeyPathSpending.getAddress(vault.keyStore
-                  .getPublicKey(0, isChange: true, applyTweak: true)),
+                  .getPublicKey(0,
+                      isChange: true, applyTweak: true, isXOnly: true)),
               'bc1p3qkhfews2uk44qtvauqyr2ttdsw7svhkl9nkm9s9c3x4ax5h60wqwruhk7');
         });
         test('getP2trScriptPathMultisignatureAddress', () {
@@ -140,7 +141,7 @@ void main() {
               Codec.decodeHex(
                   '02d6889cb081036e0faefa3a35157ad71086b123b2b144b649798b494c300a961d'),
               Uint8List.fromList([]));
-          Uint8List tPubKey = hdWallet.getTweakedPublicKey();
+          Uint8List tPubKey = hdWallet.getPublicKey(true, true);
           expect(
               AddressType.getP2trKeyPathSpendingAddress(
                   Codec.encodeHex(tPubKey)),
@@ -154,7 +155,7 @@ void main() {
               Codec.decodeHex(
                   '02187791b6f712a8ea41c8ecdd0ee77fab3e85263b37e1ec18a3651926b3a6cf27'),
               Uint8List.fromList([]));
-          Uint8List tPubKey = hdWallet.getTweakedPublicKey(
+          Uint8List tPubKey = hdWallet.getPublicKey(true, true,
               merkleRoot: Codec.decodeHex(
                   '5b75adecf53548f3ec6ad7d78383bf84cc57b55a3127c72b9a2481752dd88b21'));
           expect(AddressType.getTaprootAddress(Codec.encodeHex(tPubKey)),
@@ -167,7 +168,7 @@ void main() {
               Codec.decodeHex(
                   '0293478e9488f956df2396be2ce6c5cced75f900dfa18e7dabd2428aae78451820'),
               Uint8List.fromList([]));
-          Uint8List tPubKey = hdWallet.getTweakedPublicKey(
+          Uint8List tPubKey = hdWallet.getPublicKey(true, true,
               merkleRoot: Codec.decodeHex(
                   'c525714a7f49c28aedbbba78c005931a81c234b2f6c99a73e4d06082adc8bf2b'));
           expect(AddressType.getTaprootAddress(Codec.encodeHex(tPubKey)),

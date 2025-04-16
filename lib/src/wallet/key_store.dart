@@ -107,17 +107,21 @@ class KeyStore {
   String getPrivateKey(int index,
       {bool isChange = false,
       bool applyTweak = false,
+      bool isXOnly = false,
       Uint8List? merkleRoot,
       Uint8List? aggregatedPublicKey}) {
     if (!hasSeed) throw Exception('No private key in this key store');
     HDWallet child = getChildHdWallet(isChange).derive(index);
-    if (applyTweak) {
-      return Codec.encodeHex(child.getTweakedPrivateKey(
-          merkleRoot: merkleRoot, aggregatedPublicKey: aggregatedPublicKey));
-    } else {
-      //print("priv : " + Converter.bytesToHex(child.privateKey!.toList()));
-      return Codec.encodeHex(child.privateKey!);
-    }
+    Uint8List privKey = child.getPrivateKey(applyTweak, isXOnly,
+        merkleRoot: merkleRoot, aggregatedPublicKey: aggregatedPublicKey);
+    return Codec.encodeHex(privKey);
+
+    // if (applyTweak) {
+    //   privKey = child.getTweakedPrivateKey(
+    //       merkleRoot: merkleRoot, aggregatedPublicKey: aggregatedPublicKey);
+    // } else {
+    //   privKey = child.privateKey!;
+    // }
   }
 
 //sign.
@@ -166,12 +170,23 @@ class KeyStore {
       Uint8List? merkleRoot,
       Uint8List? aggregatedPublicKey}) {
     HDWallet child = getChildHdWallet(isChange).derive(addressIndex).neutered();
-    if (applyTweak) {
-      return HEX.encode((child.getTweakedPublicKey(
-          merkleRoot: merkleRoot, aggregatedPublicKey: aggregatedPublicKey)));
-    } else {
-      return HEX.encode((child.publicKey).toList());
-    }
+
+    Uint8List publicKey = child.getPublicKey(applyTweak, isXOnly,
+        merkleRoot: merkleRoot, aggregatedPublicKey: aggregatedPublicKey);
+
+    return Codec.encodeHex(publicKey);
+    // if (isXOnly) {
+    // if (applyTweak) {
+    //   pubKey = child.getTweakedPublicKey(
+    //       merkleRoot: merkleRoot, aggregatedPublicKey: aggregatedPublicKey);
+    // } else {
+    //   pubKey = child.publicKey;
+    // }
+    // if (isXOnly) {
+    //   return Codec.encodeHex(pubKey.sublist(1));
+    // } else {
+    //   return Codec.encodeHex(pubKey);
+    // }
   }
 
   ///Check if the PSBT can be signed from this vault.
@@ -373,7 +388,7 @@ class KeyStore {
                 aggregatedPubNonce,
                 secretNonce,
                 psbtInput.muSig2ParticipantPubkeys!
-                    .map((e) => Codec.decodeHex(e.substring(2)))
+                    .map((e) => Codec.decodeHex(e))
                     .toList()));
 
             signatureMap[pub] = signature;

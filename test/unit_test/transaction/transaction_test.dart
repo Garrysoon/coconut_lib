@@ -452,11 +452,7 @@ void main() {
           afterTotalOutput += output.amount;
         }
 
-        print("afterTotalOutput : $afterTotalOutput");
-
         int afterSendAmount = tx.outputs[0].amount;
-        print("afterTotalOutput : $afterTotalOutput");
-
         expect(tx.outputs.length, 1);
         expect(beforeSendindAmount < afterSendAmount, true);
         expect(beforeTotalOutput < afterSendAmount, true);

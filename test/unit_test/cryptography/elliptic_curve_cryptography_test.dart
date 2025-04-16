@@ -598,7 +598,7 @@ void main() {
             HDWallet(Codec.decodeHex(internalPrivateKey), null, Uint8List(0));
         // expect(Encoder.encodeHex(hdWallet.getTweakedPrivateKey()),
         //     tweakedPrivateKey);
-        Uint8List tweakedPublicKey = hdWallet.getTweakedPublicKey();
+        Uint8List tweakedPublicKey = hdWallet.getPublicKey(true, true);
         expect(Ecc.verifySchnorr(sigHash, tweakedPublicKey, signature), isTrue);
       });
       test('Verify schnorr signature (bip341 - line 302)', () {
@@ -618,7 +618,7 @@ void main() {
         //         hdWallet.getTweakedPrivateKey(merkleRoot: merkleRoot)),
         //     tweakedPrivateKey);
         Uint8List tweakedPublicKey =
-            hdWallet.getTweakedPublicKey(merkleRoot: merkleRoot);
+            hdWallet.getPublicKey(true, true, merkleRoot: merkleRoot);
         expect(Ecc.verifySchnorr(sigHash, tweakedPublicKey, signature), isTrue);
       });
       test('Verify schnorr signature (bip341 - lline 323)', () {
@@ -637,10 +637,10 @@ void main() {
             HDWallet(Codec.decodeHex(internalPrivateKey), null, Uint8List(0));
         expect(
             Codec.encodeHex(
-                hdWallet.getTweakedPrivateKey(merkleRoot: merkleRoot)),
+                hdWallet.getPrivateKey(true, true, merkleRoot: merkleRoot)),
             tweakedPrivateKey);
         Uint8List tweakedPublicKey =
-            hdWallet.getTweakedPublicKey(merkleRoot: merkleRoot);
+            hdWallet.getPublicKey(true, true, merkleRoot: merkleRoot);
         expect(Ecc.verifySchnorr(sigHash, tweakedPublicKey, signature), isTrue);
       });
       test('Verify schnorr signature (bip341 - lline 350)', () {
@@ -659,10 +659,10 @@ void main() {
             HDWallet(Codec.decodeHex(internalPrivateKey), null, Uint8List(0));
         expect(
             Codec.encodeHex(
-                hdWallet.getTweakedPrivateKey(merkleRoot: merkleRoot)),
+                hdWallet.getPrivateKey(true, true, merkleRoot: merkleRoot)),
             tweakedPrivateKey);
         Uint8List tweakedPublicKey =
-            hdWallet.getTweakedPublicKey(merkleRoot: merkleRoot);
+            hdWallet.getPublicKey(true, true, merkleRoot: merkleRoot);
         expect(Ecc.verifySchnorr(sigHash, tweakedPublicKey, signature), isTrue);
       });
 
@@ -687,14 +687,16 @@ void main() {
             '0341432722c5cd0268d829c702cf0d1cbce57033eed201fd335191385227c3210c03d377f2d258b64aadc0e16f26462323d701d286046a2ea93365656afd9875982b');
         Uint8List message = Codec.decodeHex(
             '599c67ea410d005b9da90817cf03ed3b1c868e4da4edf00a5880b0082c237869');
-        List<String> signatureList = [
-          'b15d2cd3c3d22b04dae438ce653f6b4ecf042f42cfded7c41b64aaf9b4af53fb',
-          '6193d6ac61b354e9105bbdc8937a3454a6d705b6d57322a5a472a02ce99fcb64'
+        List<Uint8List> signatureList = [
+          Codec.decodeHex(
+              'b15d2cd3c3d22b04dae438ce653f6b4ecf042f42cfded7c41b64aaf9b4af53fb'),
+          Codec.decodeHex(
+              '6193d6ac61b354e9105bbdc8937a3454a6d705b6d57322a5a472a02ce99fcb64')
         ];
 
-        String aggregatedSignature = Ecc.getAggregatedSignatureForMuSig2(
+        Uint8List aggregatedSignature = Ecc.getAggregatedSignatureForMuSig2(
             aggregatedPubKey, aggregatedPubNonce, message, signatureList);
-        expect(aggregatedSignature,
+        expect(Codec.encodeHex(aggregatedSignature),
             '041da22223ce65c92c9a0d6c2cac828aaf1eee56304fec371ddf91ebb2b9ef0912f1038025857fedeb3ff696f8b99fa4bb2c5812f6095a2e0004ec99ce18de1e');
         //O:041da22223ce65c92c9a0d6c2cac828aaf1eee56304fec371ddf91ebb2b9ef0912f1038025857fedeb3ff696f8b99fa4bb2c5812f6095a2e0004ec99ce18de1e
         //  041da22223ce65c92c9a0d6c2cac828aaf1eee56304fec371ddf91ebb2b9ef09c1875cc6d58df9a1f1354874f8375a104c9835d79190060cc5cbccfb162cc602

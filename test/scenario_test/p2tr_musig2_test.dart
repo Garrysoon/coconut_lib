@@ -63,6 +63,6 @@ void main() {
     String partialSigPsbt2 = musig2Vault1.addSignatureToPsbt(partialSigPsbt1);
     String signedPsbt = musig2Vault1.addSignatureToPsbt(partialSigPsbt2);
 
-    // print(partialSigPsbt1);
+    print(partialSigPsbt1);
   });
 }

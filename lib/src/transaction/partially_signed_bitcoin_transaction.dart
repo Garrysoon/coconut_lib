@@ -741,7 +741,6 @@ class Psbt {
         }
       }
     } else if (addressType == AddressType.p2wpkh) {
-      //every input should have 2 partial sigs
       for (int i = 0; i < inputs.length; i++) {
         if (inputs[i].totalSinger != 1) {
           throw Exception('Not enough signatures');
@@ -782,14 +781,30 @@ class Psbt {
           throw Exception('Not enough signatures');
         }
         if (signedTransaction.validateSchnorr(i, utxoList)) {
-          continue;
+          Uint8List aggregatedPubKey =
+              Codec.decodeHex(inputs[i].muSig2AggregatedPublicKey!);
+          Uint8List aggregatedPubNonce =
+              Codec.decodeHex(inputs[i].getAggregatedPublicNonce());
+          Uint8List message =
+              Codec.decodeHex(signedTransaction.getTaprootSigHash(i, utxoList));
+          List<Uint8List> signatureList = [];
+          for (Signature sig in inputs[i].muSig2PartialSigs!) {
+            signatureList.add(Codec.decodeHex(sig.signature));
+          }
+
+          Uint8List aggregatedSignature = Ecc.getAggregatedSignatureForMuSig2(
+              aggregatedPubKey, aggregatedPubNonce, message, signatureList);
+          if (Ecc.verifySchnorr(
+              message, aggregatedPubKey, aggregatedSignature)) {
+            signedTransaction.inputs[i].setTaprootKeyPathSpendingSignature(
+                Codec.encodeHex(aggregatedSignature));
+          } else {
+            throw Exception('Invalid Signatures');
+          }
         } else {
           throw Exception('Invalid Signatures');
         }
       }
-      //aggregate partial sigs
-      String aggregatedPartialSig = '';
-      // Ecc.getAggregatedSignature(inputs[0].muSig2PartialSigs!);
     } else {
       throw Exception('Unsupported Address Type');
     }
@@ -929,10 +944,6 @@ class PsbtInput {
     }
     if (publicNonces[0].length != 66) {
       throw ArgumentError('Public nonce #0 must be 66 bytes');
-    }
-
-    for (Uint8List p in publicNonces) {
-      print("PUB : ${Codec.encodeHex(p)}");
     }
 
     Uint8List r1 = publicNonces[0].sublist(0, 33);

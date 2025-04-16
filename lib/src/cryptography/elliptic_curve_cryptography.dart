@@ -1,18 +1,4 @@
 // ignore_for_file: non_constant_identifier_names, constant_identifier_names
-
-// import 'dart:typed_data';
-// import 'package:coconut_lib/src/cryptography/codec.dart';
-// import 'package:coconut_lib/src/cryptography/hash.dart';
-// import 'package:hex/hex.dart';
-// import "package:pointycastle/ecc/curves/secp256k1.dart";
-// import "package:pointycastle/api.dart"
-//     show PrivateKeyParameter, PublicKeyParameter;
-// import 'package:pointycastle/ecc/api.dart'
-//     show ECPrivateKey, ECPublicKey, ECSignature, ECPoint;
-// import "package:pointycastle/signers/ecdsa_signer.dart";
-// import 'package:pointycastle/macs/hmac.dart';
-// import "package:pointycastle/digests/sha256.dart";
-// import 'dart:math';
 part of '../../coconut_lib.dart';
 
 class Ecc {
@@ -369,42 +355,6 @@ class Ecc {
     return isValid;
   }
 
-  // static bool verifySchnorrForMuSig2(
-  //     Uint8List aggregatedPubKey, Uint8List message, Uint8List signature) {
-  //   if (aggregatedPubKey.length != 32 && aggregatedPubKey.length != 33) {
-  //     throw ArgumentError(
-  //         "aggregatedPubKey must be 32 or 33 bytes (got ${aggregatedPubKey.length})");
-  //   }
-
-  //   if (message.length != 32) {
-  //     throw ArgumentError("message must be 32 bytes (got ${message.length})");
-  //   }
-
-  //   if (signature.length != 64) {
-  //     throw ArgumentError(
-  //         "signature must be 64 bytes (got ${signature.length})");
-  //   }
-
-  //   if (aggregatedPubKey.length == 32) {
-  //     aggregatedPubKey = Uint8List.fromList([0x02, ...aggregatedPubKey]);
-  //   }
-
-  //   BigInt r = fromBuffer(signature.sublist(0, 32));
-  //   BigInt s = fromBuffer(signature.sublist(32, 64));
-  //   ECPoint? P = decodeFrom(aggregatedPubKey);
-  //   if (P == null ||
-  //       r >= Converter.hexToBigDec(Codec.encodeHex(EC_P)) ||
-  //       s >= n) return false;
-  //   BigInt e = fromBuffer(Codec.decodeHex(Hash.taggedHash("BIP0340/challenge",
-  //       signature.sublist(0, 32) + aggregatedPubKey.sublist(1) + message)));
-
-  //   ECPoint R = ((G * s)! + P * (n - e))!;
-  //   if (R.y!.toBigInteger()!.isOdd || R.x!.toBigInteger() != r) {
-  //     return false;
-  //   }
-  //   return true;
-  // }
-
   /// Decode a BigInt from bytes in big-endian encoding.
   static BigInt _decodeBigInt(List<int> bytes) {
     BigInt result = BigInt.from(0);
@@ -603,11 +553,11 @@ class Ecc {
     }
   }
 
-  static String getAggregatedSignatureForMuSig2(
+  static Uint8List getAggregatedSignatureForMuSig2(
     Uint8List aggregatedPubKey,
     Uint8List aggregatedPubNonce,
     Uint8List message,
-    List<String> signatureList,
+    List<Uint8List> signatureList,
   ) {
     if (aggregatedPubKey.length != 32 && aggregatedPubKey.length != 33) {
       throw ArgumentError(
@@ -650,7 +600,7 @@ class Ecc {
             [...R_x, ...aggregatedPubKey.sublist(1), ...message]))));
     BigInt s = BigInt.zero;
     for (int i = 0; i < signatureList.length; i++) {
-      Uint8List signature = Codec.decodeHex(signatureList[i]);
+      Uint8List signature = signatureList[i];
       if (signature.length == 64) {
         s += fromBuffer(signature.sublist(32, 64));
       } else {
@@ -663,6 +613,6 @@ class Ecc {
       g = n - BigInt.one;
     }
     s = (s + e * g * tacc) % n;
-    return Codec.encodeHex(R_x + Codec.decodeHex(Converter.bigDecToHex(s)));
+    return Uint8List.fromList(R_x + Codec.decodeHex(Converter.bigDecToHex(s)));
   }
 }

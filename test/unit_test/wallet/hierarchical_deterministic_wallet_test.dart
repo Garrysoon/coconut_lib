@@ -115,9 +115,8 @@ void main() {
         //     hdWallet.sign(hash, isShnorr: true, auxRand: rand);
       });
     });
-    group('getTweakedPrivateKey', () {
-      // Test vector from : https://github.com/bitcoin/bips/blob/master/bip-0341/wallet-test-vectors.json
-      //TODO: check this test (not work)
+
+    group('getPrivatKey', () {
       test('Get tweak private key (case 1 : only private key)', () {
         // Uint8List matcherTweakPrivateKey = Encoder.decodeHex(
         //     '2405b971772ad26915c8dcdf10f238753a9b837e5f8e6a86fd7c0cce5b7296d9');
@@ -150,7 +149,7 @@ void main() {
         Uint8List matcherTweakPrivateKey = Codec.decodeHex(
             '97323385e57015b75b0339a549c56a948eb961555973f0951f555ae6039ef00d');
         Uint8List targetTweakPrivateKey =
-            hdWallet.getTweakedPrivateKey(merkleRoot: merkelRoot);
+            hdWallet.getPrivateKey(true, true, merkleRoot: merkelRoot);
         expect(targetTweakPrivateKey, matcherTweakPrivateKey);
       });
       test('Get tweak private key (case 4)', () {
@@ -162,7 +161,7 @@ void main() {
             'ccbd66c6f7e8fdab47b3a486f59d28262be857f30d4773f2d5ea47f7761ce0e2');
         HDWallet hdWallet =
             HDWallet(internalPrivKey, null, Uint8List.fromList([]));
-        expect(hdWallet.getTweakedPrivateKey(merkleRoot: merkelRoot),
+        expect(hdWallet.getPrivateKey(true, true, merkleRoot: merkelRoot),
             matcherTweakPrivateKey);
       });
     });
@@ -176,8 +175,8 @@ void main() {
 
         HDWallet hdWallet = HDWallet(
             null, Codec.decodeHex(internalPubKey), Uint8List.fromList([]));
-        expect(hdWallet.getTweakedPublicKey(),
-            Codec.decodeHex(matcherTweakPublicKey));
+        expect(Codec.encodeHex(hdWallet.getPublicKey(true, true)),
+            matcherTweakPublicKey);
       });
       test('Get tweak public key (case 2 : negate & merkleRoot)', () {
         String internalPubKey =
@@ -191,9 +190,9 @@ void main() {
             null, Codec.decodeHex(internalPubKey), Uint8List.fromList([]));
 
         expect(
-            hdWallet.getTweakedPublicKey(
-                merkleRoot: Codec.decodeHex(merkelRoot)),
-            Codec.decodeHex(matcherTweakPublicKey));
+            Codec.encodeHex(hdWallet.getPublicKey(true, true,
+                merkleRoot: Codec.decodeHex(merkelRoot))),
+            matcherTweakPublicKey);
       });
     });
     group('verify', () {
@@ -272,7 +271,7 @@ void main() {
             HDWallet(Codec.decodeHex(internalPrivateKey), null, Uint8List(0));
         expect(
             Codec.encodeHex(
-                hdWallet.getTweakedPrivateKey(merkleRoot: merkleRoot)),
+                hdWallet.getPrivateKey(true, true, merkleRoot: merkleRoot)),
             tweakedPrivateKey);
         expect(
             hdWallet.verifySchnorr(sigHash, signature, true,
@@ -295,7 +294,7 @@ void main() {
             HDWallet(Codec.decodeHex(internalPrivateKey), null, Uint8List(0));
         expect(
             Codec.encodeHex(
-                hdWallet.getTweakedPrivateKey(merkleRoot: merkleRoot)),
+                hdWallet.getPrivateKey(true, true, merkleRoot: merkleRoot)),
             tweakedPrivateKey);
         expect(
             hdWallet.verifySchnorr(sigHash, signature, true,
