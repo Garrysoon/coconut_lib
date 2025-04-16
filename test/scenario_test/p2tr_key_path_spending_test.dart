@@ -51,27 +51,27 @@ bool checkSpending(SingleSignatureVault vault) {
 }
 
 bool checkTweak(SingleSignatureVault vault) {
-  if (vault.keyStore.getPrivateKey(0, applyTweak: true) !=
+  if (vault.keyStore.getPrivateKey(0, applyTweak: true, isXOnly: true) !=
       '9d9b99c89ab64460dd29d1a6c46a3b6a7ab30eb83e44632b983d658f5ef86d9e') {
     return false;
   }
-  if (vault.keyStore.getPublicKey(0, applyTweak: true) !=
+  if (vault.keyStore.getPublicKey(0, applyTweak: true, isXOnly: true) !=
       '7d609fe897b3bd11c252b530f4f2815e76a1339a5c29897a0f73950a200bfcb6') {
     return false;
   }
-  if (vault.keyStore.getPrivateKey(1, applyTweak: true) !=
+  if (vault.keyStore.getPrivateKey(1, applyTweak: true, isXOnly: true) !=
       '27554aa112a20f633027a24f450ea7c96653a4e6196d2d65cc8a2f1d4f20b4ed') {
     return false;
   }
-  if (vault.keyStore.getPublicKey(1, applyTweak: true) !=
+  if (vault.keyStore.getPublicKey(1, applyTweak: true, isXOnly: true) !=
       'a9fe7b8d167996dbdd90300b18ef2a1ef186862f61a22529db2c306aad9dfc0c') {
     return false;
   }
-  if (vault.keyStore.getPrivateKey(2, applyTweak: true) !=
+  if (vault.keyStore.getPrivateKey(2, applyTweak: true, isXOnly: true) !=
       '84d43d3ac0a5e29d7e314104571d8aa4f3dba1f6ce7d8553e3cefea924685fdb') {
     return false;
   }
-  if (vault.keyStore.getPublicKey(2, applyTweak: true) !=
+  if (vault.keyStore.getPublicKey(2, applyTweak: true, isXOnly: true) !=
       '73ec6131a15b603419c848dcca946a2fca02b0f947cf7592ab674bf2237db6fc') {
     return false;
   }

@@ -675,7 +675,7 @@ void main() {
         ], true);
         Uint8List signature = Codec.decodeHex(
             '041da22223ce65c92c9a0d6c2cac828aaf1eee56304fec371ddf91ebb2b9ef0912f1038025857fedeb3ff696f8b99fa4bb2c5812f6095a2e0004ec99ce18de1e');
-        print(Ecc.verifySchnorr(message, aggregatedPubKey, signature));
+        expect(Ecc.verifySchnorr(message, aggregatedPubKey, signature), isTrue);
       });
     });
 

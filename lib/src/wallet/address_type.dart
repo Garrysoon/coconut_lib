@@ -290,7 +290,6 @@ class AddressType {
 
   //BIP0086
   static String getP2trKeyPathSpendingAddress(String tweakedPubKey) {
-    // print("PUB : $tweakedPubKey");
     return getTaprootAddress(tweakedPubKey);
   }
 

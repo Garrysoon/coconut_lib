@@ -167,8 +167,7 @@ class HDWallet {
 
   Uint8List signSchnorr(Uint8List message, bool applyTweak,
       {Uint8List? auxRand}) {
-    Uint8List secretKey =
-        applyTweak ? _getTweakedPrivateKey(true) : privateKey!;
+    Uint8List secretKey = getPrivateKey(applyTweak, true);
     return Ecc.signSchnorr(message, secretKey, auxRand: auxRand);
   }
 
@@ -227,18 +226,17 @@ class HDWallet {
     if (applyTweak) {
       privKey = _getTweakedPrivateKey(isXOnly,
           merkleRoot: merkleRoot, aggregatedPublicKey: aggregatedPublicKey);
-      pubKey = _getTweakedPublicKey(isXOnly,
-          merkleRoot: merkleRoot, aggregatedPublicKey: aggregatedPublicKey);
+      pubKey = Ecc.pointFromScalar(privKey, true)!;
     } else {
       privKey = privateKey!;
       pubKey = publicKey;
     }
 
     if (isXOnly && pubKey[0] == 0x03) {
-      return Ecc.privateNegate(privKey)!;
+      Uint8List negatedPrivKey = Ecc.privateNegate(privKey)!;
+      // print(Codec.encodeHex(Ecc.pointFromScalar(negatedPrivKey, true)!));
+      return negatedPrivKey;
     } else {
-      print("privKey: ${Codec.encodeHex(privKey)}");
-      print("masterPrivateKey: ${getMasterPrivateKey()}");
       return privKey;
     }
   }

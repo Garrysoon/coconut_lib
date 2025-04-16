@@ -33,8 +33,8 @@ abstract class SingleSignatureWalletBase extends WalletBase {
   String getAddress(int addressIndex, {bool isChange = false}) {
     String pubkey;
     if (addressType == AddressType.p2trKeyPathSpending) {
-      pubkey = keyStore.getPublicKey(addressIndex,
-          isChange: isChange, applyTweak: true);
+      pubkey = _keyStore.getPublicKey(addressIndex,
+          isChange: isChange, applyTweak: true, isXOnly: true);
     } else {
       pubkey = _keyStore.getPublicKey(addressIndex, isChange: isChange);
     }
@@ -51,14 +51,20 @@ abstract class SingleSignatureWalletBase extends WalletBase {
       throw Exception("Derivation path does not match");
     }
 
-    bool isSchnorr = false;
+    bool xOnly = false;
+    bool applyTweak = false;
     if (addressType.isTaproot) {
-      isSchnorr = true;
+      xOnly = true;
     }
+    if (addressType == AddressType.p2trKeyPathSpending) {
+      applyTweak = true;
+    }
+
     String pubkey = _keyStore.getPublicKey(
         WalletUtility.getAccountIndexFromDerivationPath(derivationPath),
         isChange: WalletUtility.isChangeFromDerivationPath(derivationPath),
-        applyTweak: isSchnorr);
+        applyTweak: applyTweak,
+        isXOnly: xOnly);
     return _addressType.getAddress(pubkey);
   }
 

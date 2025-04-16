@@ -250,6 +250,9 @@ class Ecc {
     if (P == null || P.isInfinity) {
       throw Exception("Failed to derive public key.");
     }
+    if (P.y!.toBigInteger()!.isOdd) {
+      throw Exception("Public key is on the negative y-axis.");
+    }
 
     Uint8List P_x = getEncoded(P, false).sublist(1, 33);
 
@@ -300,11 +303,7 @@ class Ecc {
 
     Uint8List signature = Uint8List.fromList([...R_x, ...sBytes]);
 
-    // print("Signature: ${Encoder.encodeHex(signature)}");
-    // print("Public Key: ${Encoder.encodeHex(getEncoded(P, true))}");
-    // print("Message: ${Encoder.encodeHex(msg)}");
-
-    if (!verifySchnorr(message, getEncoded(P, true).sublist(1), signature)) {
+    if (!verifySchnorr(message, getEncoded(P, true), signature)) {
       throw Exception("The created signature does not pass verification.");
     }
 
@@ -338,13 +337,15 @@ class Ecc {
     BigInt s = fromBuffer(sBytes);
     if (s >= n) return false;
 
-    Uint8List pubkeyWithPrefix = Uint8List.fromList([0x02, ...publicKey]);
+    if (publicKey.length == 32) {
+      publicKey = Uint8List.fromList([0x02, ...publicKey]);
+    }
 
-    ECPoint? P = decodeFrom(pubkeyWithPrefix);
+    ECPoint? P = decodeFrom(publicKey);
     if (P == null || P.isInfinity) return false;
 
     Uint8List eBytes = Codec.decodeHex(Hash.taggedHash("BIP0340/challenge",
-        Uint8List.fromList([...R_x, ...publicKey, ...message])));
+        Uint8List.fromList([...R_x, ...publicKey.sublist(1), ...message])));
     BigInt e = fromBuffer(eBytes) % n;
 
     ECPoint? R_prime = (G * s)! + (P * (n - e));

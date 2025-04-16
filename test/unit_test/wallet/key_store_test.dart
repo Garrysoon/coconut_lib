@@ -68,12 +68,14 @@ void main() {
     });
     group('getPrivateKey', () {
       test('Get private key (receive)', () {
-        String privateKey = '3uhZVhK22HgcQQjun7Uysc2cTZGqLDuiSUXnJMUWtLQvo44';
-        expect(keyStore.getPrivateKey(0), privateKey);
+        // String privateKey = '3uhZVhK22HgcQQjun7Uysc2cTZGqLDuiSUXnJMUWtLQvo44';
+        expect(keyStore.getPrivateKey(0),
+            'a9c4134b73560f43fc5c081e5c1daa7ce068adc806d80e1f37cb658e0fea4c8d');
       });
       test('Get private key (change)', () {
-        String privateKey = '3uDFZxBEWBcRjAMMzjbSmXiX869rUg26FnYN22RxtsP8ojE';
-        expect(keyStore.getPrivateKey(0, isChange: true), privateKey);
+        // String privateKey = '3uDFZxBEWBcRjAMMzjbSmXiX869rUg26FnYN22RxtsP8ojE';
+        expect(keyStore.getPrivateKey(0, isChange: true),
+            '4a78147e621966ebca7185d7567a5db3c91af2d45455dba8e350b34f66187d64');
       });
     });
 
@@ -92,7 +94,8 @@ void main() {
             "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
             addressType: AddressType.p2trKeyPathSpending);
         expect(
-            vault.keyStore.getPublicKey(0, isChange: false, applyTweak: true),
+            vault.keyStore.getPublicKey(0,
+                isChange: false, applyTweak: true, isXOnly: true),
             'a60869f0dbcf1dc659c9cecbaf8050135ea9e8cdc487053f1dc6880949dc684c');
       });
     });
