@@ -1,3 +1,6 @@
+## 0.9.2
+- Fix DER encoding bug
+
 ## 0.9.1
 - Split Ecc.signEcdsa and Ecc.signSchnorr into separate methods
 - Split HdWallet.sign into HdWallet.signEcdsa and HdWallet.signSchnorr
