@@ -395,7 +395,6 @@ class KeyStore {
           }
         }
       }
-
       // 3. Validate signature
       for (String pub in signatureMap.keys) {
         Uint8List signature = Codec.decodeHex(signatureMap[pub]!);
@@ -415,8 +414,8 @@ class KeyStore {
             }
           } else if (addressType == AddressType.p2trMuSig2) {
             if (!Ecc.verifySchnorr(
-                Codec.decodeHex(psbtInput.muSig2AggregatedPublicKey!),
                 Codec.decodeHex(sigHash),
+                Codec.decodeHex(psbtInput.muSig2AggregatedPublicKey!),
                 signature)) {
               throw Exception('Invalid signature');
             }

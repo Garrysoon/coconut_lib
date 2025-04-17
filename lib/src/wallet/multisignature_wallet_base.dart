@@ -132,8 +132,8 @@ abstract class MultisignatureWalletBase extends WalletBase {
   String getAddregatedPublilcKey(int addressIndex, bool isChange,
       {bool isSort = true}) {
     List<String> publicKeysHex = keyStoreList
-        .map((keyStore) =>
-            keyStore.getPublicKey(addressIndex, isChange: isChange))
+        .map((keyStore) => keyStore.getPublicKey(addressIndex,
+            isChange: isChange, isXOnly: true))
         .toList();
 
     // List<String> publicKeysHex = [
@@ -146,8 +146,7 @@ abstract class MultisignatureWalletBase extends WalletBase {
       publicKeysHex.sort();
     }
 
-    return Codec.encodeHex(
-        WalletUtility.aggregatePublicKey(publicKeysHex, true));
+    return Codec.encodeHex(WalletUtility.aggregatePublicKey(publicKeysHex));
 
     // List<Uint8List> publicKeysBytes =
     //     publicKeysHex.map((e) => Codec.decodeHex(e)).toList();

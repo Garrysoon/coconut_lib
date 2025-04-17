@@ -335,6 +335,7 @@ class Ecc {
     Uint8List R_x = signature.sublist(0, 32);
     Uint8List sBytes = signature.sublist(32, 64);
     BigInt s = fromBuffer(sBytes);
+
     if (s >= n) return false;
 
     if (publicKey.length == 32) {
@@ -352,8 +353,7 @@ class Ecc {
     if (R_prime == null || R_prime.isInfinity) return false;
 
     Uint8List R_prime_x = getEncoded(R_prime, false).sublist(1, 33);
-    bool isValid = R_prime_x.toString() == R_x.toString();
-    return isValid;
+    return R_prime_x.toString() == R_x.toString();
   }
 
   /// Decode a BigInt from bytes in big-endian encoding.
@@ -428,14 +428,13 @@ class Ecc {
   }
 
   static Uint8List signSchnorrForMuSig2(
-      Uint8List message, // 32B
-      Uint8List aggregatedPubNonce, // 32B x-only (R.x)
-      Uint8List privateKey, // 32B
-      Uint8List secretNonce, // 32B
-      Uint8List publicKey, // 32B
-      List<Uint8List> participantPublicKeys, // List of 32B
-      {bool isFullSignature = true} // New parameter to control return format
-      ) {
+      Uint8List message,
+      Uint8List aggregatedPubNonce,
+      Uint8List privateKey,
+      Uint8List secretNonce,
+      Uint8List publicKey,
+      List<Uint8List> participantPublicKeys,
+      {bool isFullSignature = true}) {
     if (message.length != 32) {
       throw ArgumentError("sighash must be 32 bytes (got ${message.length})");
     }
@@ -460,18 +459,20 @@ class Ecc {
       publicKey = Uint8List.fromList([0x02, ...publicKey]);
     }
 
+    Uint8List q = WalletUtility.aggregatePublicKey(
+        participantPublicKeys.map((e) => Codec.encodeHex(e)).toList(),
+        isXOnly: false);
+
     for (int i = 0; i < participantPublicKeys.length; i++) {
       if (participantPublicKeys[i].length == 32) {
-        participantPublicKeys[i][0] = 2;
+        participantPublicKeys[i] =
+            Uint8List.fromList([0x02, ...participantPublicKeys[i]]);
       } else if (participantPublicKeys[i].length != 33) {
         throw ArgumentError(
             "participantPublicKeys must be 32 or 33 bytes (got ${participantPublicKeys[i].length})");
       }
     }
 
-    //get sessiont context
-    Uint8List q = WalletUtility.aggregatePublicKey(
-        participantPublicKeys.map((e) => Codec.encodeHex(e)).toList(), false);
     late BigInt b;
     late ECPoint r;
     late BigInt e;
@@ -486,25 +487,28 @@ class Ecc {
 
     r = (r1 + r2 * b)!;
 
-    // Get R_x (32 bytes) from r point
     Uint8List R_x = getEncoded(r, false).sublist(1, 33);
 
     e = fromBuffer(Codec.decodeHex(Hash.taggedHash("BIP0340/challenge",
         Uint8List.fromList([...R_x, ...q.sublist(1), ...message]))));
 
-    //calculate a
     late BigInt a;
     Uint8List L = Codec.decodeHex(Hash.taggedHash('KeyAgg list',
         Uint8List.fromList(participantPublicKeys.expand((x) => x).toList())));
-    late Uint8List secondKey;
+
+    Uint8List? secondKey;
     for (int keyIndex = 1;
         keyIndex < participantPublicKeys.length;
         keyIndex++) {
-      if (participantPublicKeys[0] != participantPublicKeys[keyIndex]) {
+      if (Codec.encodeHex(participantPublicKeys[0]) !=
+          Codec.encodeHex(participantPublicKeys[keyIndex])) {
         secondKey = participantPublicKeys[keyIndex];
+        break;
       }
     }
-    if (publicKey == secondKey) {
+
+    if (secondKey != null &&
+        Codec.encodeHex(publicKey) == Codec.encodeHex(secondKey)) {
       a = BigInt.one;
     } else {
       a = fromBuffer(Codec.decodeHex(
@@ -512,16 +516,13 @@ class Ecc {
           n;
     }
 
-    // g
     BigInt g = BigInt.one;
     if (decodeFrom(q)!.y!.toBigInteger()!.isOdd) {
       g = n - BigInt.one;
     }
 
-    //calculate d
     BigInt d = g * fromBuffer(privateKey) % n;
 
-    //calculate s
     BigInt k1 =
         Converter.hexToBigDec(Codec.encodeHex(secretNonce.sublist(0, 32)));
     BigInt k2 =
@@ -534,7 +535,6 @@ class Ecc {
 
     BigInt s = (k1 + b * k2 + e * a * d) % n;
 
-    // Convert s to hex
     Uint8List sBytes = toBuffer(s);
     if (sBytes.length < 32) {
       Uint8List paddedS = Uint8List(32);
@@ -544,12 +544,14 @@ class Ecc {
       throw Exception("s value is too large!");
     }
 
+    Uint8List fullSignature = Uint8List.fromList([...R_x, ...sBytes]);
+
+    // if (verifyMuSig2PartialSignature(fullSignature, publicKey, a, e)) {}
+    // throw Exception("Invalid signature");
+
     if (isFullSignature) {
-      // Return R_x || s (64 bytes)
-      final signature = Uint8List.fromList([...R_x, ...sBytes]);
-      return signature;
+      return fullSignature;
     } else {
-      // Return only s (32 bytes)
       return sBytes;
     }
   }

@@ -289,7 +289,7 @@ void main() {
           publicKeyList[2]
         ];
         expect(
-            Codec.encodeHex(WalletUtility.aggregatePublicKey(pubs, true))
+            Codec.encodeHex(WalletUtility.aggregatePublicKey(pubs))
                 .toUpperCase(),
             '90539EEDE565F5D054F32CC0C220126889ED1E5D193BAF15AEF344FE59D4610C');
       });
@@ -301,7 +301,7 @@ void main() {
           publicKeyList[0]
         ];
         expect(
-            Codec.encodeHex(WalletUtility.aggregatePublicKey(pubs, true))
+            Codec.encodeHex(WalletUtility.aggregatePublicKey(pubs))
                 .toUpperCase(),
             '6204DE8B083426DC6EAF9502D27024D53FC826BF7D2012148A0575435DF54B2B');
       });
@@ -313,7 +313,7 @@ void main() {
           publicKeyList[0]
         ];
         expect(
-            Codec.encodeHex(WalletUtility.aggregatePublicKey(pubs, true))
+            Codec.encodeHex(WalletUtility.aggregatePublicKey(pubs))
                 .toUpperCase(),
             'B436E3BAD62B8CD409969A224731C193D051162D8C5AE8B109306127DA3AA935');
       });
@@ -326,7 +326,7 @@ void main() {
           publicKeyList[1]
         ];
         expect(
-            Codec.encodeHex(WalletUtility.aggregatePublicKey(pubs, true))
+            Codec.encodeHex(WalletUtility.aggregatePublicKey(pubs))
                 .toUpperCase(),
             '69BC22BFA5D106306E48A20679DE1D7389386124D07571D0D872686028C26A3E');
       });

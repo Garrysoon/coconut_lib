@@ -150,13 +150,13 @@ class Psbt {
           muSig2AggregatedPublicKey = key.substring(2);
           String concatenatedPubKeys = psbtMap["inputs"][i][key];
           muSig2participantPubKeyList ??= [];
-          if (concatenatedPubKeys.length % 66 != 0) {
+          if (concatenatedPubKeys.length % 64 != 0) {
             throw Exception(
                 "Invalid participant public key list: length is not multiple of 66 (got ${concatenatedPubKeys.length})");
           }
-          int numberOfKeys = concatenatedPubKeys.length ~/ 66;
+          int numberOfKeys = concatenatedPubKeys.length ~/ 64;
           for (int i = 0; i < numberOfKeys; i++) {
-            final hexPart = concatenatedPubKeys.substring(i * 66, (i + 1) * 66);
+            final hexPart = concatenatedPubKeys.substring(i * 64, (i + 1) * 64);
             muSig2participantPubKeyList!.add(hexPart);
           }
           muSig2participantPubKeyList!.sort();
@@ -379,7 +379,7 @@ class Psbt {
           String tapBip32DerivationKeyType =
               getKeyType(inputKeyType, 'TAP_BIP32_DERIVATION');
           String publicKey = keyStore.getPublicKey(tx.utxoList[i].accountIndex,
-              isChange: tx.utxoList[i].isChange);
+              isChange: tx.utxoList[i].isChange, isXOnly: true);
           publicKeys.add(publicKey);
 
           String fingerPrint = keyStore.masterFingerprint;
@@ -402,9 +402,7 @@ class Psbt {
             keyStoreIndex++) {
           // MUSIG2_PUB_NONCE
           if (multisignatureWallet.keyStoreList[keyStoreIndex].hasSeed) {
-            inputData[musig2PubNonceType +
-                    publicKeys[keyStoreIndex] +
-                    aggregatePubKey] =
+            inputData[musig2PubNonceType + publicKeys[keyStoreIndex]] =
                 multisignatureWallet.keyStoreList[keyStoreIndex]
                     .getMuSig2PublicNonce(
                         tx.getTaprootSigHash(i, witnessUtxoList),

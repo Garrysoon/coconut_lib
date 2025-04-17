@@ -459,6 +459,64 @@ void main() {
                 isFullSignature: true)),
             '041da22223ce65c92c9a0d6c2cac828aaf1eee56304fec371ddf91ebb2b9ef09b15d2cd3c3d22b04dae438ce653f6b4ecf042f42cfded7c41b64aaf9b4af53fb');
       });
+
+      test('Get partial signature for musig2 (case 2)', () {
+        Uint8List message = Codec.decodeHex(
+            '599c67ea410d005b9da90817cf03ed3b1c868e4da4edf00a5880b0082c237869');
+        List<Uint8List> participantPublicKeys = [
+          Codec.decodeHex(
+              '03935f972da013f80ae011890fa89b67a27b7be6ccb24d3274d18b2d4067f261a9'),
+          Codec.decodeHex(
+              '02d2dc6f5df7c56acf38c7fa0ae7a759ae30e19b37359dfde015872324c7ef6e05')
+        ];
+        Uint8List privateKey = Codec.decodeHex(
+            '3874d22de7a7290c49ce7f1dc17d1a8cd8918e1f799055139d57fc0988d04d10');
+        Uint8List secretNonce = Codec.decodeHex(
+            '41f401c558584f0412dae913bc61be593319e2d83381b8ab5312b92d7fc9b6198b4ad586d0c923a814cb6cca0657ac49de647a86c7bb7f2369760cd75b37e55002d2dc6f5df7c56acf38c7fa0ae7a759ae30e19b37359dfde015872324c7ef6e05');
+        Uint8List aggregatedPubNonce = Codec.decodeHex(
+            '0341432722c5cd0268d829c702cf0d1cbce57033eed201fd335191385227c3210c03d377f2d258b64aadc0e16f26462323d701d286046a2ea93365656afd9875982b');
+        Uint8List publicKey = Codec.decodeHex(
+            '02d2dc6f5df7c56acf38c7fa0ae7a759ae30e19b37359dfde015872324c7ef6e05');
+        expect(
+            Codec.encodeHex(Ecc.signSchnorrForMuSig2(
+                message,
+                aggregatedPubNonce,
+                privateKey,
+                secretNonce,
+                publicKey,
+                participantPublicKeys,
+                isFullSignature: false)),
+            '6193d6ac61b354e9105bbdc8937a3454a6d705b6d57322a5a472a02ce99fcb64');
+      });
+
+      test('Get partial signature for musig2 (case 3)', () {
+        Uint8List message = Codec.decodeHex(
+            '599c67ea410d005b9da90817cf03ed3b1c868e4da4edf00a5880b0082c237869');
+        List<Uint8List> participantPublicKeys = [
+          Codec.decodeHex(
+              '03935f972da013f80ae011890fa89b67a27b7be6ccb24d3274d18b2d4067f261a9'),
+          Codec.decodeHex(
+              '03c7fb101d97ff930acd0c6760852ef64e69083de0b06ac6335724754bb4b0522c')
+        ];
+        Uint8List privateKey = Codec.decodeHex(
+            '7fb9e0e687ada1eebf7ecfe2f21e73ebdb51a7d450948dfe8d76d7f2d1007671');
+        Uint8List secretNonce = Codec.decodeHex(
+            '803b1a9843bbb36cf28f81e49fde20031bcc6f41e1654758ea44501856dfa6b696b5084a3512dcd821059b3ef039431574d7662478ceb399c7098abc2ec6722603935f972da013f80ae011890fa89b67a27b7be6ccb24d3274d18b2d4067f261a9');
+        Uint8List aggregatedPubNonce = Codec.decodeHex(
+            '0224afd36c902084058b51b5d36676bba4dc97c775873768e58822f87fe437d792028cb15929099eee2f5dae404cd39357591ba32e9af4e162b8d3e7cb5efe31cb20');
+        Uint8List publicKey = Codec.decodeHex(
+            '03935f972da013f80ae011890fa89b67a27b7be6ccb24d3274d18b2d4067f261a9');
+        expect(
+            Codec.encodeHex(Ecc.signSchnorrForMuSig2(
+                message,
+                aggregatedPubNonce,
+                privateKey,
+                secretNonce,
+                publicKey,
+                participantPublicKeys,
+                isFullSignature: false)),
+            '9a87d3b79ec67228cb97878b76049b15dbd05b8158d17b5b9114d3c226887505');
+      });
     });
 
     group('verifyEcdsa', () {
@@ -666,16 +724,26 @@ void main() {
         expect(Ecc.verifySchnorr(sigHash, tweakedPublicKey, signature), isTrue);
       });
 
-      test('Verify schnorr signature for musig2', () {
+      test('Verify schnorr signature for musig2 (case 1)', () {
         Uint8List message = Codec.decodeHex(
             '599c67ea410d005b9da90817cf03ed3b1c868e4da4edf00a5880b0082c237869');
         Uint8List aggregatedPubKey = WalletUtility.aggregatePublicKey([
           '03935f972da013f80ae011890fa89b67a27b7be6ccb24d3274d18b2d4067f261a9',
           '02d2dc6f5df7c56acf38c7fa0ae7a759ae30e19b37359dfde015872324c7ef6e05'
-        ], true);
+        ]);
         Uint8List signature = Codec.decodeHex(
             '041da22223ce65c92c9a0d6c2cac828aaf1eee56304fec371ddf91ebb2b9ef0912f1038025857fedeb3ff696f8b99fa4bb2c5812f6095a2e0004ec99ce18de1e');
         expect(Ecc.verifySchnorr(message, aggregatedPubKey, signature), isTrue);
+      });
+
+      test('Verify schnorr signature for musig2 (case 2)', () {
+        // Uint8List message = Codec.decodeHex(
+        //     '6701942fd0f38440a7c410a3fcf6a6e10bd76a4974c3b0a9553e60528c78a6b5');
+        // Uint8List aggregatedPubKey = Codec.decodeHex(
+        //     'dacdd314a2627843ce701e8dc16adb4082c1a6e7f3dff8e0f05503660657bcd9');
+        // Uint8List signature = Codec.decodeHex(
+        //     'f7cf5efd5dd274a08a88e15e2f6fb1f1c9c76b214dfd737cf8f61501fddb244a9fea050d93fb627389c9708c65287fc2d7eb8ac9088fc41ee8035af22cddc545');
+        // expect(Ecc.verifySchnorr(message, aggregatedPubKey, signature), isTrue);
       });
     });
 
