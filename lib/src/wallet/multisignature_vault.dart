@@ -67,6 +67,25 @@ class MultisignatureVault extends MultisignatureWalletBase {
     }
   }
 
+  // String addMuSig2PublicNonce(String psbt) {
+  //   if (addressType != AddressType.p2trMuSig2) {
+  //     throw Exception("Only MuSig2 needs public nonce.");
+  //   }
+  //   if (!canSignToPsbt(psbt)) {
+  //     throw Exception('No keyStore can sign to the PSBT.');
+  //   }
+
+  //   String nonceAddedPsbt = psbt;
+
+  //   for (KeyStore keyStore in keyStoreList) {
+  //     if (!keyStore.hasSeed) continue;
+  //     if (keyStore.canSignToPsbt(psbt)) {
+  //       nonceAddedPsbt = keyStore.addMuSig2PublicNonceToPsbt(nonceAddedPsbt);
+  //     }
+  //   }
+
+  //   return nonceAddedPsbt;
+  // }
   String addMuSig2PublicNonce(String psbt) {
     if (addressType != AddressType.p2trMuSig2) {
       throw Exception("Only MuSig2 needs public nonce.");
@@ -74,17 +93,36 @@ class MultisignatureVault extends MultisignatureWalletBase {
     if (!canSignToPsbt(psbt)) {
       throw Exception('No keyStore can sign to the PSBT.');
     }
-
-    String nonceAddedPsbt = psbt;
-
-    for (KeyStore keyStore in keyStoreList) {
-      if (!keyStore.hasSeed) continue;
-      if (keyStore.canSignToPsbt(psbt)) {
-        nonceAddedPsbt = keyStore.addMuSig2PublicNonceToPsbt(nonceAddedPsbt);
-      }
+    Psbt psbtObject = Psbt.parse(psbt);
+    if (psbtObject.addressType != AddressType.p2trMuSig2) {
+      throw Exception('Only musig2 needs public nonce.');
+    }
+    if (psbtObject.inputs.length !=
+        psbtObject.unsignedTransaction!.inputs.length) {
+      throw Exception('Not enought psbt inputs or transaction inputs');
     }
 
-    return nonceAddedPsbt;
+    List<TransactionOutput> utxoList = [];
+    for (int j = 0; j < psbtObject.unsignedTransaction!.inputs.length; j++) {
+      utxoList.add(psbtObject.inputs[j].witnessUtxo!);
+    }
+
+    for (int inputIndex = 0;
+        inputIndex < psbtObject.inputs.length;
+        inputIndex++) {
+      String sigHash = psbtObject.unsignedTransaction!
+          .getTaprootSigHash(inputIndex, utxoList);
+      PsbtInput psbtInput = psbtObject.inputs[inputIndex];
+      for (DerivationPath derivationPath in psbtInput.tapBip32Derivation!) {
+        for (KeyStore keyStore in keyStoreList) {
+          if (derivationPath.masterFingerprint == keyStore.masterFingerprint) {
+            keyStore.addMuSig2PublicNonceToPsbt(
+                psbtInput, derivationPath.path, sigHash);
+          }
+        }
+      }
+    }
+    return psbtObject.serialize();
   }
 
   /// Get Json string of the multisignature vault.

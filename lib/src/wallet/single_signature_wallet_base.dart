@@ -75,6 +75,48 @@ abstract class SingleSignatureWalletBase extends WalletBase {
 
   @override
   String addSignatureToPsbt(String psbt) {
-    return keyStore.addSignatureToPsbt(psbt, addressType);
+    Psbt psbtObject = Psbt.parse(psbt);
+    if (psbtObject.addressType != addressType) {
+      throw Exception('Address Type is not matched.');
+    }
+
+    if (psbtObject.inputs.length !=
+        psbtObject.unsignedTransaction!.inputs.length) {
+      throw Exception('Not enought psbt inputs or transaction inputs');
+    }
+
+    for (int inputIndex = 0;
+        inputIndex < psbtObject.inputs.length;
+        inputIndex++) {
+      PsbtInput input = psbtObject.inputs[inputIndex];
+      TransactionOutput utxo = input.witnessUtxo!;
+      late String sigHash;
+      List<DerivationPath>? derivationPathList;
+      if (!addressType.isTaproot) {
+        derivationPathList = input.bip32Derivation;
+        sigHash = psbtObject.unsignedTransaction!
+            .getSigHash(inputIndex, utxo, addressType);
+      } else {
+        derivationPathList = input.tapBip32Derivation;
+
+        List<TransactionOutput> utxoList = [];
+        for (int j = 0;
+            j < psbtObject.unsignedTransaction!.inputs.length;
+            j++) {
+          utxoList.add(psbtObject.inputs[j].witnessUtxo!);
+        }
+        sigHash = psbtObject.unsignedTransaction!
+            .getTaprootSigHash(inputIndex, utxoList);
+      }
+
+      for (DerivationPath derivationPath in derivationPathList!) {
+        if (derivationPath.masterFingerprint == keyStore.masterFingerprint) {
+          keyStore.addSignatureToPsbt(
+              input, addressType, derivationPath.path, sigHash);
+          break;
+        }
+      }
+    }
+    return psbtObject.serialize();
   }
 }

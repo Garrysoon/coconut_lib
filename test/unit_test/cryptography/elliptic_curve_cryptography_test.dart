@@ -758,7 +758,6 @@ void main() {
 
         MuSig2SessionContext sessionContext = MuSig2SessionContext(
             aggregatedPubNonce, participantPublicKeys, message);
-        print(sessionContext.e);
         expect(
             Ecc.verifyMuSig2PartialSignature(
                 partialSignature, publicNonce, publicKey, sessionContext),

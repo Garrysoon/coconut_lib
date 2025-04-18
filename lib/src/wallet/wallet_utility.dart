@@ -223,13 +223,14 @@ abstract class WalletUtility {
       }
     }
 
-    Uint8List secondKey = Uint8List(0);
+    late Uint8List secondKey = Uint8List(0);
     for (Uint8List key in prefixedPublicKeyList) {
-      if (prefixedPublicKeyList[0] != key) {
+      if (Codec.encodeHex(prefixedPublicKeyList[0]) != Codec.encodeHex(key)) {
         secondKey = key;
         break;
       }
     }
+
     String concatenatedPublicKey =
         prefixedPublicKeyList.map((e) => Codec.encodeHex(e)).join();
 

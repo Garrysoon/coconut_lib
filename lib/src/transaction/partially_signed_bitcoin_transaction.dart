@@ -228,6 +228,7 @@ class Psbt {
 
   /// Generate the PSBT to base64 string.
   String serialize() {
+    _updatePsbtMap();
     List<int> psbtBytes = [0x70, 0x73, 0x62, 0x74, 0xff];
     //Global
     psbtBytes.addAll(_serializeKeyMap(psbtMap["global"]));
@@ -245,6 +246,37 @@ class Psbt {
 
     psbtBytes.add(0x00);
     return base64Encode(psbtBytes);
+  }
+
+  void _updatePsbtMap() {
+    for (int i = 0; i < inputs.length; i++) {
+      if (inputs[i].partialSig != null) {
+        for (Signature signature in inputs[i].partialSig!) {
+          if (!psbtMap["inputs"][i].keys.contains("02${signature.publicKey}")) {
+            psbtMap["inputs"][i]["02${signature.publicKey}"] =
+                signature.signature;
+          }
+        }
+      }
+      if (inputs[i].tapKeySig != null) {
+        if (!psbtMap["inputs"][i].keys.contains("13")) {
+          psbtMap["inputs"][i]["13"] = inputs[i].tapKeySig!;
+        }
+      }
+      if (inputs[i].tapScriptSig != null) {
+        if (!psbtMap["inputs"][i].keys.contains("14")) {
+          psbtMap["inputs"][i]["14"] = inputs[i].tapScriptSig!;
+        }
+      }
+      if (inputs[i].muSig2PubNonces != null) {
+        for (String publicKey in inputs[i].muSig2PubNonces!.keys) {
+          if (!psbtMap["inputs"][i].keys.contains("1b$publicKey")) {
+            psbtMap["inputs"][i]["1b$publicKey"] =
+                inputs[i].muSig2PubNonces![publicKey]!;
+          }
+        }
+      }
+    }
   }
 
   List<int> _serializeKeyMap(Map<String, dynamic> map) {
@@ -565,30 +597,30 @@ class Psbt {
   }
 
   /// Add a signature to the PSBT.
-  void addPartialSig(int inputIndex, String signature, String publicKey) {
-    inputs[inputIndex].addPartialSig(signature, publicKey);
-    psbtMap["inputs"][inputIndex]["02$publicKey"] = signature;
-  }
+  // void addPartialSig(int inputIndex, String signature, String publicKey) {
+  //   inputs[inputIndex].addPartialSig(signature, publicKey);
+  //   psbtMap["inputs"][inputIndex]["02$publicKey"] = signature;
+  // }
 
-  void addTapKeySig(int inputIndex, String signature) {
-    inputs[inputIndex].addTapKeySig(signature);
-    psbtMap["inputs"][inputIndex]["13"] = signature;
-  }
+  // void addTapKeySig(int inputIndex, String signature) {
+  //   inputs[inputIndex].addTapKeySig(signature);
+  //   psbtMap["inputs"][inputIndex]["13"] = signature;
+  // }
 
-  void addTapScriptSig(int inputIndex, String signature, String publicKey) {
-    inputs[inputIndex].addTapScriptSig(signature, publicKey);
-    psbtMap["inputs"][inputIndex]["14$publicKey"] = signature;
-  }
+  // void addTapScriptSig(int inputIndex, String signature, String publicKey) {
+  //   inputs[inputIndex].addTapScriptSig(signature, publicKey);
+  //   psbtMap["inputs"][inputIndex]["14$publicKey"] = signature;
+  // }
 
-  void addMuSig2PubNonce(int inputIndex, String publicKey, String nonce) {
-    inputs[inputIndex].addMuSig2PubNonce(publicKey, nonce);
-    psbtMap["inputs"][inputIndex]["1b$publicKey"] = nonce;
-  }
+  // void addMuSig2PubNonce(int inputIndex, String publicKey, String nonce) {
+  //   inputs[inputIndex].addMuSig2PubNonce(publicKey, nonce);
+  //   psbtMap["inputs"][inputIndex]["1b$publicKey"] = nonce;
+  // }
 
-  void addMuSig2PartialSig(int inputIndex, String signature, String publicKey) {
-    inputs[inputIndex].addMuSig2PartialSig(signature, publicKey);
-    psbtMap["inputs"][inputIndex]["1c$publicKey"] = signature;
-  }
+  // void addMuSig2PartialSig(int inputIndex, String signature, String publicKey) {
+  //   inputs[inputIndex].addMuSig2PartialSig(signature, publicKey);
+  //   psbtMap["inputs"][inputIndex]["1c$publicKey"] = signature;
+  // }
 
   String getAggregatedPublicNonce(int inputIndex) {
     return inputs[inputIndex].getAggregatedPublicNonce();

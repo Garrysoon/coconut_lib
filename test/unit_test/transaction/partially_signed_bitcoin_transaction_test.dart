@@ -95,8 +95,7 @@ void main() {
     });
     group('addSignature', () {
       test('Add signature to psbt', () {
-        unsignedPsbt.addPartialSig(
-            0,
+        unsignedPsbt.inputs[0].addPartialSig(
             '3045022100de494cd0a05a5621d8303a024130fc43550af2ec456de026174c542dfb1706e5022037f358ddba9025abc70d19693014304158eda80877e00f4b9cea86d18d4fad9801',
             '0246c18ea7c5624b87e5f65a60842c9a22b27ae7e3630a95abeb35455259761824');
 

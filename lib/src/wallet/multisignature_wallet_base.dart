@@ -112,21 +112,102 @@ abstract class MultisignatureWalletBase extends WalletBase {
     return false;
   }
 
+  // @override
+  // String addSignatureToPsbt(String psbt) {
+  //   if (!canSignToPsbt(psbt)) {
+  //     throw Exception('No keyStore can sign to the PSBT.');
+  //   }
+
+  //   String signedPsbt = psbt;
+
+  //   for (KeyStore keyStore in keyStoreList) {
+  //     if (!keyStore.hasSeed) continue;
+  //     if (keyStore.canSignToPsbt(signedPsbt)) {
+  //       signedPsbt = keyStore.addSignatureToPsbt(signedPsbt, addressType);
+  //     }
+  //   }
+  //   return signedPsbt;
+  // }
+
   @override
   String addSignatureToPsbt(String psbt) {
-    if (!canSignToPsbt(psbt)) {
-      throw Exception('No keyStore can sign to the PSBT.');
+    Psbt psbtObject = Psbt.parse(psbt);
+    if (psbtObject.addressType != addressType) {
+      throw Exception('Address Type is not matched.');
     }
 
-    String signedPsbt = psbt;
+    if (psbtObject.inputs.length !=
+        psbtObject.unsignedTransaction!.inputs.length) {
+      throw Exception('Not enought psbt inputs or transaction inputs');
+    }
 
-    for (KeyStore keyStore in keyStoreList) {
-      if (!keyStore.hasSeed) continue;
-      if (keyStore.canSignToPsbt(signedPsbt)) {
-        signedPsbt = keyStore.addSignatureToPsbt(signedPsbt, addressType);
+    for (int inputIndex = 0;
+        inputIndex < psbtObject.inputs.length;
+        inputIndex++) {
+      //in every input
+      PsbtInput psbtInput = psbtObject.inputs[inputIndex];
+      if (psbtInput.requiredSignature <= psbtInput.signedCount) {
+        continue;
+      }
+      //get sigHash
+      late String sigHash;
+      MuSig2SessionContext? sessionContext;
+      if (!addressType.isTaproot) {
+        //ECDSA
+        if (addressType != AddressType.p2wsh) {
+          throw Exception('Not support witness script for this address type.');
+        }
+        TransactionOutput utxo = psbtInput.witnessUtxo!;
+        String? witnessScript = psbtInput.witnessScript!.rawSerialize();
+        sigHash = psbtObject.unsignedTransaction!.getSigHash(
+            inputIndex, utxo, addressType,
+            witnessScript: witnessScript);
+      } else {
+        //Taproot
+        if (addressType != AddressType.p2trMuSig2) {
+          throw Exception('Not support witness script for this address type.');
+        }
+        List<TransactionOutput> utxoList = [];
+        for (int j = 0;
+            j < psbtObject.unsignedTransaction!.inputs.length;
+            j++) {
+          utxoList.add(psbtObject.inputs[j].witnessUtxo!);
+        }
+        sigHash = psbtObject.unsignedTransaction!
+            .getTaprootSigHash(inputIndex, utxoList);
+
+        sessionContext = MuSig2SessionContext(
+            Codec.decodeHex(psbtInput.getAggregatedPublicNonce()),
+            psbtInput.muSig2ParticipantPubkeys!
+                .map((e) => Codec.decodeHex(e))
+                .toList(),
+            Codec.decodeHex(sigHash));
+      }
+
+      List<DerivationPath>? derivationPathList;
+      if (!addressType.isTaproot) {
+        derivationPathList = psbtInput.bip32Derivation;
+      } else {
+        derivationPathList = psbtInput.tapBip32Derivation;
+      }
+      for (DerivationPath derivationPath in derivationPathList!) {
+        if (psbtInput.requiredSignature <= psbtInput.signedCount) {
+          break;
+        }
+        for (KeyStore keyStore in keyStoreList) {
+          if (!keyStore.hasSeed) {
+            break;
+          }
+          if (derivationPath.masterFingerprint == keyStore.masterFingerprint) {
+            keyStore.addSignatureToPsbt(
+                psbtInput, addressType, derivationPath.path, sigHash,
+                sessionContext: sessionContext);
+            break;
+          }
+        }
       }
     }
-    return signedPsbt;
+    return psbtObject.serialize();
   }
 
   String getAddregatedPublilcKey(int addressIndex, bool isChange,
