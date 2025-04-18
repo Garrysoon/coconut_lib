@@ -282,4 +282,33 @@ void main() {
       });
     });
   });
+
+  group('MuSigSessionContext', () {
+    group('getMuSig2PublicNonce', () {
+      test('Generate session context', () {
+        Uint8List message = Codec.decodeHex(
+            '6701942fd0f38440a7c410a3fcf6a6e10bd76a4974c3b0a9553e60528c78a6b5');
+        List<Uint8List> participantPublicKeys = [
+          Codec.decodeHex(
+              '0231cd531693ac6f845e040afbad01fc13816869436d5bbaa0367abc3809b8848f'),
+          Codec.decodeHex(
+              '0236df5f7ac13900bef3fa97c66110397344af522501630a7490cd88e91fff1e24'),
+          Codec.decodeHex(
+              '02e9ee267a4bd5d0df21cc649bdda375bb5510d173ed4127b15da93f0717b1f99d')
+        ];
+        Uint8List aggregatedPubNonce = Codec.decodeHex(
+            '03ddffdfd8f613ca697f313579e80adbf34564fac6ce5808b6d0dde9d09327c1b002cfa39d381c6366ebdd7019641dba6dd453f9d38f56d38b0d7e33b51cfbfe95ef');
+        MuSig2SessionContext sessionContext = MuSig2SessionContext(
+            aggregatedPubNonce, participantPublicKeys, message);
+        expect(Codec.encodeHex(Ecc.getEncoded(sessionContext.Q, true)),
+            '0244c18be84322bd051743e9dac38d8a9472fc1e39d66ea3951da419747a4f96eb');
+        expect(sessionContext.b.toString(),
+            '42452304263695163620196203845095753431190306116738962141428713186034786858279');
+        expect(sessionContext.R.x.toString(),
+            '60143870298663942742991689092797257507829257715383491360440278844229307818615');
+        expect(sessionContext.e.toString(),
+            '75550762600552793952557687225983707197539317791023912703967559988774299150629');
+      });
+    });
+  });
 }

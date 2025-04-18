@@ -215,24 +215,30 @@ abstract class WalletUtility {
     for (Uint8List publicKey in publicKeysBytes) {
       if (publicKey.length == 32) {
         prefixedPublicKeyList.add(Uint8List.fromList([0x02, ...publicKey]));
-      } else {
+      } else if (publicKey.length == 33) {
         prefixedPublicKeyList.add(publicKey);
+      } else {
+        throw ArgumentError(
+            "publicKey must be 32 or 33 bytes (got ${publicKey.length})");
       }
     }
 
     Uint8List secondKey = Uint8List(0);
-    for (String key in publicKeyList) {
-      if (publicKeyList[0] != key) {
-        secondKey = Codec.decodeHex(key);
+    for (Uint8List key in prefixedPublicKeyList) {
+      if (prefixedPublicKeyList[0] != key) {
+        secondKey = key;
         break;
       }
     }
-    String concatenatedPublicKey = publicKeyList.map((e) => e).join();
+    String concatenatedPublicKey =
+        prefixedPublicKeyList.map((e) => Codec.encodeHex(e)).join();
 
-    Uint8List Q = publicKeysBytes[0];
-    for (int i = 0; i < publicKeysBytes.length; i++) {
+    Uint8List Q = prefixedPublicKeyList[0];
+
+    for (int i = 0; i < prefixedPublicKeyList.length; i++) {
       Uint8List coefficient = Uint8List(0);
-      if (Codec.encodeHex(publicKeysBytes[i]) == Codec.encodeHex(secondKey)) {
+      if (Codec.encodeHex(prefixedPublicKeyList[i]) ==
+          Codec.encodeHex(secondKey)) {
         coefficient = Uint8List.fromList(List<int>.generate(
             32,
             (i) => int.parse(
@@ -248,6 +254,7 @@ abstract class WalletUtility {
         coefficient = Codec.decodeHex(
             Hash.taggedHash('KeyAgg coefficient', Codec.decodeHex(data)));
       }
+
       if (i == 0) {
         Q = Ecc.pointMultiplyScalar(
             prefixedPublicKeyList[i], coefficient, true)!;
@@ -259,6 +266,7 @@ abstract class WalletUtility {
             true)!;
       }
     }
+
     if (isXOnly) {
       return Q.sublist(1);
     } else {

@@ -428,20 +428,11 @@ class Ecc {
   }
 
   static Uint8List signSchnorrForMuSig2(
-      Uint8List message,
-      Uint8List aggregatedPubNonce,
-      Uint8List privateKey,
       Uint8List secretNonce,
+      Uint8List privateKey,
       Uint8List publicKey,
-      List<Uint8List> participantPublicKeys,
+      MuSig2SessionContext sessionContext,
       {bool isFullSignature = true}) {
-    if (message.length != 32) {
-      throw ArgumentError("sighash must be 32 bytes (got ${message.length})");
-    }
-    if (aggregatedPubNonce.length != 66) {
-      throw ArgumentError(
-          "aggregatedPubNonce must be 66 bytes (got ${aggregatedPubNonce.length})");
-    }
     if (privateKey.length != 32) {
       throw ArgumentError(
           "privateKey must be 32 bytes (got ${privateKey.length})");
@@ -459,50 +450,31 @@ class Ecc {
       publicKey = Uint8List.fromList([0x02, ...publicKey]);
     }
 
-    Uint8List q = WalletUtility.aggregatePublicKey(
-        participantPublicKeys.map((e) => Codec.encodeHex(e)).toList(),
-        isXOnly: false);
+    Uint8List Q = getEncoded(sessionContext.Q, true);
+    BigInt b = sessionContext.b;
+    ECPoint R = sessionContext.R;
+    BigInt e = sessionContext.e;
 
-    for (int i = 0; i < participantPublicKeys.length; i++) {
-      if (participantPublicKeys[i].length == 32) {
-        participantPublicKeys[i] =
-            Uint8List.fromList([0x02, ...participantPublicKeys[i]]);
-      } else if (participantPublicKeys[i].length != 33) {
-        throw ArgumentError(
-            "participantPublicKeys must be 32 or 33 bytes (got ${participantPublicKeys[i].length})");
-      }
-    }
+    Uint8List R_x = getEncoded(R, false).sublist(1, 33);
 
-    late BigInt b;
-    late ECPoint r;
-    late BigInt e;
-
-    b = fromBuffer(Codec.decodeHex(Hash.taggedHash(
-        "MuSig/noncecoef",
+    e = fromBuffer(Codec.decodeHex(Hash.taggedHash(
+        "BIP0340/challenge",
         Uint8List.fromList(
-            [...aggregatedPubNonce, ...q.sublist(1), ...message]))));
-
-    final r1 = decodeFrom(aggregatedPubNonce.sublist(0, 33))!;
-    final r2 = decodeFrom(aggregatedPubNonce.sublist(33, 66))!;
-
-    r = (r1 + r2 * b)!;
-
-    Uint8List R_x = getEncoded(r, false).sublist(1, 33);
-
-    e = fromBuffer(Codec.decodeHex(Hash.taggedHash("BIP0340/challenge",
-        Uint8List.fromList([...R_x, ...q.sublist(1), ...message]))));
+            [...R_x, ...Q.sublist(1), ...sessionContext.message]))));
 
     late BigInt a;
-    Uint8List L = Codec.decodeHex(Hash.taggedHash('KeyAgg list',
-        Uint8List.fromList(participantPublicKeys.expand((x) => x).toList())));
+    Uint8List L = Codec.decodeHex(Hash.taggedHash(
+        'KeyAgg list',
+        Uint8List.fromList(
+            sessionContext.participantPublicKeys.expand((x) => x).toList())));
 
     Uint8List? secondKey;
     for (int keyIndex = 1;
-        keyIndex < participantPublicKeys.length;
+        keyIndex < sessionContext.participantPublicKeys.length;
         keyIndex++) {
-      if (Codec.encodeHex(participantPublicKeys[0]) !=
-          Codec.encodeHex(participantPublicKeys[keyIndex])) {
-        secondKey = participantPublicKeys[keyIndex];
+      if (Codec.encodeHex(sessionContext.participantPublicKeys[0]) !=
+          Codec.encodeHex(sessionContext.participantPublicKeys[keyIndex])) {
+        secondKey = sessionContext.participantPublicKeys[keyIndex];
         break;
       }
     }
@@ -517,20 +489,25 @@ class Ecc {
     }
 
     BigInt g = BigInt.one;
-    if (decodeFrom(q)!.y!.toBigInteger()!.isOdd) {
+    if (decodeFrom(Q)!.y!.toBigInteger()!.isOdd) {
       g = n - BigInt.one;
     }
 
     BigInt d = g * fromBuffer(privateKey) % n;
 
-    BigInt k1 =
+    BigInt k1_ =
         Converter.hexToBigDec(Codec.encodeHex(secretNonce.sublist(0, 32)));
-    BigInt k2 =
+    BigInt k2_ =
         Converter.hexToBigDec(Codec.encodeHex(secretNonce.sublist(32, 64)));
 
-    if (r.y!.toBigInteger()!.isOdd) {
-      k1 = n - k1;
-      k2 = n - k2;
+    BigInt k1;
+    BigInt k2;
+    if (R.y!.toBigInteger()!.isOdd) {
+      k1 = n - k1_;
+      k2 = n - k2_;
+    } else {
+      k1 = k1_;
+      k2 = k2_;
     }
 
     BigInt s = (k1 + b * k2 + e * a * d) % n;
@@ -544,10 +521,11 @@ class Ecc {
       throw Exception("s value is too large!");
     }
 
-    Uint8List fullSignature = Uint8List.fromList([...R_x, ...sBytes]);
+    Uint8List publicNonce = Uint8List.fromList(
+        pointFromScalar(toBuffer(k1_), true)! +
+            pointFromScalar(toBuffer(k2_), true)!);
 
-    // if (verifyMuSig2PartialSignature(fullSignature, publicKey, a, e)) {}
-    // throw Exception("Invalid signature");
+    Uint8List fullSignature = Uint8List.fromList([...R_x, ...sBytes]);
 
     if (isFullSignature) {
       return fullSignature;
@@ -556,65 +534,108 @@ class Ecc {
     }
   }
 
+  static bool verifyMuSig2PartialSignature(
+      Uint8List signature,
+      Uint8List publicNonce,
+      Uint8List publicKey,
+      MuSig2SessionContext sessionContext) {
+    Uint8List prefixedPublicKey = publicKey.length == 32
+        ? Uint8List.fromList([0x02, ...publicKey])
+        : publicKey;
+
+    ECPoint Q = sessionContext.Q;
+    ECPoint R = sessionContext.R;
+    BigInt b = sessionContext.b;
+    BigInt e = sessionContext.e;
+    BigInt tacc = BigInt.from(0);
+    BigInt gacc = BigInt.from(1);
+    late BigInt s;
+
+    Uint8List R_x = getEncoded(R, false).sublist(1, 33);
+
+    if (signature.length == 64) {
+      s = fromBuffer(signature.sublist(32, 64));
+    } else {
+      s = fromBuffer(signature);
+    }
+
+    if (s >= n) {
+      return false;
+    }
+
+    ECPoint R1 = secp256k1.curve.decodePoint(publicNonce.sublist(0, 33))!;
+    ECPoint R2 = secp256k1.curve.decodePoint(publicNonce.sublist(33, 66))!;
+
+    ECPoint Re_s_ = (R1 + (R2 * b))!;
+    if (Re_s_.y!.toBigInteger()!.isOdd) {
+      Re_s_ = decodeFrom(pointNegate(getEncoded(Re_s_, true))!)!;
+    }
+
+    final P = secp256k1.curve.decodePoint(prefixedPublicKey)!;
+
+    late BigInt a;
+    Uint8List L = Codec.decodeHex(Hash.taggedHash(
+        'KeyAgg list',
+        Uint8List.fromList(
+            sessionContext.participantPublicKeys.expand((x) => x).toList())));
+
+    Uint8List? secondKey;
+    for (int keyIndex = 1;
+        keyIndex < sessionContext.participantPublicKeys.length;
+        keyIndex++) {
+      if (Codec.encodeHex(sessionContext.participantPublicKeys[0]) !=
+          Codec.encodeHex(sessionContext.participantPublicKeys[keyIndex])) {
+        secondKey = sessionContext.participantPublicKeys[keyIndex];
+        break;
+      }
+    }
+
+    if (secondKey != null &&
+        Codec.encodeHex(publicKey) == Codec.encodeHex(secondKey)) {
+      a = BigInt.one;
+    } else {
+      a = fromBuffer(Codec.decodeHex(
+              Hash.taggedHash('KeyAgg coefficient', L + prefixedPublicKey))) %
+          n;
+    }
+
+    final g = Q.y!.toBigInteger()!.isOdd ? n - BigInt.one : BigInt.one;
+    final g_ = (g * gacc) % n;
+
+    final left = G * s;
+    final right = Re_s_ + (P * ((e * a * g_) % n));
+
+    return left == right;
+  }
+
   static Uint8List getAggregatedSignatureForMuSig2(
-    Uint8List aggregatedPubKey,
-    Uint8List aggregatedPubNonce,
-    Uint8List message,
+    MuSig2SessionContext sessionContext,
     List<Uint8List> signatureList,
   ) {
-    if (aggregatedPubKey.length != 32 && aggregatedPubKey.length != 33) {
-      throw ArgumentError(
-          "public key must be 32 or 33 bytes (got ${aggregatedPubKey.length})");
-    }
-    if (aggregatedPubNonce.length != 66) {
-      throw ArgumentError(
-          "aggregatedPubNonce must be 66 bytes (got ${aggregatedPubNonce.length})");
-    }
-    if (message.length != 32) {
-      throw ArgumentError("message must be 32 bytes (got ${message.length})");
-    }
-    if (aggregatedPubKey.length == 32) {
-      aggregatedPubKey = Uint8List.fromList([0x02, ...aggregatedPubKey]);
-    }
-    late BigInt b;
-    late ECPoint r;
-    late BigInt e;
+    ECPoint r = sessionContext.R;
+    BigInt e = sessionContext.e;
     final BigInt tacc = BigInt.from(0);
-
-    b = fromBuffer(Codec.decodeHex(Hash.taggedHash(
-        "MuSig/noncecoef",
-        Uint8List.fromList([
-          ...aggregatedPubNonce,
-          ...aggregatedPubKey.sublist(1),
-          ...message
-        ]))));
-
-    final r1 = decodeFrom(aggregatedPubNonce.sublist(0, 33))!;
-    final r2 = decodeFrom(aggregatedPubNonce.sublist(33, 66))!;
-
-    r = (r1 + r2 * b)!;
 
     // Get R_x (32 bytes) from r point
     Uint8List R_x = getEncoded(r, false).sublist(1, 33);
 
-    e = fromBuffer(Codec.decodeHex(Hash.taggedHash(
-        "BIP0340/challenge",
-        Uint8List.fromList(
-            [...R_x, ...aggregatedPubKey.sublist(1), ...message]))));
     BigInt s = BigInt.zero;
     for (int i = 0; i < signatureList.length; i++) {
       Uint8List signature = signatureList[i];
+      BigInt si;
       if (signature.length == 64) {
-        s += fromBuffer(signature.sublist(32, 64));
+        si = fromBuffer(signature.sublist(32, 64));
       } else {
-        s += fromBuffer(signature);
+        si = fromBuffer(signature);
       }
-      s = s % n;
+      s = (s + si) % n;
     }
+
     BigInt g = BigInt.one;
-    if (decodeFrom(aggregatedPubKey)!.y!.toBigInteger()!.isOdd) {
+    if (sessionContext.Q.y!.toBigInteger()!.isOdd) {
       g = n - BigInt.one;
     }
+
     s = (s + e * g * tacc) % n;
     return Uint8List.fromList(R_x + Codec.decodeHex(Converter.bigDecToHex(s)));
   }

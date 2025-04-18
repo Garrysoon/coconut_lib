@@ -31,7 +31,7 @@ class AddressType {
   // Check if the address type is for taproot.
   bool get isTaproot => name.startsWith('p2tr');
 
-  bool get applyTweak => name == 'p2trKeyPathSpending' || name == 'p2trMuSig2';
+  bool get applyTweak => name == 'p2trKeyPathSpending';
 
   /// @nodoc
   final int versionForMainnet;

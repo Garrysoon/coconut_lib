@@ -69,16 +69,10 @@ void main() {
         "aggPubKey form vault : ${musig2Vault1.getAddregatedPublilcKey(0, false)}");
 
     Psbt psbt = Psbt.parse(nonceCompletedPsbt);
-    // for (String pub in psbt.inputs[0].muSig2ParticipantPubkeys!) {
-    //   print("pub in psbt : $pub");
-    // }
-    print("aggPubKey : ${psbt.inputs[0].muSig2AggregatedPublicKey}");
 
     String partialSigPsbt1 =
         musig2Vault1.addSignatureToPsbt(nonceCompletedPsbt);
     String partialSigPsbt2 = musig2Vault1.addSignatureToPsbt(partialSigPsbt1);
     String signedPsbt = musig2Vault1.addSignatureToPsbt(partialSigPsbt2);
-
-    print(partialSigPsbt1);
   });
 }

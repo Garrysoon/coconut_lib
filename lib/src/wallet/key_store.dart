@@ -269,10 +269,8 @@ class KeyStore {
       int accountIndex =
           WalletUtility.getAccountIndexFromDerivationPath(derivationPath);
       bool isChange = WalletUtility.isChangeFromDerivationPath(derivationPath);
-      String publicKey = getPublicKey(accountIndex, isChange: isChange);
-      if (publicKey != getPublicKey(accountIndex, isChange: isChange)) {
-        continue;
-      }
+      String publicKey =
+          getPublicKey(accountIndex, isChange: isChange, isXOnly: true);
       String publicNonce = getMuSig2PublicNonce(
           sigHash,
           psbtObject.inputs[inputIndex].muSig2AggregatedPublicKey!,
@@ -311,6 +309,7 @@ class KeyStore {
 
       // 1. Generate sig hash
       late String sigHash;
+      MuSig2SessionContext? muSig2SessionContext;
 
       if (!addressType.isTaproot) {
         // ECDSA
@@ -336,6 +335,14 @@ class KeyStore {
             .getTaprootSigHash(inputIndex, utxoList);
       }
 
+      if (addressType == AddressType.p2trMuSig2) {
+        muSig2SessionContext = MuSig2SessionContext(
+            Codec.decodeHex(psbtInput.getAggregatedPublicNonce()),
+            psbtInput.muSig2ParticipantPubkeys!
+                .map((e) => Codec.decodeHex(e))
+                .toList(),
+            Codec.decodeHex(sigHash));
+      }
       // 2. Calculate signatures and get public keys
 
       Map<String, String> signatureMap = {};
@@ -355,7 +362,8 @@ class KeyStore {
         String pub = getPublicKey(
             psbtInput.derivationPathList[pathIndex].accountIndex,
             isChange: psbtInput.derivationPathList[pathIndex].isChange,
-            applyTweak: addressType.applyTweak);
+            applyTweak: addressType.applyTweak,
+            isXOnly: addressType.isTaproot);
 
         if (!addressType.isTaproot) {
           // ECDSA
@@ -383,13 +391,11 @@ class KeyStore {
                 isChange));
 
             String signature = Codec.encodeHex(hdWallet.signSchnorrForMuSig2(
-                Codec.decodeHex(sigHash),
-                aggregatedPubKey,
-                aggregatedPubNonce,
+                // Codec.decodeHex(sigHash),
+                // aggregatedPubKey,
+                // aggregatedPubNonce,
                 secretNonce,
-                psbtInput.muSig2ParticipantPubkeys!
-                    .map((e) => Codec.decodeHex(e))
-                    .toList()));
+                muSig2SessionContext!));
 
             signatureMap[pub] = signature;
           }
@@ -413,10 +419,10 @@ class KeyStore {
               throw Exception('Invalid signature');
             }
           } else if (addressType == AddressType.p2trMuSig2) {
-            if (!Ecc.verifySchnorr(
-                Codec.decodeHex(sigHash),
-                Codec.decodeHex(psbtInput.muSig2AggregatedPublicKey!),
-                signature)) {
+            Uint8List publicNonce = Codec.decodeHex(
+                psbtInput.muSig2PubNonces![Codec.encodeHex(publicKey)]!);
+            if (!Ecc.verifyMuSig2PartialSignature(
+                signature, publicNonce, publicKey, muSig2SessionContext!)) {
               throw Exception('Invalid signature');
             }
           } else {
@@ -450,8 +456,8 @@ class KeyStore {
       {Uint8List? extraInput}) {
     Uint8List secretKey =
         Codec.decodeHex(getPrivateKey(accountIndex, isChange: isChange));
-    Uint8List publicKey =
-        Codec.decodeHex(getPublicKey(accountIndex, isChange: isChange));
+    Uint8List publicKey = Codec.decodeHex(
+        "02${getPublicKey(accountIndex, isChange: isChange, isXOnly: true)}");
     Uint8List aggPubkey = Codec.decodeHex(aggregatedPublicKey);
     Uint8List message = Codec.decodeHex(sigHash);
     Uint8List rand = Hash.sha160fromByte(
@@ -571,4 +577,96 @@ class KeyStore {
       _masterFingerprint.hashCode ^
       _extendedPublicKey.hashCode ^
       _seed.hashCode;
+}
+
+class MuSig2SessionContext {
+  Uint8List aggregatedPubNonce;
+  List<Uint8List> participantPublicKeys;
+  Uint8List message;
+
+  late ECPoint Q;
+  late BigInt b;
+  late ECPoint R;
+  late BigInt e;
+
+  MuSig2SessionContext(
+      this.aggregatedPubNonce, this.participantPublicKeys, this.message) {
+    print("\n=== MuSig2SessionContext Initialization ===");
+    print("Aggregated Public Nonce: ${Codec.encodeHex(aggregatedPubNonce)}");
+    print("Message: ${Codec.encodeHex(message)}");
+    print("Participant Public Keys:");
+    for (var key in participantPublicKeys) {
+      print("  - ${Codec.encodeHex(key)}");
+    }
+
+    if (message.length != 32) {
+      throw ArgumentError("sighash must be 32 bytes (got ${message.length})");
+    }
+    if (aggregatedPubNonce.length != 66) {
+      throw ArgumentError(
+          "aggregatedPubNonce must be 66 bytes (got ${aggregatedPubNonce.length})");
+    }
+
+    List<Uint8List> prefixedParticipantPublicKeys = [];
+    for (var key in participantPublicKeys) {
+      if (key.length == 32) {
+        prefixedParticipantPublicKeys.add(Uint8List.fromList([0x02, ...key]));
+      } else if (key.length == 33) {
+        prefixedParticipantPublicKeys.add(key);
+      } else {
+        throw ArgumentError(
+            "participantPublicKeys must be 32 or 33 bytes (got ${key.length})");
+      }
+    }
+
+    Q = Ecc.decodeFrom(WalletUtility.aggregatePublicKey(
+        participantPublicKeys.map((e) => Codec.encodeHex(e)).toList(),
+        isXOnly: false))!;
+    print(
+        "\nAggregated Public Key (Q): ${Codec.encodeHex(Ecc.getEncoded(Q, true))}");
+
+    for (int i = 0; i < participantPublicKeys.length; i++) {
+      if (participantPublicKeys[i].length == 32) {
+        participantPublicKeys[i] =
+            Uint8List.fromList([0x02, ...participantPublicKeys[i]]);
+        print(
+            "Adjusted participant public key ${i}: ${Codec.encodeHex(participantPublicKeys[i])}");
+      } else if (participantPublicKeys[i].length != 33) {
+        throw ArgumentError(
+            "participantPublicKeys must be 32 or 33 bytes (got ${participantPublicKeys[i].length})");
+      }
+    }
+
+    b = Ecc.fromBuffer(Codec.decodeHex(Hash.taggedHash(
+        "MuSig/noncecoef",
+        Uint8List.fromList([
+          ...aggregatedPubNonce,
+          ...Ecc.getEncoded(Q, true).sublist(1),
+          ...message
+        ]))));
+    print("Nonce-input : ${Codec.encodeHex(Uint8List.fromList([
+          ...aggregatedPubNonce,
+          ...Ecc.getEncoded(Q, true).sublist(1),
+          ...message
+        ]))}");
+    print("\nNonce coefficient (b): ${b}");
+
+    final r1 = Ecc.decodeFrom(aggregatedPubNonce.sublist(0, 33))!;
+    final r2 = Ecc.decodeFrom(aggregatedPubNonce.sublist(33, 66))!;
+    print("R1: ${Codec.encodeHex(Ecc.getEncoded(r1, true))}");
+    print("R2: ${Codec.encodeHex(Ecc.getEncoded(r2, true))}");
+
+    R = (r1 + r2 * b)!;
+    print("Aggregated R: ${Codec.encodeHex(Ecc.getEncoded(R, true))}");
+
+    Uint8List rX = Ecc.getEncoded(R, false).sublist(1, 33);
+    print("R_x: ${Codec.encodeHex(rX)}");
+
+    e = Ecc.fromBuffer(Codec.decodeHex(Hash.taggedHash(
+        "BIP0340/challenge",
+        Uint8List.fromList(
+            [...rX, ...Ecc.getEncoded(Q, true).sublist(1), ...message]))));
+    print("Challenge (e): ${e}");
+    print("=== MuSig2SessionContext Initialization Complete ===\n");
+  }
 }

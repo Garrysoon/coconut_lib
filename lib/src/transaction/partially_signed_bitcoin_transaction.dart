@@ -790,8 +790,17 @@ class Psbt {
             signatureList.add(Codec.decodeHex(sig.signature));
           }
 
+          MuSig2SessionContext sessionContext = MuSig2SessionContext(
+            aggregatedPubNonce,
+            inputs[i]
+                .muSig2ParticipantPubkeys!
+                .map((e) => Codec.decodeHex(e))
+                .toList(),
+            message,
+          );
+
           Uint8List aggregatedSignature = Ecc.getAggregatedSignatureForMuSig2(
-              aggregatedPubKey, aggregatedPubNonce, message, signatureList);
+              sessionContext, signatureList);
           if (Ecc.verifySchnorr(
               message, aggregatedPubKey, aggregatedSignature)) {
             signedTransaction.inputs[i].setTaprootKeyPathSpendingSignature(
