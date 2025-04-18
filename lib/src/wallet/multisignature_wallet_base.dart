@@ -112,23 +112,6 @@ abstract class MultisignatureWalletBase extends WalletBase {
     return false;
   }
 
-  // @override
-  // String addSignatureToPsbt(String psbt) {
-  //   if (!canSignToPsbt(psbt)) {
-  //     throw Exception('No keyStore can sign to the PSBT.');
-  //   }
-
-  //   String signedPsbt = psbt;
-
-  //   for (KeyStore keyStore in keyStoreList) {
-  //     if (!keyStore.hasSeed) continue;
-  //     if (keyStore.canSignToPsbt(signedPsbt)) {
-  //       signedPsbt = keyStore.addSignatureToPsbt(signedPsbt, addressType);
-  //     }
-  //   }
-  //   return signedPsbt;
-  // }
-
   @override
   String addSignatureToPsbt(String psbt) {
     Psbt psbtObject = Psbt.parse(psbt);
@@ -195,10 +178,13 @@ abstract class MultisignatureWalletBase extends WalletBase {
           break;
         }
         for (KeyStore keyStore in keyStoreList) {
+          print('keyStore: ${keyStore.masterFingerprint}');
           if (!keyStore.hasSeed) {
-            break;
+            print('keyStore has no seed');
+            continue;
           }
           if (derivationPath.masterFingerprint == keyStore.masterFingerprint) {
+            print('add signature to psbt');
             keyStore.addSignatureToPsbt(
                 psbtInput, addressType, derivationPath.path, sigHash,
                 sessionContext: sessionContext);

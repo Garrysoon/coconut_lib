@@ -693,6 +693,7 @@ class Transaction {
       int requiredSigs = witnessScript.getRequiredSignature();
 
       if (signatures.length < requiredSigs) {
+        print('Not enough signatures');
         return false;
       }
 
