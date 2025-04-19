@@ -476,9 +476,9 @@ class KeyStore {
 }
 
 class MuSig2SessionContext {
-  Uint8List aggregatedPubNonce;
-  List<Uint8List> participantPublicKeys;
-  Uint8List message;
+  final Uint8List aggregatedPubNonce;
+  final List<Uint8List> participantPublicKeys;
+  final Uint8List message;
 
   late ECPoint Q;
   late BigInt b;
@@ -508,18 +508,18 @@ class MuSig2SessionContext {
     }
 
     Q = Ecc.decodeFrom(WalletUtility.aggregatePublicKey(
-        participantPublicKeys.map((e) => Codec.encodeHex(e)).toList(),
+        prefixedParticipantPublicKeys.map((e) => Codec.encodeHex(e)).toList(),
         isXOnly: false))!;
 
-    for (int i = 0; i < participantPublicKeys.length; i++) {
-      if (participantPublicKeys[i].length == 32) {
-        participantPublicKeys[i] =
-            Uint8List.fromList([0x02, ...participantPublicKeys[i]]);
-      } else if (participantPublicKeys[i].length != 33) {
-        throw ArgumentError(
-            "participantPublicKeys must be 32 or 33 bytes (got ${participantPublicKeys[i].length})");
-      }
-    }
+    // for (int i = 0; i < participantPublicKeys.length; i++) {
+    //   if (participantPublicKeys[i].length == 32) {
+    //     participantPublicKeys[i] =
+    //         Uint8List.fromList([0x02, ...participantPublicKeys[i]]);
+    //   } else if (participantPublicKeys[i].length != 33) {
+    //     throw ArgumentError(
+    //         "participantPublicKeys must be 32 or 33 bytes (got ${participantPublicKeys[i].length})");
+    //   }
+    // }
 
     b = Ecc.fromBuffer(Codec.decodeHex(Hash.taggedHash(
         "MuSig/noncecoef",

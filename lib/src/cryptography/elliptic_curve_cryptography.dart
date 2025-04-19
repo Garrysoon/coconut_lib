@@ -433,6 +433,23 @@ class Ecc {
       Uint8List publicKey,
       MuSig2SessionContext sessionContext,
       {bool isFullSignature = true}) {
+    // print('=== signSchnorrForMuSig2 Parameters ===');
+    // print('secretNonce: ${Codec.encodeHex(secretNonce)}');
+    // print('privateKey: ${Codec.encodeHex(privateKey)}');
+    // print('publicKey: ${Codec.encodeHex(publicKey)}');
+    // print('isFullSignature: $isFullSignature');
+    // print('sessionContext:');
+    // print(
+    //     '  aggregatedPubNonce: ${Codec.encodeHex(sessionContext.aggregatedPubNonce)}');
+    // print('  message: ${Codec.encodeHex(sessionContext.message)}');
+    // print(
+    //     '  participantPublicKeys: ${sessionContext.participantPublicKeys.map((key) => Codec.encodeHex(key)).join(', ')}');
+    // print('  Q: ${Codec.encodeHex(getEncoded(sessionContext.Q, true))}');
+    // print('  R: ${Codec.encodeHex(getEncoded(sessionContext.R, true))}');
+    // print('  b: ${sessionContext.b}');
+    // print('  e: ${sessionContext.e}');
+    // print('=====================================');
+
     if (privateKey.length != 32) {
       throw ArgumentError(
           "privateKey must be 32 bytes (got ${privateKey.length})");
@@ -446,9 +463,14 @@ class Ecc {
           "public key must be 32 or 33 bytes (got ${publicKey.length})");
     }
 
+    late Uint8List prefixedPublicKey;
+
     if (publicKey.length == 32) {
-      publicKey = Uint8List.fromList([0x02, ...publicKey]);
+      prefixedPublicKey = Uint8List.fromList([0x02, ...publicKey]);
+    } else {
+      prefixedPublicKey = publicKey;
     }
+    print('prefixedPublicKey: ${Codec.encodeHex(prefixedPublicKey)}');
 
     Uint8List Q = getEncoded(sessionContext.Q, true);
     BigInt b = sessionContext.b;
@@ -456,17 +478,20 @@ class Ecc {
     BigInt e = sessionContext.e;
 
     Uint8List R_x = getEncoded(R, false).sublist(1, 33);
+    print('R_x: ${Codec.encodeHex(R_x)}');
 
     e = fromBuffer(Codec.decodeHex(Hash.taggedHash(
         "BIP0340/challenge",
         Uint8List.fromList(
             [...R_x, ...Q.sublist(1), ...sessionContext.message]))));
+    print('e: $e');
 
     late BigInt a;
     Uint8List L = Codec.decodeHex(Hash.taggedHash(
         'KeyAgg list',
         Uint8List.fromList(
             sessionContext.participantPublicKeys.expand((x) => x).toList())));
+    print('L: ${Codec.encodeHex(L)}');
 
     Uint8List? secondKey;
     for (int keyIndex = 1;
@@ -478,27 +503,35 @@ class Ecc {
         break;
       }
     }
+    if (secondKey != null) {
+      print('secondKey: ${Codec.encodeHex(secondKey)}');
+    }
 
     if (secondKey != null &&
-        Codec.encodeHex(publicKey) == Codec.encodeHex(secondKey)) {
+        Codec.encodeHex(prefixedPublicKey) == Codec.encodeHex(secondKey)) {
       a = BigInt.one;
     } else {
       a = fromBuffer(Codec.decodeHex(
-              Hash.taggedHash('KeyAgg coefficient', L + publicKey))) %
+              Hash.taggedHash('KeyAgg coefficient', L + prefixedPublicKey))) %
           n;
     }
+    print('a: $a');
 
     BigInt g = BigInt.one;
     if (decodeFrom(Q)!.y!.toBigInteger()!.isOdd) {
       g = n - BigInt.one;
     }
+    print('g: $g');
 
     BigInt d = g * fromBuffer(privateKey) % n;
+    print('d: $d');
 
     BigInt k1_ =
         Converter.hexToBigDec(Codec.encodeHex(secretNonce.sublist(0, 32)));
     BigInt k2_ =
         Converter.hexToBigDec(Codec.encodeHex(secretNonce.sublist(32, 64)));
+    print('k1_: $k1_');
+    print('k2_: $k2_');
 
     BigInt k1;
     BigInt k2;
@@ -509,8 +542,11 @@ class Ecc {
       k1 = k1_;
       k2 = k2_;
     }
+    print('k1: $k1');
+    print('k2: $k2');
 
     BigInt s = (k1 + b * k2 + e * a * d) % n;
+    print('s: $s');
 
     Uint8List sBytes = toBuffer(s);
     if (sBytes.length < 32) {
@@ -521,11 +557,19 @@ class Ecc {
       throw Exception("s value is too large!");
     }
 
+    print("Partial signature: ${Codec.encodeHex(sBytes)}");
     Uint8List publicNonce = Uint8List.fromList(
         pointFromScalar(toBuffer(k1_), true)! +
             pointFromScalar(toBuffer(k2_), true)!);
+    print('publicNonce: ${Codec.encodeHex(publicNonce)}');
 
     Uint8List fullSignature = Uint8List.fromList([...R_x, ...sBytes]);
+    print('fullSignature: ${Codec.encodeHex(fullSignature)}');
+
+    if (!verifyMuSig2PartialSignature(
+        fullSignature, publicNonce, prefixedPublicKey, sessionContext)) {
+      throw Exception("Invalid signature generated");
+    }
 
     if (isFullSignature) {
       return fullSignature;
@@ -539,6 +583,22 @@ class Ecc {
       Uint8List publicNonce,
       Uint8List publicKey,
       MuSig2SessionContext sessionContext) {
+    // print('=== verifyMuSig2PartialSignature Parameters ===');
+    // print('signature: ${Codec.encodeHex(signature)}');
+    // print('publicNonce: ${Codec.encodeHex(publicNonce)}');
+    // print('publicKey: ${Codec.encodeHex(publicKey)}');
+    // print('sessionContext:');
+    // print(
+    //     '  aggregatedPubNonce: ${Codec.encodeHex(sessionContext.aggregatedPubNonce)}');
+    // print('  message: ${Codec.encodeHex(sessionContext.message)}');
+    // print(
+    //     '  participantPublicKeys: ${sessionContext.participantPublicKeys.map((key) => Codec.encodeHex(key)).join(', ')}');
+    // print('  Q: ${Codec.encodeHex(getEncoded(sessionContext.Q, true))}');
+    // print('  R: ${Codec.encodeHex(getEncoded(sessionContext.R, true))}');
+    // print('  b: ${sessionContext.b}');
+    // print('  e: ${sessionContext.e}');
+    // print('=============================================');
+
     Uint8List prefixedPublicKey = publicKey.length == 32
         ? Uint8List.fromList([0x02, ...publicKey])
         : publicKey;
@@ -551,33 +611,41 @@ class Ecc {
     BigInt gacc = BigInt.from(1);
     late BigInt s;
 
-    Uint8List R_x = getEncoded(R, false).sublist(1, 33);
+    // Uint8List Rx = getEncoded(R, false).sublist(1, 33);
+    // print('R_x: ${Codec.encodeHex(R_x)}');
 
     if (signature.length == 64) {
       s = fromBuffer(signature.sublist(32, 64));
     } else {
       s = fromBuffer(signature);
     }
+    // print('s: $s');
 
     if (s >= n) {
+      // print('s >= n, verification failed');
       return false;
     }
 
     ECPoint R1 = secp256k1.curve.decodePoint(publicNonce.sublist(0, 33))!;
     ECPoint R2 = secp256k1.curve.decodePoint(publicNonce.sublist(33, 66))!;
+    // print('R1: ${Codec.encodeHex(getEncoded(R1, true))}');
+    // print('R2: ${Codec.encodeHex(getEncoded(R2, true))}');
 
-    ECPoint Re_s_ = (R1 + (R2 * b))!;
-    if (Re_s_.y!.toBigInteger()!.isOdd) {
-      Re_s_ = decodeFrom(pointNegate(getEncoded(Re_s_, true))!)!;
+    ECPoint ReS = (R1 + (R2 * b))!;
+
+    if (R.y!.toBigInteger()!.isOdd) {
+      ReS = decodeFrom(pointNegate(getEncoded(ReS, true))!)!;
     }
 
     final P = secp256k1.curve.decodePoint(prefixedPublicKey)!;
+    // print('P: ${Codec.encodeHex(getEncoded(P, true))}');
 
     late BigInt a;
     Uint8List L = Codec.decodeHex(Hash.taggedHash(
         'KeyAgg list',
         Uint8List.fromList(
             sessionContext.participantPublicKeys.expand((x) => x).toList())));
+    // print('L: ${Codec.encodeHex(L)}');
 
     Uint8List? secondKey;
     for (int keyIndex = 1;
@@ -591,7 +659,7 @@ class Ecc {
     }
 
     if (secondKey != null &&
-        Codec.encodeHex(publicKey) == Codec.encodeHex(secondKey)) {
+        Codec.encodeHex(prefixedPublicKey) == Codec.encodeHex(secondKey)) {
       a = BigInt.one;
     } else {
       a = fromBuffer(Codec.decodeHex(
@@ -603,21 +671,42 @@ class Ecc {
     final g_ = (g * gacc) % n;
 
     final left = G * s;
-    final right = Re_s_ + (P * ((e * a * g_) % n));
+    // final right = Re_s_ + (P * ((e * a * g_) % n));
+    final right = ReS + (P * ((e * a * g_) % n));
 
-    return left == right;
+    final result = left == right;
+
+    return result;
   }
 
   static Uint8List getAggregatedSignatureForMuSig2(
     MuSig2SessionContext sessionContext,
     List<Uint8List> signatureList,
   ) {
+    print('=== getAggregatedSignatureForMuSig2 Parameters ===');
+    print('sessionContext:');
+    print(
+        '  aggregatedPubNonce: ${Codec.encodeHex(sessionContext.aggregatedPubNonce)}');
+    print('  message: ${Codec.encodeHex(sessionContext.message)}');
+    print(
+        '  participantPublicKeys: ${sessionContext.participantPublicKeys.map((key) => Codec.encodeHex(key)).join(', ')}');
+    print('  Q: ${Codec.encodeHex(getEncoded(sessionContext.Q, true))}');
+    print('  R: ${Codec.encodeHex(getEncoded(sessionContext.R, true))}');
+    print('  b: ${sessionContext.b}');
+    print('  e: ${sessionContext.e}');
+    print('signatureList:');
+    for (int i = 0; i < signatureList.length; i++) {
+      print('  signature[$i]: ${Codec.encodeHex(signatureList[i])}');
+    }
+    print('=============================================');
+
     ECPoint r = sessionContext.R;
     BigInt e = sessionContext.e;
     final BigInt tacc = BigInt.from(0);
 
     // Get R_x (32 bytes) from r point
     Uint8List R_x = getEncoded(r, false).sublist(1, 33);
+    print('R_x: ${Codec.encodeHex(R_x)}');
 
     BigInt s = BigInt.zero;
     for (int i = 0; i < signatureList.length; i++) {
@@ -628,15 +717,28 @@ class Ecc {
       } else {
         si = fromBuffer(signature);
       }
+      print('s[$i]: $si');
       s = (s + si) % n;
+      print('accumulated s: $s');
     }
 
     BigInt g = BigInt.one;
     if (sessionContext.Q.y!.toBigInteger()!.isOdd) {
       g = n - BigInt.one;
     }
+    print('g: $g');
 
     s = (s + e * g * tacc) % n;
-    return Uint8List.fromList(R_x + Codec.decodeHex(Converter.bigDecToHex(s)));
+    print('final s: $s');
+    Uint8List result =
+        Uint8List.fromList(R_x + Codec.decodeHex(Converter.bigDecToHex(s)));
+    print('result: ${Codec.encodeHex(result)}');
+    print('=============================================');
+
+    if (!Ecc.verifySchnorr(sessionContext.message,
+        Ecc.getEncoded(sessionContext.Q, true), result)) {
+      throw Exception('Invalid aggregated signature generated.');
+    }
+    return result;
   }
 }

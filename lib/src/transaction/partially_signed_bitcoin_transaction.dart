@@ -263,6 +263,14 @@ class Psbt {
           psbtMap["inputs"][i]["13"] = inputs[i].tapKeySig!;
         }
       }
+      if (inputs[i].muSig2PartialSigs != null) {
+        for (Signature signature in inputs[i].muSig2PartialSigs!) {
+          if (!psbtMap["inputs"][i].keys.contains("1c${signature.publicKey}")) {
+            psbtMap["inputs"][i]["1c${signature.publicKey}"] =
+                signature.signature;
+          }
+        }
+      }
       if (inputs[i].tapScriptSig != null) {
         if (!psbtMap["inputs"][i].keys.contains("14")) {
           psbtMap["inputs"][i]["14"] = inputs[i].tapScriptSig!;
@@ -810,36 +818,32 @@ class Psbt {
         if (inputs[i].totalSinger < inputs[i].requiredSignature) {
           throw Exception('Not enough signatures');
         }
-        if (signedTransaction.validateSchnorr(i, utxoList)) {
-          Uint8List aggregatedPubKey =
-              Codec.decodeHex(inputs[i].muSig2AggregatedPublicKey!);
-          Uint8List aggregatedPubNonce =
-              Codec.decodeHex(inputs[i].getAggregatedPublicNonce());
-          Uint8List message =
-              Codec.decodeHex(signedTransaction.getTaprootSigHash(i, utxoList));
-          List<Uint8List> signatureList = [];
-          for (Signature sig in inputs[i].muSig2PartialSigs!) {
-            signatureList.add(Codec.decodeHex(sig.signature));
-          }
 
-          MuSig2SessionContext sessionContext = MuSig2SessionContext(
-            aggregatedPubNonce,
-            inputs[i]
-                .muSig2ParticipantPubkeys!
-                .map((e) => Codec.decodeHex(e))
-                .toList(),
-            message,
-          );
+        Uint8List aggregatedPubKey =
+            Codec.decodeHex(inputs[i].muSig2AggregatedPublicKey!);
+        Uint8List aggregatedPubNonce =
+            Codec.decodeHex(inputs[i].getAggregatedPublicNonce());
+        Uint8List message =
+            Codec.decodeHex(signedTransaction.getTaprootSigHash(i, utxoList));
+        List<Uint8List> signatureList = [];
+        for (Signature sig in inputs[i].muSig2PartialSigs!) {
+          signatureList.add(Codec.decodeHex(sig.signature));
+        }
 
-          Uint8List aggregatedSignature = Ecc.getAggregatedSignatureForMuSig2(
-              sessionContext, signatureList);
-          if (Ecc.verifySchnorr(
-              message, aggregatedPubKey, aggregatedSignature)) {
-            signedTransaction.inputs[i].setTaprootKeyPathSpendingSignature(
-                Codec.encodeHex(aggregatedSignature));
-          } else {
-            throw Exception('Invalid Signatures');
-          }
+        MuSig2SessionContext sessionContext = MuSig2SessionContext(
+          aggregatedPubNonce,
+          inputs[i]
+              .muSig2ParticipantPubkeys!
+              .map((e) => Codec.decodeHex(e))
+              .toList(),
+          message,
+        );
+
+        Uint8List aggregatedSignature =
+            Ecc.getAggregatedSignatureForMuSig2(sessionContext, signatureList);
+        if (Ecc.verifySchnorr(message, aggregatedPubKey, aggregatedSignature)) {
+          signedTransaction.inputs[i].setTaprootKeyPathSpendingSignature(
+              Codec.encodeHex(aggregatedSignature));
         } else {
           throw Exception('Invalid Signatures');
         }

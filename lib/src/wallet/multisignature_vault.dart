@@ -115,7 +115,8 @@ class MultisignatureVault extends MultisignatureWalletBase {
       PsbtInput psbtInput = psbtObject.inputs[inputIndex];
       for (DerivationPath derivationPath in psbtInput.tapBip32Derivation!) {
         for (KeyStore keyStore in keyStoreList) {
-          if (derivationPath.masterFingerprint == keyStore.masterFingerprint) {
+          if (keyStore.hasSeed &&
+              derivationPath.masterFingerprint == keyStore.masterFingerprint) {
             keyStore.addMuSig2PublicNonceToPsbt(
                 psbtInput, derivationPath.path, sigHash);
           }
