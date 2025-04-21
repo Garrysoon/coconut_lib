@@ -15,8 +15,7 @@ class AddressType {
   final String scriptType;
 
   /// Check if the address type is segwit.
-  bool get isSegwit =>
-      scriptType.contains('P2W') || scriptType.contains('P2TR');
+  bool get isSegwit => scriptType.startsWith('w') || scriptType.contains('tr');
 
   /// Check if the address type is for multisig.
   bool get isMultisignature =>
@@ -56,11 +55,11 @@ class AddressType {
       this.getMultisignatureAddress);
 
   /// Address type for P2PKH(Legacy) address.
-  static AddressType p2pkh = AddressType._('legacy', 44, '1', 'P2PKH',
-      0x0488b21e, 0x043587cf, getP2pkhAddress, getWrongMultisigatureAddress);
+  static AddressType p2pkh = AddressType._('legacy', 44, '1', 'pkh', 0x0488b21e,
+      0x043587cf, getP2pkhAddress, getWrongMultisigatureAddress);
 
   /// Address type for P2WPKH(Native Segwit) address.
-  static AddressType p2wpkh = AddressType._('nativeSegwit', 84, 'bc1', 'P2WPKH',
+  static AddressType p2wpkh = AddressType._('nativeSegwit', 84, 'bc1', 'wpkh',
       0x04b24746, 0x045f1cf6, getP2wpkhAddress, getWrongMultisigatureAddress);
 
   /// Address type for P2WSH-in-P2SH(Nested Segwit) address.
@@ -68,18 +67,18 @@ class AddressType {
       'nestedSegwit',
       49,
       '3',
-      'P2WSH-in-P2SH',
+      'sh-wpkh',
       0x049d7cb2,
       0x044a5262,
       getP2wpkhInP2shAddress,
       getWrongMultisigatureAddress);
 
   /// Address type for P2SH(Legacy Multisig) address.
-  static AddressType p2sh = AddressType._('p2sh', 45, '3', 'P2SH', 0x0488b21e,
+  static AddressType p2sh = AddressType._('p2sh', 45, '3', 'sh', 0x0488b21e,
       0x043587cf, getWrongAddress, getP2shAddress);
 
   /// Address type for P2WSH(Segwit Multisig) address.
-  static AddressType p2wsh = AddressType._('p2wsh', 48, 'bc1', 'P2WSH',
+  static AddressType p2wsh = AddressType._('p2wsh', 48, 'bc1', 'wsh',
       0x02aa7ed3, 0x02575483, getWrongAddress, getP2wshAddress);
 
   /// Address type for P2TR key path (single signature) address.
@@ -87,20 +86,20 @@ class AddressType {
       'p2trKeyPathSpending',
       86,
       'bc1',
-      'P2TR',
+      'tr',
       0x0488b21e,
       0x043587cf,
       getP2trKeyPathSpendingAddress,
       getWrongMultisigatureAddress);
 
-  static AddressType p2trMusig2 = AddressType._('p2trMusig2', 86, 'bc1', 'P2TR',
+  static AddressType p2trMusig2 = AddressType._('p2trMusig2', 86, 'bc1', 'tr',
       0x0488b21e, 0x043587cf, getWrongAddress, getP2trMusig2Address);
 
   static AddressType p2trScriptPathSpending = AddressType._(
       'p2trScriptPathSpending',
       86,
       'bc1',
-      'P2TR',
+      'tr',
       0x0488b21e,
       0x043587cf,
       getWrongAddress,
@@ -119,9 +118,9 @@ class AddressType {
       ];
 
   /// Get the address type from the script type.(P2PKH, P2WPKH, P2WSH-in-P2SH, P2SH, P2WSH)
-  static AddressType getAddressTypeFromScriptType(String addressType) {
+  static AddressType getAddressTypeFromScriptType(String scriptType) {
     for (AddressType type in values) {
-      if (type.scriptType.toUpperCase() == addressType.toUpperCase()) {
+      if (type.scriptType.toUpperCase() == scriptType.toUpperCase()) {
         return type;
       }
     }

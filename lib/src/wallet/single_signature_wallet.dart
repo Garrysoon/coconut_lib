@@ -47,10 +47,10 @@ class SingleSignatureWallet extends SingleSignatureWalletBase {
     return SingleSignatureWallet.fromDescriptor(json['descriptor']);
   }
 
-  factory SingleSignatureWallet.fromCryptoAccountPayload(String payload) {
-    Map<String, dynamic> json = jsonDecode(payload);
-    String masterFingerprint = Converter.decToHex(json['1']);
-    for (var item in json['2']) {
+  factory SingleSignatureWallet.fromCryptoAccountPayload(
+      Map<String, dynamic> payload) {
+    String masterFingerprint = Converter.decToHex(payload['1']);
+    for (var item in payload['2']) {
       if (item['6']['1'][0] == 84) {
         // p2wpkh
         String publicKey = item['3'];

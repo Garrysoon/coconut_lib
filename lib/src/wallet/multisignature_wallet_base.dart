@@ -45,7 +45,7 @@ abstract class MultisignatureWalletBase extends WalletBase {
     }
 
     _descriptor = Descriptor.forMultisignature(
-        _addressType.scriptType.replaceAll("P2", "").toLowerCase(),
+        _addressType,
         _keyStoreList.map((e) => e.extendedPublicKey.serialize()).toList(),
         _derivationPath.replaceAll("m/", ""),
         _keyStoreList.map((e) => e.masterFingerprint).toList(),

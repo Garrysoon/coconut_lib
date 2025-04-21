@@ -1,4 +1,6 @@
 @Tags(['unit'])
+import 'dart:convert';
+
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
 
@@ -82,7 +84,7 @@ void main() async {
       test('Generate single signature wallet from crypto account payload', () {
         NetworkType.setNetworkType(NetworkType.mainnet);
         SingleSignatureWallet wallet =
-            SingleSignatureWallet.fromCryptoAccountPayload(payload);
+            SingleSignatureWallet.fromCryptoAccountPayload(jsonDecode(payload));
 
         expect(
             Codec.encodeHex(wallet.keyStore.extendedPublicKey.publicKey)
@@ -98,7 +100,9 @@ void main() async {
 
       test('Network type is not match with payload', () {
         NetworkType.setNetworkType(NetworkType.regtest);
-        expect(() => SingleSignatureWallet.fromCryptoAccountPayload(payload),
+        expect(
+            () => SingleSignatureWallet.fromCryptoAccountPayload(
+                jsonDecode(payload)),
             throwsException);
       });
     });

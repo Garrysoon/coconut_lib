@@ -22,7 +22,7 @@ abstract class SingleSignatureWalletBase extends WalletBase {
     }
 
     _descriptor = Descriptor.forSingleSignature(
-        _addressType.scriptType.replaceAll("P2", "").toLowerCase(),
+        _addressType,
         _keyStore.extendedPublicKey.serialize(),
         _derivationPath.replaceAll("m/", ""),
         _keyStore.masterFingerprint);
