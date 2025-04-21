@@ -13,7 +13,8 @@ class SingleSignatureWallet extends SingleSignatureWalletBase {
             derivationPath, false);
 
   /// Create a single signature wallet from descriptor.
-  factory SingleSignatureWallet.fromDescriptor(String descriptor) {
+  factory SingleSignatureWallet.fromDescriptor(String descriptor,
+      {bool ignoreChecksum = false}) {
     Descriptor descriptorObject = Descriptor.parse(descriptor);
     AddressType addressType;
     if (descriptorObject.scriptType == "sh-wpkh") {
@@ -44,5 +45,65 @@ class SingleSignatureWallet extends SingleSignatureWalletBase {
   factory SingleSignatureWallet.fromJson(String jsonStr) {
     Map<String, dynamic> json = jsonDecode(jsonStr);
     return SingleSignatureWallet.fromDescriptor(json['descriptor']);
+  }
+
+  factory SingleSignatureWallet.fromCryptoAccountPayload(String payload) {
+    Map<String, dynamic> json = jsonDecode(payload);
+    String masterFingerprint = Converter.decToHex(json['1']);
+    for (var item in json['2']) {
+      if (item['6']['1'][0] == 84) {
+        // p2wpkh
+        String publicKey = item['3'];
+        String chainCode = item['4'];
+        String parentFingerprint = Converter.decToHex(item['8']);
+        List<dynamic> raw = item['6']['1'];
+        final buffer = StringBuffer('m');
+        for (int i = 0; i < raw.length; i += 2) {
+          final index = raw[i];
+          final hardened = raw[i + 1] == true;
+          buffer.write('/');
+          buffer.write(index);
+          if (hardened) {
+            buffer.write("'");
+          }
+        }
+        String derivationPath = buffer.toString();
+
+        final regex = RegExp(r"m(/\d+'?){3}");
+        if (!regex.hasMatch(derivationPath)) {
+          throw FormatException("Invalid BIP derivation path");
+        }
+
+        final segments = derivationPath.split('/');
+        if (segments.length < 3) {
+          throw FormatException("Too short to determine network");
+        }
+
+        final coinTypeStr = segments[2];
+        final coinType = int.tryParse(coinTypeStr.replaceAll("'", ''));
+        if (coinType == null) {
+          throw FormatException("Invalid coin type");
+        }
+
+        bool isTestnet = coinType == 1;
+        if (isTestnet != NetworkType.currentNetworkType.isTestnet) {
+          throw FormatException("Invalid network type");
+        }
+
+        HDWallet wallet = HDWallet.fromPublicKey(
+            Codec.decodeHex(publicKey), Codec.decodeHex(chainCode));
+        ExtendedPublicKey extendedPublicKey = ExtendedPublicKey.fromHdWallet(
+            wallet,
+            !NetworkType.currentNetworkType.isTestnet
+                ? AddressType.p2wpkh.versionForMainnet
+                : AddressType.p2wpkh.versionForTestnet,
+            Codec.decodeHex(parentFingerprint));
+        return SingleSignatureWallet(masterFingerprint, wallet,
+            AddressType.p2wpkh, derivationPath, extendedPublicKey);
+      } else {
+        continue;
+      }
+    }
+    throw Exception('Unsupported address type');
   }
 }

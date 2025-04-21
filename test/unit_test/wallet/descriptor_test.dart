@@ -54,6 +54,14 @@ void main() {
         expect(descriptor, isA<Descriptor>());
         expect(descriptor.scriptType, 'wpkh');
       });
+      test('Parse p2wpkh descriptor (ignore checksum)', () {
+        const bip84Descriptor =
+            "wpkh([98c7d774/84'/1'/0']tpubDDbAxgGSifNq7nDVLi3LfzeqF1GXhx4BM3HwxcdJVqhPLxSjMida9WyJZeV95teMpW4tMA4KFYtcSc7srHjz7uFkx4RQ4T15baqyqBdYTgm/0/*)";
+        final descriptor =
+            Descriptor.parse(bip84Descriptor, ignoreChecksum: true);
+        expect(descriptor, isA<Descriptor>());
+        expect(descriptor.scriptType, 'wpkh');
+      });
       test('parse nested segwit descriptor', () {
         String desc =
             'sh(wpkh([33a0cbfd/49h/0h/0h]xpub6CorSC5E8wkNboiq84Ndxvm3w4ccSA4MbEva8khZ4a5Cxk8hQYwrsJoPsmL8KsmCeFWzD4irCJdEqcd7kKRi5SAg355pTxTgHW2eVzQu2dd/<0;1>/*))#z3ulg0nr';

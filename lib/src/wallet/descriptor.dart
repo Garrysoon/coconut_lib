@@ -48,8 +48,8 @@ class Descriptor {
   }
 
   /// Parse the descriptor.
-  factory Descriptor.parse(String descriptor) {
-    if (!Checksum.isValidChecksum(descriptor)) {
+  factory Descriptor.parse(String descriptor, {bool ignoreChecksum = false}) {
+    if (ignoreChecksum == false && !Checksum.isValidChecksum(descriptor)) {
       throw Exception('Invalid descriptor format.');
     }
     var withoutChecksum = descriptor.split('#')[0];

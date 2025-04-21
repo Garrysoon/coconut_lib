@@ -175,6 +175,10 @@ class Psbt {
     return base64Encode(psbtBytes);
   }
 
+  Map<String, dynamic> toKeyMap() {
+    return psbtMap;
+  }
+
   List<int> _serializeKeyMap(Map<String, dynamic> map) {
     List<int> globalBytes = [];
     map.forEach((key, value) {
@@ -359,6 +363,10 @@ class Psbt {
     }
 
     return psbt;
+  }
+
+  factory Psbt.fromMap(Map<String, dynamic> keyMap) {
+    return Psbt(keyMap);
   }
 
   /// Parse a PSBT from a base64 string.
