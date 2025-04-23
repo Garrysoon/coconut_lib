@@ -14,7 +14,7 @@ class HDWallet {
   // ignore: non_constant_identifier_names
   Uint8List? _Q;
   Uint8List _chainCode;
-  int _depth = 0;
+  int depth = 0;
   int _index = 0;
   Uint8List _parentFingerprint = Uint8List.fromList([0, 0, 0, 0, 0]);
 
@@ -38,9 +38,6 @@ class HDWallet {
   Uint8List get chainCode => _chainCode;
 
   /// @nodoc
-  int get depth => _depth;
-
-  /// @nodoc
   int get index => _index;
 
   /// @nodoc
@@ -54,7 +51,7 @@ class HDWallet {
   /// @nodoc
   HDWallet neutered() {
     final neutered = HDWallet.fromPublicKey(publicKey, chainCode);
-    neutered._depth = depth;
+    neutered.depth = depth;
     neutered._index = index;
     neutered._parentFingerprint = parentFingerprint;
     return neutered;
@@ -124,7 +121,7 @@ class HDWallet {
       if (ki == null) return derive(index + 1);
       hd = HDWallet.fromPublicKey(ki, ir);
     }
-    hd._depth = depth + 1;
+    hd.depth = depth + 1;
     hd._index = index;
     hd._parentFingerprint = fingerprint;
     return hd;

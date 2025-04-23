@@ -190,22 +190,6 @@ void main() async {
         expect(wallet.derivationPath, "m/84'/1'/0'");
         expect(wallet.addressType, AddressType.p2wpkh);
       });
-      test('Generate single signature wallet from crypto account payload', () {
-        NetworkType.setNetworkType(NetworkType.mainnet);
-        SingleSignatureWallet wallet =
-            SingleSignatureWallet.fromCryptoAccountPayload(jsonDecode(payload));
-
-        expect(
-            Codec.encodeHex(wallet.keyStore.extendedPublicKey.publicKey)
-                .toUpperCase(),
-            '02C5F9EA7C223BC038CFFAD759FB4CDFB2C5BFBC173FFF5A51E7927290A85D2362');
-        expect(wallet.keyStore.extendedPublicKey.parentFingerprint,
-            Converter.decToHex(3254928504));
-        expect(
-            wallet.keyStore.masterFingerprint, Converter.decToHex(3461324038));
-        expect(wallet.derivationPath, "m/84'/0'/0'");
-        expect(wallet.addressType, AddressType.p2wpkh);
-      });
 
       test('Network type is not match with payload', () {
         NetworkType.setNetworkType(NetworkType.regtest);

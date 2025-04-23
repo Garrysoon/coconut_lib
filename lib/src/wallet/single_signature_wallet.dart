@@ -94,6 +94,7 @@ class SingleSignatureWallet extends SingleSignatureWalletBase {
 
         HDWallet wallet = HDWallet.fromPublicKey(
             Codec.decodeHex(publicKey), Codec.decodeHex(chainCode));
+        wallet.depth = segments.length - 1;
         ExtendedPublicKey extendedPublicKey = ExtendedPublicKey.fromHdWallet(
             wallet,
             !NetworkType.currentNetworkType.isTestnet

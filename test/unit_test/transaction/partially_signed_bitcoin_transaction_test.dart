@@ -101,10 +101,6 @@ void main() {
         expect(psbt.inputs[0].partialSig![0].publicKey,
             '033b0492bf5c0a0222a55cdea04cdc022b1751112381ae6e9970319b3d6b161db9');
       });
-      test('Generate psbt from base64 7', () {
-        String psbtString ="cHNidP8BAHECAAAAAezrurKa4ZTSnf7dsZvKnpAJA0OqFZI9RlfS8DBjsSXvAQAAAAD9////AqCGAQAAAAAAFgAU6zKocSfJcERf4tjydbqQmMcq57AClEkAAAAAABYAFF7QtQSIqqkoyzPkvHsAayddC9agtzQBAAAiAgMQQR9FzZZU438Jpm/x72vEQY9ZLwvLy73MBcBUCUrV5EcwRAIge7BpOe1OsuzCM1v2+s9UFqdbsqLx5D7OpxBaEwkj3PgCIH6LgpxkFGjHHjhynjAE6AjttMpL+DNkHHUS+a86UETQAQAAAA==";
-        Psbt psbt = Psbt.parse(psbtString);
-        
     });
 
     group('Psbt.fromKMap', () {
