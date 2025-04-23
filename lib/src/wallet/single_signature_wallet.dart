@@ -53,8 +53,10 @@ class SingleSignatureWallet extends SingleSignatureWalletBase {
     for (var item in payload['2']) {
       if (item['6']['1'][0] == 84) {
         // p2wpkh
-        String publicKey = item['3'];
-        String chainCode = item['4'];
+        String publicKey =
+            Codec.encodeHex(Uint8List.fromList(item['3'].cast<int>()));
+        String chainCode =
+            Codec.encodeHex(Uint8List.fromList(item['4'].cast<int>()));
         String parentFingerprint = Converter.decToHex(item['8']);
         List<dynamic> raw = item['6']['1'];
         final buffer = StringBuffer('m');
