@@ -4,13 +4,13 @@ part of '../../coconut_lib.dart';
 class SingleSignatureWallet extends SingleSignatureWalletBase {
   /// Creates a new single signature wallet.
   SingleSignatureWallet(
-      String fingerprint,
+      String masterFingerprint,
       HDWallet wallet,
       AddressType addressType,
       String derivationPath,
       ExtendedPublicKey extendedPublicKey)
-      : super(KeyStore(fingerprint, wallet, extendedPublicKey), addressType,
-            derivationPath, false);
+      : super(KeyStore(masterFingerprint, wallet, extendedPublicKey),
+            addressType, derivationPath, false);
 
   /// Create a single signature wallet from descriptor.
   factory SingleSignatureWallet.fromDescriptor(String descriptor,

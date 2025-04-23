@@ -147,7 +147,14 @@ void main() async {
           ]
         }
         ''';
-      test('Generate single signature wallet from crypto account payload', () {
+      final String payload2 = '''
+          {"1":953202145,"2":[
+          {"2":false,"3":${Codec.decodeHex("033558A7656D16D946497D8B458AEB84CFCEB4F2D471D7FF5A9E4FA4488412DF63")},"4":${Codec.decodeHex("23936EF00D3B0C27674C3EE47CFE8A5032AB161B3A1F851CF39977DFE06DD756")},"5":{"1":0,"2":0},"6":{"1":[84,true,1,true,0,true],"2":953202145,"3":3},"7":{"1":[0,false,[],false],"3":0},"8":3254928504}]
+          }
+          ''';
+      test(
+          'Generate single signature wallet from crypto account payload (case 1)',
+          () {
         NetworkType.setNetworkType(NetworkType.mainnet);
         SingleSignatureWallet wallet =
             SingleSignatureWallet.fromCryptoAccountPayload(jsonDecode(payload));
@@ -158,6 +165,42 @@ void main() async {
             '02C5F9EA7C223BC038CFFAD759FB4CDFB2C5BFBC173FFF5A51E7927290A85D2362');
         expect(wallet.keyStore.extendedPublicKey.parentFingerprint,
             Converter.decToHex(2319540438));
+        expect(
+            wallet.keyStore.masterFingerprint, Converter.decToHex(3461324038));
+        expect(wallet.derivationPath, "m/84'/0'/0'");
+        expect(wallet.addressType, AddressType.p2wpkh);
+      });
+
+      test(
+          'Generate single signature wallet from crypto account payload (case 2)',
+          () {
+        NetworkType.setNetworkType(NetworkType.testnet);
+        SingleSignatureWallet wallet =
+            SingleSignatureWallet.fromCryptoAccountPayload(
+                jsonDecode(payload2));
+
+        expect(
+            Codec.encodeHex(wallet.keyStore.extendedPublicKey.publicKey)
+                .toUpperCase(),
+            '033558A7656D16D946497D8B458AEB84CFCEB4F2D471D7FF5A9E4FA4488412DF63');
+        expect(wallet.keyStore.extendedPublicKey.parentFingerprint,
+            Converter.decToHex(3254928504));
+        expect(
+            wallet.keyStore.masterFingerprint, Converter.decToHex(953202145));
+        expect(wallet.derivationPath, "m/84'/1'/0'");
+        expect(wallet.addressType, AddressType.p2wpkh);
+      });
+      test('Generate single signature wallet from crypto account payload', () {
+        NetworkType.setNetworkType(NetworkType.mainnet);
+        SingleSignatureWallet wallet =
+            SingleSignatureWallet.fromCryptoAccountPayload(jsonDecode(payload));
+
+        expect(
+            Codec.encodeHex(wallet.keyStore.extendedPublicKey.publicKey)
+                .toUpperCase(),
+            '02C5F9EA7C223BC038CFFAD759FB4CDFB2C5BFBC173FFF5A51E7927290A85D2362');
+        expect(wallet.keyStore.extendedPublicKey.parentFingerprint,
+            Converter.decToHex(3254928504));
         expect(
             wallet.keyStore.masterFingerprint, Converter.decToHex(3461324038));
         expect(wallet.derivationPath, "m/84'/0'/0'");

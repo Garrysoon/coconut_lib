@@ -48,8 +48,9 @@ void main() {
     });
     group('Descriptor.parse(String descriptor)', () {
       test('Parse p2wpkh descriptor', () {
+        NetworkType.setNetworkType(NetworkType.testnet);
         const bip84Descriptor =
-            "wpkh([98c7d774/84'/1'/0']tpubDDbAxgGSifNq7nDVLi3LfzeqF1GXhx4BM3HwxcdJVqhPLxSjMida9WyJZeV95teMpW4tMA4KFYtcSc7srHjz7uFkx4RQ4T15baqyqBdYTgm/0/*)#tdf2kj7c";
+            "wpkh([38d0b5e1/84'/1'/0']vpub5TmYRnYy8ScbkG2WmearTx1DG91gJC4TM9kRTvSQjgVMGRUdx4vRUD8UHjZn8fJZfjUoBHPnVX1q5AmHJHTHw3CRtHzfK4yqMhAKS93Xb3y/<0;1>/*)#uqpyzfuf";
         final descriptor = Descriptor.parse(bip84Descriptor);
         expect(descriptor, isA<Descriptor>());
         expect(descriptor.scriptType, 'wpkh');

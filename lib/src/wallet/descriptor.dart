@@ -19,15 +19,15 @@ class Descriptor {
 
   /// Create a descriptor for a single signature.
   factory Descriptor.forSingleSignature(AddressType addressType,
-      String publicKey, String derivationPath, String fingerprint) {
+      String publicKey, String derivationPath, String masterFingerprint) {
     String scriptType = addressType.scriptType;
     //[98c7d774/84'/1'/0']tpubDDbAxgGSifNq7nDV
     if (scriptType == 'wsh-in-sh') {
-      return Descriptor(
-          'sh-wpkh', ["[$fingerprint/$derivationPath]$publicKey/<0;1>/*"]);
+      return Descriptor('sh-wpkh',
+          ["[$masterFingerprint/$derivationPath]$publicKey/<0;1>/*"]);
     } else {
-      return Descriptor(
-          scriptType, ["[$fingerprint/$derivationPath]$publicKey/<0;1>/*"]);
+      return Descriptor(scriptType,
+          ["[$masterFingerprint/$derivationPath]$publicKey/<0;1>/*"]);
     }
   }
 
