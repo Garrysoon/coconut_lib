@@ -219,6 +219,10 @@ void main() {
         expect(WalletUtility.validateDerivationPath("m/44'/0'/0'/0/0"), isTrue);
       });
 
+      test("Valid derivation path with h", () {
+        expect(WalletUtility.validateDerivationPath("m/44h/0h/0h/0/0"), isTrue);
+      });
+
       test("Valid derivation path with hardened keys only", () {
         expect(WalletUtility.validateDerivationPath("m/44'/1'/0'"), isTrue);
       });
