@@ -37,7 +37,9 @@ void main() async {
         String descriptor =
             "wpkh([98C7D774/84'/0'/0']vpub5ZZ1q76vi2LR9PeQDoV13u8TZwsyqKa7yBfD3GnPPvBjVU9ZnBTMkwzCHCVBZaPHDKJNEdMKo8MTyrQ9234idzSG9nHFD6hsUB8HJ14NBg7/<0;1>/*)#7ra9g9d8";
         NetworkType.setNetworkType(NetworkType.testnet);
-        expect(() => SingleSignatureWallet.fromDescriptor(descriptor),
+        expect(
+            () => SingleSignatureWallet.fromDescriptor(descriptor,
+                ignoreChecksum: true),
             throwsException);
       });
 
@@ -45,7 +47,9 @@ void main() async {
         String descriptor =
             "wpkh([98C7D774/84'/1'/0']vpub5ZZ1q76vi2LR9PeQDoV13u8TZwsyqKa7yBfD3GnPPvBjVU9ZnBTMkwzCHCVBZaPHDKJNEdMKo8MTyrQ9234idzSG9nHFD6hsUB8HJ14NBg7/<0;1>/*)#7ra9g9d8";
         NetworkType.setNetworkType(NetworkType.mainnet);
-        expect(() => SingleSignatureWallet.fromDescriptor(descriptor),
+        expect(
+            () => SingleSignatureWallet.fromDescriptor(descriptor,
+                ignoreChecksum: true),
             throwsException);
       });
     });
