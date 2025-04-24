@@ -37,6 +37,21 @@ abstract class MultisignatureWalletBase extends WalletBase {
           'The number of keyStores must be equal to the required signature in MuSig2.');
     }
 
+    final segments = derivationPath.split('/');
+    if (segments.length < 3 || segments[0] != 'm') {
+      throw Exception('Invalid derivation path.');
+    }
+    final coinTypeSegment = segments[2];
+
+    final coinType =
+        int.tryParse(coinTypeSegment.replaceAll(RegExp(r"[h']"), ""));
+
+    if (coinType == 1 && !NetworkType.currentNetworkType.isTestnet) {
+      throw Exception('Invalid derivation path.');
+    } else if (coinType == 0 && NetworkType.currentNetworkType.isTestnet) {
+      throw Exception('Invalid derivation path.');
+    }
+
     for (KeyStore keyStore in _keyStoreList) {
       if (NetworkType.currentNetworkType.isTestnet !=
           AddressType.isTestnetVersion(keyStore.extendedPublicKey.version)) {

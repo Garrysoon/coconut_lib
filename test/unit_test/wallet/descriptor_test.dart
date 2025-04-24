@@ -17,6 +17,7 @@ void main() {
         expect(descriptor, isA<Descriptor>());
         expect(descriptor.serialize(), target);
       });
+
       test('Generate nested segwit descriptor', () {
         Descriptor descriptor = Descriptor.forSingleSignature(
             AddressType.p2wpkhInP2sh,
@@ -58,6 +59,14 @@ void main() {
       test('Parse p2wpkh descriptor (ignore checksum)', () {
         const bip84Descriptor =
             "wpkh([98c7d774/84'/1'/0']tpubDDbAxgGSifNq7nDVLi3LfzeqF1GXhx4BM3HwxcdJVqhPLxSjMida9WyJZeV95teMpW4tMA4KFYtcSc7srHjz7uFkx4RQ4T15baqyqBdYTgm/0/*)";
+        final descriptor =
+            Descriptor.parse(bip84Descriptor, ignoreChecksum: true);
+        expect(descriptor, isA<Descriptor>());
+        expect(descriptor.scriptType, 'wpkh');
+      });
+      test('Parse p2wpkh descriptor (ignore checksum)', () {
+        const bip84Descriptor =
+            "wpkh([98c7d774/84'/1'/0']tpubDDbAxgGSifNq7nDVLi3LfzeqF1GXhx4BM3HwxcdJVqhPLxSjMida9WyJZeV95teMpW4tMA4KFYtcSc7srHjz7uFkx4RQ4T15baqyqBdYTgm)";
         final descriptor =
             Descriptor.parse(bip84Descriptor, ignoreChecksum: true);
         expect(descriptor, isA<Descriptor>());

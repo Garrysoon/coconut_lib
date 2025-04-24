@@ -13,12 +13,24 @@ abstract class SingleSignatureWalletBase extends WalletBase {
   SingleSignatureWalletBase(this._keyStore, AddressType _addressType,
       String _derivationPath, this._isVault)
       : super(_addressType, _derivationPath) {
-    // if (_addressType.isMultisig) {
-    //   throw Exception('Use MultsignatureVault or MultisignatureWallet.');
-    // }
     if (NetworkType.currentNetworkType.isTestnet !=
         AddressType.isTestnetVersion(_keyStore._extendedPublicKey.version)) {
       throw Exception('Network type mismatch.');
+    }
+    // check derivation path
+    final segments = derivationPath.split('/');
+    if (segments.length < 3 || segments[0] != 'm') {
+      throw Exception('Invalid derivation path.');
+    }
+    final coinTypeSegment = segments[2];
+
+    final coinType =
+        int.tryParse(coinTypeSegment.replaceAll(RegExp(r"[h']"), ""));
+
+    if (coinType == 1 && !NetworkType.currentNetworkType.isTestnet) {
+      throw Exception('Invalid derivation path.');
+    } else if (coinType == 0 && NetworkType.currentNetworkType.isTestnet) {
+      throw Exception('Invalid derivation path.');
     }
 
     _descriptor = Descriptor.forSingleSignature(

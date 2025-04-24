@@ -7,8 +7,10 @@ class MultisignatureWallet extends MultisignatureWalletBase {
       super.derivationPath, super.keyStores);
 
   /// Create a multisignature wallet from descriptor.
-  factory MultisignatureWallet.fromDescriptor(String descriptor) {
-    Descriptor descriptorObject = Descriptor.parse(descriptor);
+  factory MultisignatureWallet.fromDescriptor(String descriptor,
+      {bool ignoreChecksum = false}) {
+    Descriptor descriptorObject =
+        Descriptor.parse(descriptor, ignoreChecksum: ignoreChecksum);
     AddressType addressType;
     if (descriptorObject.scriptType == "sh-wpkh") {
       addressType = AddressType.p2wpkhInP2sh;

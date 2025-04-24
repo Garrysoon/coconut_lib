@@ -34,6 +34,33 @@ void main() async {
                 singleSignatureVault.descriptor),
             throwsException);
       });
+      test('Invalid derivation path (testnet)', () {
+        NetworkType.setNetworkType(NetworkType.testnet);
+        String descriptor =
+            "wsh(sortedmulti(2,[96149E34/48'/0'/0'/2']Vpub5mCBCDqDdmjyJr5UfVAunq9PaifhTVHZYH6gmBey8B2k6TKY9RLoWpej2gAtk3YJQ75LeHgPsaqNZi6tsxn2xwXbiFtt2LZpiiSeeJJym47/<0;1>/*,[360923C9/48'/0'/0'/2']Vpub5mc9AurZMFpRXdnBiR32n5EbX4vWFYwEGUsWUMTp3qhPfTE3NqByjEG9X5FnnCrhd4qSXvx3XEj556ZEj72nm4CUfshR5tTRxmTvJXqB9ct/<0;1>/*,[9BC9E65B/48'/0'/0'/2']Vpub5myh64ZHX7oRm4UEpPRT1Up5wCw1GEJsQjhLKYpQnwoThzvqqYzLAecMi5NbaD4TDe8cuZJWRaUcqWAm4XZ1YVpeDhcJ2Ui2UdRAmivxvGv/<0;1>/*))#l3vjlqwu";
+        expect(
+            () => MultisignatureWallet.fromDescriptor(descriptor,
+                ignoreChecksum: true),
+            throwsException);
+      });
+      test('Invalid derivation path (mainnet)', () {
+        NetworkType.setNetworkType(NetworkType.mainnet);
+        String descriptor =
+            "wsh(sortedmulti(2,[96149E34/48'/1'/0'/2']Vpub5mCBCDqDdmjyJr5UfVAunq9PaifhTVHZYH6gmBey8B2k6TKY9RLoWpej2gAtk3YJQ75LeHgPsaqNZi6tsxn2xwXbiFtt2LZpiiSeeJJym47/<0;1>/*,[360923C9/48'/1'/0'/2']Vpub5mc9AurZMFpRXdnBiR32n5EbX4vWFYwEGUsWUMTp3qhPfTE3NqByjEG9X5FnnCrhd4qSXvx3XEj556ZEj72nm4CUfshR5tTRxmTvJXqB9ct/<0;1>/*,[9BC9E65B/48'/1'/0'/2']Vpub5myh64ZHX7oRm4UEpPRT1Up5wCw1GEJsQjhLKYpQnwoThzvqqYzLAecMi5NbaD4TDe8cuZJWRaUcqWAm4XZ1YVpeDhcJ2Ui2UdRAmivxvGv/<0;1>/*))#l3vjlqwu";
+        expect(
+            () => MultisignatureWallet.fromDescriptor(descriptor,
+                ignoreChecksum: true),
+            throwsException);
+        //     throwsException);
+      });
+
+      test('Invalid derivation path (mainnet)', () {
+        String descriptor =
+            "wpkh([98C7D774/84'/1'/0']vpub5ZZ1q76vi2LR9PeQDoV13u8TZwsyqKa7yBfD3GnPPvBjVU9ZnBTMkwzCHCVBZaPHDKJNEdMKo8MTyrQ9234idzSG9nHFD6hsUB8HJ14NBg7/<0;1>/*)#7ra9g9d8";
+        NetworkType.setNetworkType(NetworkType.mainnet);
+        expect(() => SingleSignatureWallet.fromDescriptor(descriptor),
+            throwsException);
+      });
 
       test('Different derivation exception', () {
         String differentPathDescriptor =
@@ -46,6 +73,7 @@ void main() async {
 
     group('toJson', () {
       test('Get json text from multisignature wallet', () {
+        NetworkType.setNetworkType(NetworkType.regtest);
         MultisignatureWallet wallet =
             MultisignatureWallet.fromDescriptor(vault.descriptor);
         String json = wallet.toJson();
@@ -54,6 +82,7 @@ void main() async {
     });
     group('MultisignatureWallet.fromJson', () {
       test('MultisignatureWallet.fromJson', () {
+        NetworkType.setNetworkType(NetworkType.regtest);
         MultisignatureWallet wallet =
             MultisignatureWallet.fromDescriptor(vault.descriptor);
         String json = wallet.toJson();

@@ -32,6 +32,22 @@ void main() async {
                 MockFactory.createP2wshVault().descriptor),
             throwsException);
       });
+
+      test('Invalid derivation path (testnet)', () {
+        String descriptor =
+            "wpkh([98C7D774/84'/0'/0']vpub5ZZ1q76vi2LR9PeQDoV13u8TZwsyqKa7yBfD3GnPPvBjVU9ZnBTMkwzCHCVBZaPHDKJNEdMKo8MTyrQ9234idzSG9nHFD6hsUB8HJ14NBg7/<0;1>/*)#7ra9g9d8";
+        NetworkType.setNetworkType(NetworkType.testnet);
+        expect(() => SingleSignatureWallet.fromDescriptor(descriptor),
+            throwsException);
+      });
+
+      test('Invalid derivation path (mainnet)', () {
+        String descriptor =
+            "wpkh([98C7D774/84'/1'/0']vpub5ZZ1q76vi2LR9PeQDoV13u8TZwsyqKa7yBfD3GnPPvBjVU9ZnBTMkwzCHCVBZaPHDKJNEdMKo8MTyrQ9234idzSG9nHFD6hsUB8HJ14NBg7/<0;1>/*)#7ra9g9d8";
+        NetworkType.setNetworkType(NetworkType.mainnet);
+        expect(() => SingleSignatureWallet.fromDescriptor(descriptor),
+            throwsException);
+      });
     });
     group('toJson', () {
       test('Get json text of single signature wallet', () {
@@ -40,6 +56,7 @@ void main() async {
     });
     group('SingleSignatureWallet.fromJson', () {
       test('Generate single signature wallet from json', () {
+        NetworkType.setNetworkType(NetworkType.regtest);
         SingleSignatureWallet targetWallet =
             SingleSignatureWallet.fromJson(wallet.toJson());
         expect(targetWallet.keyStore.masterFingerprint,
