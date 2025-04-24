@@ -135,7 +135,8 @@ class HDWallet {
 
   /// @nodoc
   HDWallet derivePath(String path) {
-    final regex = RegExp(r"^(m\/)?(\d+'?\/)*\d+'?$");
+    // final regex = RegExp(r"^(m\/)?(\d+'?\/)*\d+'?$");
+    final regex = RegExp(r"^(m\/)?(\d+['h]?\/)*\d+['h]?$");
     if (!regex.hasMatch(path)) {
       throw Exception("Invalid Path");
     }
@@ -148,7 +149,8 @@ class HDWallet {
     }
     return splitPath.fold(this, (HDWallet prevHd, String indexStr) {
       int index;
-      if (indexStr.substring(indexStr.length - 1) == "'") {
+      if (indexStr.substring(indexStr.length - 1) == "'" ||
+          indexStr.substring(indexStr.length - 1) == "h") {
         index = int.parse(indexStr.substring(0, indexStr.length - 1));
         return prevHd.deriveHardened(index);
       } else {

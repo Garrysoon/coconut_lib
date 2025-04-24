@@ -66,6 +66,13 @@ void main() {
         expect(rootWallet.derivePath("m/84'/1'/0'/1").getMasterPrivateKey(),
             '3twVhJJ3ecUjpz9uQk3wbQ6mU5MBMkWxxRXrsJSvRpvh5cL');
       });
+      test('Derive from child with h', () {
+        Seed seed = Seed.fromMnemonic(
+            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about");
+        HDWallet rootWallet = HDWallet.fromRootSeed(seed.rootSeed);
+        expect(rootWallet.derivePath("m/84h/1h/0h/1").getMasterPrivateKey(),
+            '3twVhJJ3ecUjpz9uQk3wbQ6mU5MBMkWxxRXrsJSvRpvh5cL');
+      });
     });
     group('sign', () {
       test('Get signature with ecdsa', () {
