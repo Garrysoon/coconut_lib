@@ -52,6 +52,15 @@ void main() async {
                 ignoreChecksum: true),
             throwsException);
       });
+      test('Parse p2wpkh simple descriptor', () {
+        NetworkType.setNetworkType(NetworkType.testnet);
+        const bip84Descriptor =
+            "wpkh([38d0b5e1/84'/1'/0']vpub5TmYRnYy8ScbkG2WmearTx1DG91gJC4TM9kRTvSQjgVMGRUdx4vRUD8UHjZn8fJZfjUoBHPnVX1q5AmHJHTHw3CRtHzfK4yqMhAKS93Xb3y)";
+        final descriptor =
+            Descriptor.parse(bip84Descriptor, ignoreChecksum: true);
+        expect(descriptor, isA<Descriptor>());
+        expect(descriptor.scriptType, 'wpkh');
+      });
     });
     group('toJson', () {
       test('Get json text of single signature wallet', () {

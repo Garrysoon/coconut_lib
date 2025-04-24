@@ -15,7 +15,8 @@ class SingleSignatureWallet extends SingleSignatureWalletBase {
   /// Create a single signature wallet from descriptor.
   factory SingleSignatureWallet.fromDescriptor(String descriptor,
       {bool ignoreChecksum = false}) {
-    Descriptor descriptorObject = Descriptor.parse(descriptor);
+    Descriptor descriptorObject =
+        Descriptor.parse(descriptor, ignoreChecksum: ignoreChecksum);
     AddressType addressType;
     if (descriptorObject.scriptType == "sh-wpkh") {
       addressType = AddressType.p2wpkhInP2sh;
