@@ -37,6 +37,21 @@ class SingleSignatureWallet extends SingleSignatureWalletBase {
         addressType, descriptorObject.getDerivationPath(0), extendedPublicKey);
   }
 
+  factory SingleSignatureWallet.fromExtendedPublicKey(AddressType addressType,
+      String extendedPublicKey, String masterFingerprint) {
+    if (addressType.isMultisignature) {
+      throw Exception('${addressType.getAddress} is multisig script.');
+    }
+    String derivationPath = WalletUtility.getDerivationPath(addressType, 0);
+    ExtendedPublicKey extendedPublicKeyObject =
+        ExtendedPublicKey.parse(extendedPublicKey);
+    HDWallet wallet = HDWallet.fromPublicKey(
+        extendedPublicKeyObject.publicKey, extendedPublicKeyObject.chainCode);
+    wallet.depth = derivationPath.split('/').length - 1;
+    return SingleSignatureWallet(masterFingerprint, wallet, addressType,
+        derivationPath, extendedPublicKeyObject);
+  }
+
   /// Get Json string of the single signature wallet.
   String toJson() {
     return jsonEncode({'descriptor': descriptor});

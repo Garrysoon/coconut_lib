@@ -209,6 +209,9 @@ void main() async {
             SingleSignatureWallet.fromCryptoAccountPayload(
                 jsonDecode(payload2));
 
+        print(wallet.descriptor);
+        print(wallet.keyStore.extendedPublicKey.serialize());
+
         expect(
             Codec.encodeHex(wallet.keyStore.extendedPublicKey.publicKey)
                 .toUpperCase(),
@@ -227,6 +230,22 @@ void main() async {
             () => SingleSignatureWallet.fromCryptoAccountPayload(
                 jsonDecode(payload)),
             throwsException);
+      });
+    });
+
+    group('SingleSignatureWallet.fromExtendedPublicKey', () {
+      test('Generate single signature wallet from extended public key', () {
+        NetworkType.setNetworkType(NetworkType.testnet);
+        String extendedPublicKey =
+            'vpub5ZQx1972mMdbKZuuscy9QMJEeokWQNPoYr8dbW4QkVa4ZAK54vSSqFsGYTPJMUWxVpnF6VGvGde27bECuMkB7HWE8FUSQ4sSptAfbEg7zmF';
+        SingleSignatureWallet wallet =
+            SingleSignatureWallet.fromExtendedPublicKey(
+                AddressType.p2wpkh, extendedPublicKey, '499602d2');
+        expect(wallet.keyStore.extendedPublicKey.parentFingerprint,
+            Converter.decToHex(3254928504));
+        expect(wallet.keyStore.masterFingerprint, '499602d2');
+        expect(wallet.derivationPath, "m/84'/1'/0'");
+        expect(wallet.addressType, AddressType.p2wpkh);
       });
     });
   });
