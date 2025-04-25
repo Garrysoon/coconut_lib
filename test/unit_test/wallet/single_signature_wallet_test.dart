@@ -209,9 +209,6 @@ void main() async {
             SingleSignatureWallet.fromCryptoAccountPayload(
                 jsonDecode(payload2));
 
-        print(wallet.descriptor);
-        print(wallet.keyStore.extendedPublicKey.serialize());
-
         expect(
             Codec.encodeHex(wallet.keyStore.extendedPublicKey.publicKey)
                 .toUpperCase(),
