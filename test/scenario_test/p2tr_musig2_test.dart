@@ -83,8 +83,8 @@ void main() {
 
       // print("completedPsbt : ${completedPsbt.serialize()}");
 
-      // Transaction completedTx =
-      //     completedPsbt.getSignedTransaction(AddressType.p2trMuSig2);
+      Transaction completedTx =
+          completedPsbt.getSignedTransaction(AddressType.p2trMuSig2);
       // print("completedTx : ${completedTx.serialize()}");
 
       // print("completedPsbt : $completedPsbt");

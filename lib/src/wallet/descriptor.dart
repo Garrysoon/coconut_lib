@@ -15,29 +15,31 @@ class Descriptor {
   String get scriptType => _scriptType;
 
   AddressType get addressType =>
-      AddressType.getAddressTypeFromScriptType("p2$scriptType");
+      AddressType.getAddressTypeFromScriptType(scriptType);
 
   /// Create a descriptor for a single signature.
-  factory Descriptor.forSingleSignature(String scriptType, String publicKey,
-      String derivationPath, String fingerprint) {
+  factory Descriptor.forSingleSignature(AddressType addressType,
+      String publicKey, String derivationPath, String masterFingerprint) {
+    String scriptType = addressType.scriptType;
     //[98c7d774/84'/1'/0']tpubDDbAxgGSifNq7nDV
     if (scriptType == 'wsh-in-sh') {
-      return Descriptor(
-          'sh-wpkh', ["[$fingerprint/$derivationPath]$publicKey/<0;1>/*"]);
+      return Descriptor('sh-wpkh',
+          ["[$masterFingerprint/$derivationPath]$publicKey/<0;1>/*"]);
     } else {
-      return Descriptor(
-          scriptType, ["[$fingerprint/$derivationPath]$publicKey/<0;1>/*"]);
+      return Descriptor(scriptType,
+          ["[$masterFingerprint/$derivationPath]$publicKey/<0;1>/*"]);
     }
   }
 
   /// Create a descriptor for multisignature.
   factory Descriptor.forMultisignature(
-      String scriptType,
+      AddressType addressType,
       List<String> publicKeyList,
       String derivationPath,
       List<String> fingerprintList,
       int requiredSignatures) {
     //'wsh(sortedmulti(2,[e50bd392/48h/0h/0h/2h]xpub6FPPhpChFv7pQE7D19ZNGoFcCUzmMdwEMwqGFshE7SCfBiN5YqpejTKkshCS3sawXF98w7j5YeaYmnVdcMuX4wLr2pwiUaccvb4WsF1w5Kz/<0;1>/*,[906222f7/48h/0h/0h/2h]xpub6EgRoGnrQpGy55qdvYXqCspbx3M4zwEJqqMY4Gvf8wTd927pAoiknQBWvLpk6gh1tWJErqgW6S4QDJykGedZ7ngV2TbRG25wUEpnCox9dKA/<0;1>/*,[476ec2dc/48h/0h/0h/2h]xpub6ERySjYpfyoWiREzdy5hZFjzkPWQK5GzUiPppcqdYm1qqbi5H8tpUeX93LG1MzQLn4Dj5iMwydhnFLqWvHHJk2ZHiKD9gYZh6YbVR1VQT1V/<0;1>/*))#x9cc762c';
+    String scriptType = addressType.scriptType;
     List<String> publicKeyString = [];
     for (int i = 0; i < publicKeyList.length; i++) {
       publicKeyString.add(
@@ -48,8 +50,8 @@ class Descriptor {
   }
 
   /// Parse the descriptor.
-  factory Descriptor.parse(String descriptor) {
-    if (!Checksum.isValidChecksum(descriptor)) {
+  factory Descriptor.parse(String descriptor, {bool ignoreChecksum = false}) {
+    if (ignoreChecksum == false && !Checksum.isValidChecksum(descriptor)) {
       throw Exception('Invalid descriptor format.');
     }
     var withoutChecksum = descriptor.split('#')[0];

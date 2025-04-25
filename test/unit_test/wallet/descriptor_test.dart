@@ -7,7 +7,7 @@ void main() {
     group('Descriptor.forSingleSignature', () {
       test('Generate p2wpkh descriptor', () {
         Descriptor descriptor = Descriptor.forSingleSignature(
-            "wpkh",
+            AddressType.p2wpkh,
             "vpub5ZZ1q76vi2LR9PeQDoV13u8TZwsyqKa7yBfD3GnPPvBjVU9ZnBTMkwzCHCVBZaPHDKJNEdMKo8MTyrQ9234idzSG9nHFD6hsUB8HJ14NBg7",
             "84'/1'/0'",
             "98C7D774");
@@ -17,9 +17,10 @@ void main() {
         expect(descriptor, isA<Descriptor>());
         expect(descriptor.serialize(), target);
       });
+
       test('Generate nested segwit descriptor', () {
         Descriptor descriptor = Descriptor.forSingleSignature(
-            "wsh-in-sh",
+            AddressType.p2wpkhInP2sh,
             "xpub6CorSC5E8wkNboiq84Ndxvm3w4ccSA4MbEva8khZ4a5Cxk8hQYwrsJoPsmL8KsmCeFWzD4irCJdEqcd7kKRi5SAg355pTxTgHW2eVzQu2dd",
             "49'/1'/0'",
             "33a0cbfd");
@@ -39,8 +40,8 @@ void main() {
           'xpub6EgRoGnrQpGy55qdvYXqCspbx3M4zwEJqqMY4Gvf8wTd927pAoiknQBWvLpk6gh1tWJErqgW6S4QDJykGedZ7ngV2TbRG25wUEpnCox9dKA',
           'xpub6ERySjYpfyoWiREzdy5hZFjzkPWQK5GzUiPppcqdYm1qqbi5H8tpUeX93LG1MzQLn4Dj5iMwydhnFLqWvHHJk2ZHiKD9gYZh6YbVR1VQT1V'
         ];
-        Descriptor descriptor = Descriptor.forMultisignature('wsh', pubList,
-            "48h/0h/0h/2h", ['e50bd392', '906222f7', '476ec2dc'], 2);
+        Descriptor descriptor = Descriptor.forMultisignature(AddressType.p2wsh,
+            pubList, "48h/0h/0h/2h", ['e50bd392', '906222f7', '476ec2dc'], 2);
         // print(descriptor.serialize());
         expect(descriptor, isA<Descriptor>());
         expect(descriptor.serialize(), desc);
@@ -48,9 +49,26 @@ void main() {
     });
     group('Descriptor.parse(String descriptor)', () {
       test('Parse p2wpkh descriptor', () {
+        NetworkType.setNetworkType(NetworkType.testnet);
         const bip84Descriptor =
-            "wpkh([98c7d774/84'/1'/0']tpubDDbAxgGSifNq7nDVLi3LfzeqF1GXhx4BM3HwxcdJVqhPLxSjMida9WyJZeV95teMpW4tMA4KFYtcSc7srHjz7uFkx4RQ4T15baqyqBdYTgm/0/*)#tdf2kj7c";
+            "wpkh([38d0b5e1/84'/1'/0']vpub5TmYRnYy8ScbkG2WmearTx1DG91gJC4TM9kRTvSQjgVMGRUdx4vRUD8UHjZn8fJZfjUoBHPnVX1q5AmHJHTHw3CRtHzfK4yqMhAKS93Xb3y/<0;1>/*)#uqpyzfuf";
         final descriptor = Descriptor.parse(bip84Descriptor);
+        expect(descriptor, isA<Descriptor>());
+        expect(descriptor.scriptType, 'wpkh');
+      });
+      test('Parse p2wpkh descriptor (ignore checksum)', () {
+        const bip84Descriptor =
+            "wpkh([98c7d774/84'/1'/0']tpubDDbAxgGSifNq7nDVLi3LfzeqF1GXhx4BM3HwxcdJVqhPLxSjMida9WyJZeV95teMpW4tMA4KFYtcSc7srHjz7uFkx4RQ4T15baqyqBdYTgm/0/*)";
+        final descriptor =
+            Descriptor.parse(bip84Descriptor, ignoreChecksum: true);
+        expect(descriptor, isA<Descriptor>());
+        expect(descriptor.scriptType, 'wpkh');
+      });
+      test('Parse p2wpkh descriptor (ignore checksum)', () {
+        const bip84Descriptor =
+            "wpkh([98c7d774/84'/1'/0']tpubDDbAxgGSifNq7nDVLi3LfzeqF1GXhx4BM3HwxcdJVqhPLxSjMida9WyJZeV95teMpW4tMA4KFYtcSc7srHjz7uFkx4RQ4T15baqyqBdYTgm)";
+        final descriptor =
+            Descriptor.parse(bip84Descriptor, ignoreChecksum: true);
         expect(descriptor, isA<Descriptor>());
         expect(descriptor.scriptType, 'wpkh');
       });
@@ -98,7 +116,7 @@ void main() {
         const bip84Descriptor =
             "wpkh([98c7d774/84'/1'/0']tpubDDbAxgGSifNq7nDVLi3LfzeqF1GXhx4BM3HwxcdJVqhPLxSjMida9WyJZeV95teMpW4tMA4KFYtcSc7srHjz7uFkx4RQ4T15baqyqBdYTgm/<0;1>/*)#rha32pam";
         final descriptor = Descriptor.forSingleSignature(
-            'wpkh',
+            AddressType.p2wpkh,
             'tpubDDbAxgGSifNq7nDVLi3LfzeqF1GXhx4BM3HwxcdJVqhPLxSjMida9WyJZeV95teMpW4tMA4KFYtcSc7srHjz7uFkx4RQ4T15baqyqBdYTgm',
             "84'/1'/0'",
             '98c7d774');

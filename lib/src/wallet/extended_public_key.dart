@@ -56,7 +56,7 @@ class ExtendedPublicKey {
     //var parentFingerprint = bytes.getUint32(5);
     Uint8List fingerprint = Uint8List.fromList(buffer.sublist(5, 9));
     if (depth == 0) {
-      if (fingerprint != [0, 0, 0, 0, 0]) {
+      if (!fingerprint.every((b) => b == 0)) {
         throw Exception("HDWallet :Invalid parent fingerprint");
       }
     }

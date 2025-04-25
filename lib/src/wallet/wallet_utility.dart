@@ -148,33 +148,30 @@ abstract class WalletUtility {
   }
 
   static bool validateDerivationPath(String derivationPath) {
-    // Corrected regular expression to match a valid derivation path (e.g., m/44'/0'/0'/0/0)
-    final regex = RegExp(r"^m(\/(\d+'?))*");
+    // Updated regex: allows m/ and segments with optional ' or h suffix
+    final regex = RegExp(r"^m(\/\d+['h]?)*$");
 
-    // Check if the derivation path matches the regex
     if (!regex.hasMatch(derivationPath)) {
       return false;
     }
 
-    // Split the path into components and validate each segment
     final segments = derivationPath.split('/');
 
-    // The first segment must always be 'm'
+    // First segment must be 'm'
     if (segments[0] != 'm') {
       return false;
     }
 
-    // Validate the rest of the segments
     for (int i = 1; i < segments.length; i++) {
       final segment = segments[i];
 
-      // Ensure the segment is a number optionally followed by a "'"
-      if (!RegExp(r"^\d+'?").hasMatch(segment)) {
+      // Validate: must be digits followed optionally by ' or h
+      if (!RegExp(r"^\d+(['h])?$").hasMatch(segment)) {
         return false;
       }
 
-      // Ensure the number part is within a valid range (e.g., 0 to 2^31-1)
-      final numberPart = segment.replaceAll("'", "");
+      // Strip suffix and check range
+      final numberPart = segment.replaceAll(RegExp(r"['h]"), '');
       final number = int.tryParse(numberPart);
 
       if (number == null || number < 0 || number >= 0x80000000) {

@@ -14,7 +14,7 @@ class HDWallet {
   // ignore: non_constant_identifier_names
   Uint8List? _Q;
   Uint8List _chainCode;
-  int _depth = 0;
+  int depth = 0;
   int _index = 0;
   Uint8List _parentFingerprint = Uint8List.fromList([0, 0, 0, 0, 0]);
 
@@ -38,9 +38,6 @@ class HDWallet {
   Uint8List get chainCode => _chainCode;
 
   /// @nodoc
-  int get depth => _depth;
-
-  /// @nodoc
   int get index => _index;
 
   /// @nodoc
@@ -54,7 +51,7 @@ class HDWallet {
   /// @nodoc
   HDWallet neutered() {
     final neutered = HDWallet.fromPublicKey(publicKey, chainCode);
-    neutered._depth = depth;
+    neutered.depth = depth;
     neutered._index = index;
     neutered._parentFingerprint = parentFingerprint;
     return neutered;
@@ -124,7 +121,7 @@ class HDWallet {
       if (ki == null) return derive(index + 1);
       hd = HDWallet.fromPublicKey(ki, ir);
     }
-    hd._depth = depth + 1;
+    hd.depth = depth + 1;
     hd._index = index;
     hd._parentFingerprint = fingerprint;
     return hd;
@@ -138,7 +135,8 @@ class HDWallet {
 
   /// @nodoc
   HDWallet derivePath(String path) {
-    final regex = RegExp(r"^(m\/)?(\d+'?\/)*\d+'?$");
+    // final regex = RegExp(r"^(m\/)?(\d+'?\/)*\d+'?$");
+    final regex = RegExp(r"^(m\/)?(\d+['h]?\/)*\d+['h]?$");
     if (!regex.hasMatch(path)) {
       throw Exception("Invalid Path");
     }
@@ -151,7 +149,8 @@ class HDWallet {
     }
     return splitPath.fold(this, (HDWallet prevHd, String indexStr) {
       int index;
-      if (indexStr.substring(indexStr.length - 1) == "'") {
+      if (indexStr.substring(indexStr.length - 1) == "'" ||
+          indexStr.substring(indexStr.length - 1) == "h") {
         index = int.parse(indexStr.substring(0, indexStr.length - 1));
         return prevHd.deriveHardened(index);
       } else {

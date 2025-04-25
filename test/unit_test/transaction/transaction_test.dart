@@ -453,6 +453,7 @@ void main() {
         }
 
         int afterSendAmount = tx.outputs[0].amount;
+
         expect(tx.outputs.length, 1);
         expect(beforeSendindAmount < afterSendAmount, true);
         expect(beforeTotalOutput < afterSendAmount, true);

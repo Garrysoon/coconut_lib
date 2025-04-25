@@ -1,4 +1,5 @@
 @Tags(['unit'])
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:coconut_lib/coconut_lib.dart';
@@ -30,6 +31,15 @@ void main() {
         expect(signedPsbt.serialize().hashCode, 1025914823);
       });
     });
+    group('toKeyMap', () {
+      test('Get key map', () {
+        Map<String, dynamic> psbtMap = unsignedPsbt.toKeyMap();
+        String input0 =
+            '{"01": "a086010000000000160014b54542413855bca0894e855b7858cd07bca87b80", "060246c18ea7c5624b87e5f65a60842c9a22b27ae7e3630a95abeb35455259761824": "98C7D7745400008001000080000000800000000000000000"}';
+        expect(psbtMap['inputs'][0], jsonDecode(input0));
+      });
+    });
+
     group('Psbt.fromTransaction', () {
       test('Generate psbt from transction object', () {
         SingleSignatureVault vault = MockFactory.createP2wpkhVault();
@@ -91,6 +101,14 @@ void main() {
             '3045022100f369a3e1bdfb62a3ff875fa60bc9834326dead789a24ffcb2faf5f48628240e8022014cc216309a8ded296597cfd2680528729c0a55e43826d8af7d160d45be3df8601');
         expect(psbt.inputs[0].partialSig![0].publicKey,
             '033b0492bf5c0a0222a55cdea04cdc022b1751112381ae6e9970319b3d6b161db9');
+      });
+    });
+
+    group('Psbt.fromKMap', () {
+      test('Generate psbt from key map', () {
+        Map<String, dynamic> keyMap = signedPsbt.toKeyMap();
+        Psbt psbt = Psbt.fromMap(keyMap);
+        expect(psbt.serialize().hashCode, signedPsbt.serialize().hashCode);
       });
     });
     group('addSignature', () {

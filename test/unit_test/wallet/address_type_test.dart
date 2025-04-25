@@ -8,14 +8,14 @@ void main() {
   group('AddressType', () {
     group('getAddressTypeByVersion', () {
       test('getAddressTypeFromScriptType', () {
-        expect(AddressType.getAddressTypeFromScriptType('p2pkh'),
-            AddressType.p2pkh);
         expect(
-            AddressType.getAddressTypeFromScriptType('p2sh'), AddressType.p2sh);
-        expect(AddressType.getAddressTypeFromScriptType('p2wpkh'),
+            AddressType.getAddressTypeFromScriptType('pkh'), AddressType.p2pkh);
+        expect(
+            AddressType.getAddressTypeFromScriptType('sh'), AddressType.p2sh);
+        expect(AddressType.getAddressTypeFromScriptType('wpkh'),
             AddressType.p2wpkh);
-        expect(AddressType.getAddressTypeFromScriptType('p2wsh'),
-            AddressType.p2wsh);
+        expect(
+            AddressType.getAddressTypeFromScriptType('wsh'), AddressType.p2wsh);
       });
 
       group('isTestnetVersion', () {
@@ -224,7 +224,11 @@ void main() {
       });
       group('toString', () {
         test('toString', () {
-          expect(AddressType.p2pkh.toString(), 'P2PKH');
+          expect(AddressType.p2pkh.toString(), 'pkh');
+          expect(AddressType.p2wpkh.toString(), 'wpkh');
+          expect(AddressType.p2sh.toString(), 'sh');
+          expect(AddressType.p2wsh.toString(), 'wsh');
+          expect(AddressType.p2trKeyPathSpending.toString(), 'tr');
         });
       });
     });
