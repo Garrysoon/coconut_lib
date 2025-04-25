@@ -888,7 +888,8 @@ void main() {
     });
 
     group('getAggregatedSignatureForMuSig2', () {
-      test('Get aggregated signature for musig2', () {
+      test('Get aggregated signature for musig2 (case 1)', () {
+        //test case from : https://github.com/bitcoin/bips/blob/fd3878a279dbdd8438ff26e7daaabfd3a947f97f/bip-0327/vectors/sig_agg_vectors.json#L34
         List<Uint8List> participantPublicKeys = [
           Codec.decodeHex(
               '03935f972da013f80ae011890fa89b67a27b7be6ccb24d3274d18b2d4067f261a9'),
@@ -917,6 +918,61 @@ void main() {
             '041da22223ce65c92c9a0d6c2cac828aaf1eee56304fec371ddf91ebb2b9ef0912f1038025857fedeb3ff696f8b99fa4bb2c5812f6095a2e0004ec99ce18de1e');
         //O:041da22223ce65c92c9a0d6c2cac828aaf1eee56304fec371ddf91ebb2b9ef0912f1038025857fedeb3ff696f8b99fa4bb2c5812f6095a2e0004ec99ce18de1e
         //  041da22223ce65c92c9a0d6c2cac828aaf1eee56304fec371ddf91ebb2b9ef09c1875cc6d58df9a1f1354874f8375a104c9835d79190060cc5cbccfb162cc602
+      });
+      test('Get aggregated signature for musig2 (case 2)', () {
+        //test case from : https://github.com/bitcoin/bips/blob/fd3878a279dbdd8438ff26e7daaabfd3a947f97f/bip-0327/vectors/sig_agg_vectors.json#L52
+        List<Uint8List> participantPublicKeys = [
+          Codec.decodeHex(
+              '03935F972DA013F80AE011890FA89B67A27B7BE6CCB24D3274D18B2D4067F261A9'),
+          Codec.decodeHex(
+              '03C7FB101D97FF930ACD0C6760852EF64E69083DE0B06AC6335724754BB4B0522C')
+        ];
+
+        Uint8List aggregatedPubNonce = Codec.decodeHex(
+            '0224AFD36C902084058B51B5D36676BBA4DC97C775873768E58822F87FE437D792028CB15929099EEE2F5DAE404CD39357591BA32E9AF4E162B8D3E7CB5EFE31CB20');
+        Uint8List message = Codec.decodeHex(
+            '599C67EA410D005B9DA90817CF03ED3B1C868E4DA4EDF00A5880B0082C237869');
+        List<Uint8List> signatureList = [
+          Codec.decodeHex(
+              '9A87D3B79EC67228CB97878B76049B15DBD05B8158D17B5B9114D3C226887505'),
+          Codec.decodeHex(
+              '66F82EA90923689B855D36C6B7E032FB9970301481B99E01CDB4D6AC7C347A15'),
+        ];
+
+        MuSig2SessionContext sessionContext = MuSig2SessionContext(
+            aggregatedPubNonce, participantPublicKeys, message);
+
+        Uint8List aggregatedSignature =
+            Ecc.getAggregatedSignatureForMuSig2(sessionContext, signatureList);
+        expect(Codec.encodeHex(aggregatedSignature).toUpperCase(),
+            '1069B67EC3D2F3C7C08291ACCB17A9C9B8F2819A52EB5DF8726E17E7D6B52E9F01800260A7E9DAC450F4BE522DE4CE12BA91AEAF2B4279219EF74BE1D286ADD9');
+      });
+      test('Get aggregated signature for musig2 (case 3)', () {
+        List<Uint8List> participantPublicKeys = [
+          Codec.decodeHex(
+              '31cd531693ac6f845e040afbad01fc13816869436d5bbaa0367abc3809b8848f'),
+          Codec.decodeHex(
+              'e9ee267a4bd5d0df21cc649bdda375bb5510d173ed4127b15da93f0717b1f99d')
+        ];
+
+        Uint8List aggregatedPubNonce = Codec.decodeHex(
+            '034da392a352968b6bc93110ed1b5ff741a189245476edfe883d1866e0417ae962031ec1b0cbfa023f3b0a2abad915b2fbf72310b58358a20174203c12cc41028871');
+        Uint8List message = Codec.decodeHex(
+            '90e6bcf20fccc52e974ecd7e9fa2b7e7af5832d9b8285078095b8b5dfb8d045c');
+        List<Uint8List> signatureList = [
+          Codec.decodeHex(
+              'a8a62dfc2b273d4c0410fcf878306586e2d8972c927efe3147248df92e89996b'),
+          Codec.decodeHex(
+              'd9532663394d002b9298f89764406251fca22c25654643114cd25c6a81c5203c'),
+        ];
+
+        MuSig2SessionContext sessionContext = MuSig2SessionContext(
+            aggregatedPubNonce, participantPublicKeys, message);
+
+        Uint8List aggregatedSignature =
+            Ecc.getAggregatedSignatureForMuSig2(sessionContext, signatureList);
+        expect(Codec.encodeHex(aggregatedSignature).toUpperCase(),
+            '4eed89caab4ab5143503cdd92bf54c08a8de0a8d9709ff777ed2eb2005f34ff681f9545f64743d7796a9f58fdc70c7da24cbe66b487ca106d4248bd6e0187866');
       });
     });
   });

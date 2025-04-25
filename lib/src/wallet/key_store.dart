@@ -250,7 +250,7 @@ class KeyStore {
         getPublicKey(accountIndex, isChange: isChange, isXOnly: true);
     String publicNonce = getMuSig2PublicNonce(
         sigHash, psbtInput.muSig2AggregatedPublicKey!, accountIndex, isChange);
-    // psbtObject.addMuSig2PubNonce(inputIndex, publicKey, publicNonce);
+    print('publicNonce: $publicNonce');
     psbtInput.addMuSig2PubNonce(publicKey, publicNonce);
   }
 
@@ -418,7 +418,8 @@ class KeyStore {
     Uint8List secretNonce = Codec.decodeHex(getMuSig2SecretNonce(
         sigHash, aggregatedPublicKey, accountIndex, isChange,
         extraInput: extraInput));
-    return Codec.encodeHex(calculatePublicNonce(secretNonce));
+    Uint8List publicNonce = calculatePublicNonce(secretNonce);
+    return Codec.encodeHex(publicNonce);
   }
 
   static Uint8List calculatePublicNonce(Uint8List secretNonce) {
@@ -487,6 +488,12 @@ class MuSig2SessionContext {
 
   MuSig2SessionContext(
       this.aggregatedPubNonce, this.participantPublicKeys, this.message) {
+    // print('aggregatedPubNonce: ${Codec.encodeHex(aggregatedPubNonce)}');
+    // print(
+    //     'participantPublicKeys: ${Codec.encodeHex(participantPublicKeys[0])}');
+    // print(
+    //     'participantPublicKeys: ${Codec.encodeHex(participantPublicKeys[1])}');
+    // print('message: ${Codec.encodeHex(message)}');
     if (message.length != 32) {
       throw ArgumentError("sighash must be 32 bytes (got ${message.length})");
     }
@@ -510,16 +517,6 @@ class MuSig2SessionContext {
     Q = Ecc.decodeFrom(WalletUtility.aggregatePublicKey(
         prefixedParticipantPublicKeys.map((e) => Codec.encodeHex(e)).toList(),
         isXOnly: false))!;
-
-    // for (int i = 0; i < participantPublicKeys.length; i++) {
-    //   if (participantPublicKeys[i].length == 32) {
-    //     participantPublicKeys[i] =
-    //         Uint8List.fromList([0x02, ...participantPublicKeys[i]]);
-    //   } else if (participantPublicKeys[i].length != 33) {
-    //     throw ArgumentError(
-    //         "participantPublicKeys must be 32 or 33 bytes (got ${participantPublicKeys[i].length})");
-    //   }
-    // }
 
     b = Ecc.fromBuffer(Codec.decodeHex(Hash.taggedHash(
         "MuSig/noncecoef",

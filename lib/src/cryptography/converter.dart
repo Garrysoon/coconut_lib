@@ -42,6 +42,15 @@ class Converter {
     return hexString;
   }
 
+  static Uint8List bigIntToBytes(BigInt value, {int? byteLength}) {
+    if (byteLength != null) {
+      final hexStr = value.toRadixString(16).padLeft(byteLength * 2, '0');
+      return Uint8List.fromList(Codec.decodeHex(hexStr));
+    } else {
+      return Uint8List.fromList(Codec.decodeHex(bigDecToHex(value)));
+    }
+  }
+
   static String decToBin(int decimalValue) {
     if (decimalValue == 0) {
       return '0';
