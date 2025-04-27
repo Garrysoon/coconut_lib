@@ -207,6 +207,25 @@ void main() {
         expect(secretNonce.toUpperCase(),
             '3221975ACBDEA6820EABF02A02B7F27D3A8EF68EE42787B88CBEFD9AA06AF3632EE85B1A61D8EF31126D4663A00DD96E9D1D4959E72D70FE5EBB6E7696EBA66F024D4B6CD1361032CA9BD2AEB9D900AA4D45D9EAD80AC9423374C451A7254D0766');
       });
+      test('Generate secret nonce (for scenario test)', () {
+        Uint8List rand =
+            Codec.decodeHex('3acc65ba29db1bdfb9d0af9c87525ee5df2205ee');
+        Uint8List secretKey = Codec.decodeHex(
+            '53758e643751e3c23fd15b1c08a80179c8a6a78fed51c6e5961e2ea9d381925a');
+        Uint8List publicKey = Codec.decodeHex(
+            "0231cd531693ac6f845e040afbad01fc13816869436d5bbaa0367abc3809b8848f");
+        Uint8List aggPubkey = Codec.decodeHex(
+            "5c6bc6c83ac710fa23c806e3744d90cbd54899f38cfdb2f6310e9d664f79b5b9");
+        Uint8List message = Codec.decodeHex(
+            "90e6bcf20fccc52e974ecd7e9fa2b7e7af5832d9b8285078095b8b5dfb8d045c");
+        Uint8List extraInput = Codec.decodeHex("");
+
+        String secretNonce = Codec.encodeHex(KeyStore.calculateSecretNonce(
+            rand, secretKey, publicKey, aggPubkey, message, extraInput,
+            isDeterministic: false));
+        expect(secretNonce,
+            'c931cdfc4c763bfec9404394cac7a5fe73d5a1c0f7c0ba106d24d7c8c4a141e63a74c366130dba7e587d9ca78a116751b9c98beb2388e2db53ae083e436e2e5b0231cd531693ac6f845e040afbad01fc13816869436d5bbaa0367abc3809b8848f');
+      });
     });
 
     group('calculatePublicNonce', () {

@@ -250,7 +250,6 @@ class KeyStore {
         getPublicKey(accountIndex, isChange: isChange, isXOnly: true);
     String publicNonce = getMuSig2PublicNonce(
         sigHash, psbtInput.muSig2AggregatedPublicKey!, accountIndex, isChange);
-    print('publicNonce: $publicNonce');
     psbtInput.addMuSig2PubNonce(publicKey, publicNonce);
   }
 
@@ -350,16 +349,27 @@ class KeyStore {
   String getMuSig2SecretNonce(String sigHash, String aggregatedPublicKey,
       int accountIndex, bool isChange,
       {Uint8List? extraInput}) {
-    Uint8List secretKey =
-        Codec.decodeHex(getPrivateKey(accountIndex, isChange: isChange));
+    Uint8List secretKey = Codec.decodeHex(
+        getPrivateKey(accountIndex, isChange: isChange, isXOnly: true));
     Uint8List publicKey = Codec.decodeHex(
         "02${getPublicKey(accountIndex, isChange: isChange, isXOnly: true)}");
     Uint8List aggPubkey = Codec.decodeHex(aggregatedPublicKey);
     Uint8List message = Codec.decodeHex(sigHash);
     Uint8List rand = Hash.sha160fromByte(
         Uint8List.fromList([...secretKey, ...aggPubkey, ...message]));
-    return Codec.encodeHex(calculateSecretNonce(
-        rand, secretKey, publicKey, aggPubkey, message, extraInput));
+    // print("==> Get Secret Nonce");
+    // print('rand: ${Codec.encodeHex(rand)}');
+    // print('secretKey: ${Codec.encodeHex(secretKey)}');
+    // print('publicKey: ${Codec.encodeHex(publicKey)}');
+    // print('aggPubkey: ${Codec.encodeHex(aggPubkey)}');
+    // print('message: ${Codec.encodeHex(message)}');
+    // print('extraInput: ${Codec.encodeHex(extraInput ?? Uint8List(0))}');
+    Uint8List secretNonce = calculateSecretNonce(
+        rand, secretKey, publicKey, aggPubkey, message, extraInput,
+        isDeterministic: false);
+    // print('secretNonce: ${Codec.encodeHex(secretNonce)}');
+    // print("==> Finished Get Secret Nonce");
+    return Codec.encodeHex(secretNonce);
   }
 
   static Uint8List calculateSecretNonce(
@@ -502,20 +512,15 @@ class MuSig2SessionContext {
           "aggregatedPubNonce must be 66 bytes (got ${aggregatedPubNonce.length})");
     }
 
-    List<Uint8List> prefixedParticipantPublicKeys = [];
     for (var key in participantPublicKeys) {
-      if (key.length == 32) {
-        prefixedParticipantPublicKeys.add(Uint8List.fromList([0x02, ...key]));
-      } else if (key.length == 33) {
-        prefixedParticipantPublicKeys.add(key);
-      } else {
-        throw ArgumentError(
-            "participantPublicKeys must be 32 or 33 bytes (got ${key.length})");
+      if (key.length != 33) {
+        throw Exception(
+            "participantPublicKeys must be 33 bytes (got ${key.length})");
       }
     }
 
     Q = Ecc.decodeFrom(WalletUtility.aggregatePublicKey(
-        prefixedParticipantPublicKeys.map((e) => Codec.encodeHex(e)).toList(),
+        participantPublicKeys.map((e) => Codec.encodeHex(e)).toList(),
         isXOnly: false))!;
 
     b = Ecc.fromBuffer(Codec.decodeHex(Hash.taggedHash(

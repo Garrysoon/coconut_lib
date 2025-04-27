@@ -439,21 +439,21 @@ class Psbt {
         inputData[musig2ParticipantPubKeyType + aggregatePubKey] =
             publicKeys.join();
 
-        String musig2PubNonceType =
-            getKeyType(inputKeyType, 'MUSIG2_PUB_NONCE');
+        // String musig2PubNonceType =
+        //     getKeyType(inputKeyType, 'MUSIG2_PUB_NONCE');
         for (int keyStoreIndex = 0;
             keyStoreIndex < multisignatureWallet.keyStoreList.length;
             keyStoreIndex++) {
           // MUSIG2_PUB_NONCE
-          if (multisignatureWallet.keyStoreList[keyStoreIndex].hasSeed) {
-            inputData[musig2PubNonceType + publicKeys[keyStoreIndex]] =
-                multisignatureWallet.keyStoreList[keyStoreIndex]
-                    .getMuSig2PublicNonce(
-                        tx.getTaprootSigHash(i, witnessUtxoList),
-                        aggregatePubKey,
-                        tx.utxoList[i].accountIndex,
-                        tx.utxoList[i].isChange);
-          }
+          // if (multisignatureWallet.keyStoreList[keyStoreIndex].hasSeed) {
+          //   inputData[musig2PubNonceType + publicKeys[keyStoreIndex]] =
+          //       multisignatureWallet.keyStoreList[keyStoreIndex]
+          //           .getMuSig2PublicNonce(
+          //               tx.getTaprootSigHash(i, witnessUtxoList),
+          //               aggregatePubKey,
+          //               tx.utxoList[i].accountIndex,
+          //               tx.utxoList[i].isChange);
+          // }
         }
       }
       psbtData["inputs"].add(inputData);
@@ -842,7 +842,7 @@ class Psbt {
           aggregatedPubNonce,
           inputs[i]
               .muSig2ParticipantPubkeys!
-              .map((e) => Codec.decodeHex(e))
+              .map((e) => Codec.decodeHex('02$e'))
               .toList(),
           message,
         );
@@ -982,10 +982,13 @@ class PsbtInput {
     // Get all public nonces
     List<Uint8List> publicNonces =
         muSig2PubNonces!.values.map((hex) => Codec.decodeHex(hex)).toList();
+    // print('publicNonces: ${publicNonces.map((e) => Codec.encodeHex(e))}');
 
     if (publicNonces.isEmpty) {
       throw Exception('No public nonces found');
     }
+    // print(
+    //     'aggregatePublicNonce: ${Codec.encodeHex(aggregatePublicNonce(publicNonces))}');
     return Codec.encodeHex(aggregatePublicNonce(publicNonces));
   }
 

@@ -304,19 +304,9 @@ class AddressType {
           "In MuSig2, the number of public keys must equal the required signatures");
     }
 
-    // Sort public keys lexicographically
-    publicKeys.sort();
-
-    // Convert public keys to bytes
-    List<Uint8List> pubKeysBytes =
-        publicKeys.map((hex) => Codec.decodeHex(hex)).toList();
-
-    // Concatenate all public keys
-    String concatenatedPubkeys =
-        pubKeysBytes.map((e) => Codec.encodeHex(e)).join('');
-
     // Calculate the internal key (tweak) using SHA256
-    String internalKey = Hash.sha256fromHex(concatenatedPubkeys);
+    String internalKey =
+        Codec.encodeHex(WalletUtility.aggregatePublicKey(publicKeys));
 
     // Get the Taproot address using the internal key
     return getTaprootAddress(internalKey);
@@ -363,9 +353,7 @@ class AddressType {
       tapscript.add(0x87); // OP_NUMEQUAL
     }
 
-    // print(Converter.bytesToHex(tapscript));
-
-    Uint8List merkleRoot = _getTapleafHash(0xc0, Codec.encodeHex(tapscript));
+    // Uint8List merkleRoot = _getTapleafHash(0xc0, Codec.encodeHex(tapscript));
 
     return getTaprootAddress(internalKey);
   }

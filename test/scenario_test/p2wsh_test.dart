@@ -31,6 +31,7 @@ void main() {
             multiSigVault1.getCoordinatorBsms());
     multiSigVault2.bindSeedToKeyStore(keyStore2.seed);
 
+    // ignore: unused_local_variable
     MultisignatureVault multiSigVault3 =
         MultisignatureVault.fromCoordinatorBsms(
             multiSigVault1.getCoordinatorBsms());
@@ -43,11 +44,9 @@ void main() {
 
     expect(unsignedTx.addressType, AddressType.p2wsh);
 
-    print("vault 1");
     String signed1PsbtText =
         multiSigVault1.addSignatureToPsbt(unsignedTx.serialize());
     // print(signed1PsbtText);
-    print("vault 2");
     String signed2PsbtText = multiSigVault2.addSignatureToPsbt(signed1PsbtText);
     // String signed3PsbtText = multiSigVault3.addSignatureToPsbt(signed2PsbtText);
 

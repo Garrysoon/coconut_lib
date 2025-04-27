@@ -229,7 +229,6 @@ class Ecc {
       s = sig.s;
     }
     buffer.setRange(32, 64, _encodeBigInt(s));
-    // print("Signature : ${Codec.encodeHex(buffer)}");
     return buffer;
   }
 
@@ -332,49 +331,33 @@ class Ecc {
     if (!isPoint(publicKey)) throw ArgumentError(THROW_BAD_POINT);
     if (!isSignature(signature)) throw ArgumentError(THROW_BAD_SIGNATURE);
 
-    print('=== verifySchnorr Parameters ===');
-    print('message: ${Codec.encodeHex(message)}');
-    print('publicKey: ${Codec.encodeHex(publicKey)}');
-    print('signature: ${Codec.encodeHex(signature)}');
-
     Uint8List R_x = signature.sublist(0, 32);
     Uint8List sBytes = signature.sublist(32, 64);
     BigInt s = fromBuffer(sBytes);
 
-    print('s: $s');
-
     if (s >= n) {
-      print('s >= n, verification failed');
       return false;
     }
 
     if (publicKey.length == 32) {
       publicKey = Uint8List.fromList([0x02, ...publicKey]);
-      print('prefixed publicKey: ${Codec.encodeHex(publicKey)}');
     }
 
     ECPoint? P = decodeFrom(publicKey);
     if (P == null || P.isInfinity) {
-      print('P is null or infinity, verification failed');
       return false;
     }
 
     Uint8List eBytes = Codec.decodeHex(Hash.taggedHash("BIP0340/challenge",
         Uint8List.fromList([...R_x, ...publicKey.sublist(1), ...message])));
     BigInt e = fromBuffer(eBytes) % n;
-    print('e: $e');
 
     ECPoint? R_prime = (G * s)! + (P * (n - e));
     if (R_prime == null || R_prime.isInfinity) {
-      print('R_prime is null or infinity, verification failed');
       return false;
     }
 
     Uint8List R_prime_x = getEncoded(R_prime, false).sublist(1, 33);
-    print('R_x: ${Codec.encodeHex(R_x)}');
-    print('R_prime_x: ${Codec.encodeHex(R_prime_x)}');
-    print('Verification result: ${R_prime_x.toString() == R_x.toString()}');
-    print('=============================================');
 
     return R_prime_x.toString() == R_x.toString();
   }
@@ -476,6 +459,10 @@ class Ecc {
     } else {
       prefixedPublicKey = publicKey;
     }
+    if (Codec.encodeHex(prefixedPublicKey) !=
+        Codec.encodeHex(pointFromScalar(privateKey, true)!)) {
+      throw Exception("Invalid public key");
+    }
 
     Uint8List Q = getEncoded(sessionContext.Q, true);
     BigInt b = sessionContext.b;
@@ -490,11 +477,12 @@ class Ecc {
             [...R_x, ...Q.sublist(1), ...sessionContext.message]))));
 
     late BigInt a;
+    Uint8List.fromList(
+        sessionContext.participantPublicKeys.expand((x) => x).toList());
     Uint8List L = Codec.decodeHex(Hash.taggedHash(
         'KeyAgg list',
         Uint8List.fromList(
             sessionContext.participantPublicKeys.expand((x) => x).toList())));
-
     Uint8List? secondKey;
     for (int keyIndex = 1;
         keyIndex < sessionContext.participantPublicKeys.length;
@@ -579,7 +567,7 @@ class Ecc {
     ECPoint R = sessionContext.R;
     BigInt b = sessionContext.b;
     BigInt e = sessionContext.e;
-    BigInt tacc = BigInt.from(0);
+    // BigInt tacc = BigInt.from(0);
     BigInt gacc = BigInt.from(1);
     late BigInt s;
 
