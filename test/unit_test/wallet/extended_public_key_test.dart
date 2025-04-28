@@ -30,6 +30,13 @@ void main() {
 
         expect(extendedPublicKey.parentFingerprint, '7ef32bdb');
       });
+      test('Parse extended public key (network type mismatch)', () {
+        NetworkType.setNetworkType(NetworkType.regtest);
+        String exPubText =
+            'zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXNfE3EfH1r1ADqtfSdVCToUG868RvUUkgDKf31mGDtKsAYz2oz2AGutZYs';
+
+        expect(() => ExtendedPublicKey.parse(exPubText), throwsException);
+      });
     });
     group('serialize', () {
       test('Serialise extended public key', () {

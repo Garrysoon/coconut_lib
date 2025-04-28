@@ -43,6 +43,17 @@ class ExtendedPublicKey {
 
   /// Parse an extended public key.
   factory ExtendedPublicKey.parse(String expub) {
+    if (NetworkType.currentNetworkType.isTestnet) {
+      if (!expub.startsWith("tpub") && !expub.startsWith("vpub")) {
+        throw Exception(
+            "Extended public key is not compatible with the network type.");
+      }
+    } else {
+      if (!expub.startsWith("xpub") && !expub.startsWith("zpub")) {
+        throw Exception(
+            "Extended public key is not compatible with the network type.");
+      }
+    }
     Uint8List buffer = Codec.decodeBase58(expub);
     if (buffer.length != 78) {
       throw Exception("ExtendedPublicKey :Invalid buffer length");
