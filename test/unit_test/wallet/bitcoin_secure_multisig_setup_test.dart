@@ -8,6 +8,7 @@ void main() {
   group('BSMS', () {
     group('BSMS.fromSigner', () {
       test('Generate signer', () {
+        NetworkType.setNetworkType(NetworkType.mainnet);
         KeyStore keyStore = KeyStore.fromSeed(Seed.random(), AddressType.p2wsh);
         Bsms bsms = Bsms.fromSigner(
             keyStore.masterFingerprint,

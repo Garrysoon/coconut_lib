@@ -6,6 +6,7 @@ import '../mock_factory.dart';
 
 void main() {
   test('Add signature to psbt scenario', () {
+    NetworkType.setNetworkType(NetworkType.mainnet);
     SingleSignatureVault vault1 =
         MockFactory.createP2wpkhVault(passphrase: 'A');
     SingleSignatureVault vault2 =
