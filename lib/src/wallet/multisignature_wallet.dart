@@ -15,7 +15,7 @@ class MultisignatureWallet extends MultisignatureWalletBase {
     if (descriptorObject.scriptType == "sh-wpkh") {
       addressType = AddressType.p2wpkhInP2sh;
     } else {
-      addressType = descriptorObject.addressType;
+      addressType = descriptorObject._addressType;
     }
 
     if (!addressType.isMultisignature) {
@@ -39,7 +39,7 @@ class MultisignatureWallet extends MultisignatureWalletBase {
       keyStores.add(keyStore);
     }
 
-    return MultisignatureWallet(descriptorObject.requiredSignatures,
+    return MultisignatureWallet(descriptorObject._requiredSignatures,
         addressType, descriptorObject.getDerivationPath(0), keyStores);
   }
 

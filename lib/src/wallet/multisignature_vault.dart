@@ -51,8 +51,8 @@ class MultisignatureVault extends MultisignatureWalletBase {
     }
 
     return MultisignatureVault.fromKeyStoreList(
-        keyStores, descriptor.requiredSignatures,
-        addressType: descriptor.addressType);
+        keyStores, descriptor._requiredSignatures,
+        addressType: descriptor._addressType);
   }
 
   void bindSeedToKeyStore(Seed seed, {int accountIndex = 0}) {

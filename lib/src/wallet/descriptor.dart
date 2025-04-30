@@ -4,31 +4,37 @@ part of '../../coconut_lib.dart';
 class Descriptor {
   String _scriptType;
   List<String> _publicKeyList = [];
-  int requiredSignatures = 1;
+  late int _requiredSignatures;
   int get totalSigner => _publicKeyList.length;
+  AddressType _addressType;
 
   /// @nodoc
-  Descriptor(this._scriptType, this._publicKeyList,
-      {this.requiredSignatures = 1});
+  Descriptor(this._scriptType, this._publicKeyList, this._addressType,
+      {int? requiredSignatures}) {
+    if (requiredSignatures == null) {
+      if (_addressType.isSingleSignature) {
+        _requiredSignatures = 1;
+      } else if (_addressType == AddressType.p2trMuSig2) {
+        _requiredSignatures = _publicKeyList.length;
+      } else {
+        throw Exception('Required signatures not specified.');
+      }
+    } else {
+      _requiredSignatures = requiredSignatures;
+    }
+  }
 
   /// Script type of the descriptor.
   String get scriptType => _scriptType;
-
-  AddressType get addressType =>
-      AddressType.getAddressTypeFromScriptType(scriptType);
 
   /// Create a descriptor for a single signature.
   factory Descriptor.forSingleSignature(AddressType addressType,
       String publicKey, String derivationPath, String masterFingerprint) {
     String scriptType = addressType.scriptType;
-    //[98c7d774/84'/1'/0']tpubDDbAxgGSifNq7nDV
-    if (scriptType == 'wsh-in-sh') {
-      return Descriptor('sh-wpkh',
-          ["[$masterFingerprint/$derivationPath]$publicKey/<0;1>/*"]);
-    } else {
-      return Descriptor(scriptType,
-          ["[$masterFingerprint/$derivationPath]$publicKey/<0;1>/*"]);
-    }
+    return Descriptor(
+        scriptType,
+        ["[$masterFingerprint/$derivationPath]$publicKey/<0;1>/*"],
+        addressType);
   }
 
   /// Create a descriptor for multisignature.
@@ -45,7 +51,7 @@ class Descriptor {
       publicKeyString.add(
           "[${fingerprintList[i]}/$derivationPath]${publicKeyList[i]}/<0;1>/*");
     }
-    return Descriptor(scriptType, publicKeyString,
+    return Descriptor(scriptType, publicKeyString, addressType,
         requiredSignatures: requiredSignatures);
   }
 
@@ -54,6 +60,8 @@ class Descriptor {
     if (ignoreChecksum == false && !Checksum.isValidChecksum(descriptor)) {
       throw Exception('Invalid descriptor format.');
     }
+    AddressType addressType =
+        Descriptor.getAddressTypeFromDescriptor(descriptor);
     var withoutChecksum = descriptor.split('#')[0];
     RegExpMatch scriptTypeMatch =
         RegExp(r'(\w+)\((.+)\)').firstMatch(withoutChecksum)!;
@@ -63,25 +71,37 @@ class Descriptor {
     List<String> pubKeyContent = [];
 
     int require = 1;
-    if (scriptType == 'wsh' || scriptType == 'sh') {
+    if (addressType.isSingleSignature) {
+      pubKeyContent.add(scriptContent);
+    } else if (addressType == AddressType.p2wsh) {
       RegExpMatch isMultisigMatch =
           RegExp(r'(\w+)\((.+)\)').firstMatch(scriptContent)!;
-      if (isMultisigMatch.group(1) == 'multi' ||
-          isMultisigMatch.group(1) == 'sortedmulti') {
+      if (isMultisigMatch.group(1) == 'multi') {
+        throw Exception('Unsorted multisig descriptor is not supported.');
+      } else if (isMultisigMatch.group(1) == 'sortedmulti') {
         String multisigContent = isMultisigMatch.group(2)!;
         require = int.parse(multisigContent.split(',')[0]);
         pubKeyContent = multisigContent.split(',').sublist(1);
-      } else if (isMultisigMatch.group(1) == 'wpkh') {
-        scriptType = '$scriptType-wpkh';
-        RegExpMatch isNestedMatch =
-            RegExp(r'(\w+)\((.+)\)').firstMatch(scriptContent)!;
-        pubKeyContent.add(isNestedMatch.group(2)!.split(',')[0]);
+      } else {
+        throw Exception('No multisig descriptor found.');
       }
+    } else if (addressType == AddressType.p2trMuSig2) {
+      RegExpMatch isNestedMatch =
+          RegExp(r'(\w+)\((.+)\)').firstMatch(scriptContent)!;
+      if (!isNestedMatch.group(2)!.startsWith('sorted')) {
+        throw Exception('Only sorted multisig descriptor is supported.');
+      }
+      String multisigContent = RegExp(r'(\w+)\((.+)\)')
+          .firstMatch(isNestedMatch.group(2)!)!
+          .group(2)!;
+      pubKeyContent = multisigContent.split(',');
+      require = pubKeyContent.length;
     } else {
-      pubKeyContent.add(scriptContent);
+      throw Exception('Unsupported script type.');
     }
 
-    return Descriptor(scriptType, pubKeyContent, requiredSignatures: require);
+    return Descriptor(scriptType, pubKeyContent, addressType,
+        requiredSignatures: require);
   }
 
   /// Get the derivation path.
@@ -114,18 +134,73 @@ class Descriptor {
   /// Serialize the descriptor.
   String serialize() {
     String body = '';
-    if (scriptType == 'sh-wpkh') {
-      body = "sh(wpkh(${_publicKeyList[0]}))";
-    } else if (scriptType != 'wsh' && scriptType != 'sh') {
+
+    if (_addressType.isSingleSignature) {
       body = "$_scriptType(${_publicKeyList[0]})";
-    } else {
-      body = "$_scriptType(sortedmulti($requiredSignatures";
+    } else if (_addressType == AddressType.p2wsh) {
+      body = "$_scriptType(sortedmulti($_requiredSignatures";
       for (String pub in _publicKeyList) {
         body += ",$pub";
       }
       body += "))";
+    } else if (_addressType == AddressType.p2trMuSig2) {
+      body = "$_scriptType(musig(sorted(";
+      body += _publicKeyList.map((e) => "$e").join(',');
+      body += ")))";
+    } else {
+      throw Exception('Unsupported script type.');
     }
+
     return '$body#${Checksum.getChecksum(body)}';
+  }
+
+  static AddressType getAddressTypeFromDescriptor(String descriptor) {
+    if (descriptor.startsWith('wpkh')) {
+      return AddressType.p2wpkh;
+    } else if (descriptor.startsWith('wsh')) {
+      return AddressType.p2wsh;
+    } else if (descriptor.startsWith('tr')) {
+      if (!descriptor.contains('musig(') && !descriptor.contains('pk(')) {
+        return AddressType.p2trKeyPathSpending;
+      } else {
+        String inner = descriptor.substring(3, descriptor.length - 1);
+        int parenDepth = 0;
+        int braceDepth = 0;
+        List<String> topLevelParts = [];
+        StringBuffer current = StringBuffer();
+        for (int i = 0; i < inner.length; i++) {
+          String char = inner[i];
+
+          if (char == '(') {
+            parenDepth++;
+          } else if (char == ')') {
+            parenDepth--;
+          } else if (char == '{') {
+            braceDepth++;
+          } else if (char == '}') {
+            braceDepth--;
+          }
+
+          if (char == ',' && parenDepth == 0 && braceDepth == 0) {
+            topLevelParts.add(current.toString().trim());
+            current.clear();
+          } else {
+            current.write(char);
+          }
+        }
+        if (current.isNotEmpty) {
+          topLevelParts.add(current.toString().trim());
+        }
+
+        if (topLevelParts.length == 1) {
+          return AddressType.p2trMuSig2;
+        } else {
+          return AddressType.p2trScriptPathSpending;
+        }
+      }
+    } else {
+      throw Exception('Unsupported script type.');
+    }
   }
 }
 

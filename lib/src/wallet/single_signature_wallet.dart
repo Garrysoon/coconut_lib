@@ -21,7 +21,7 @@ class SingleSignatureWallet extends SingleSignatureWalletBase {
     if (descriptorObject.scriptType == "sh-wpkh") {
       addressType = AddressType.p2wpkhInP2sh;
     } else {
-      addressType = descriptorObject.addressType;
+      addressType = descriptorObject._addressType;
     }
 
     if (addressType.isMultisignature) {

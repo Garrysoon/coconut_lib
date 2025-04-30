@@ -46,6 +46,15 @@ void main() {
         //     vault3.getSignerBsms(AddressType.p2trMuSig2, ""))
       ], requiredSigners, addressType: AddressType.p2trMuSig2);
     });
+    test('Connect to other wallet', () {
+      NetworkType.setNetworkType(NetworkType.regtest);
+      MultisignatureWallet descriptorWallet =
+          MultisignatureWallet.fromDescriptor(musig2Vault1.descriptor);
+      MultisignatureVault bsmsWallet = MultisignatureVault.fromCoordinatorBsms(
+          musig2Vault1.getCoordinatorBsms());
+      expect(musig2Vault1.getAddress(0), descriptorWallet.getAddress(0));
+      expect(bsmsWallet.getAddress(0), descriptorWallet.getAddress(0));
+    });
     test('Add signature to psbt scenario (2-of-2)', () {
       late List<Utxo> utxoList;
       late Transaction tx;
