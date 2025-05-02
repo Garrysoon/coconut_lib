@@ -485,12 +485,12 @@ class Psbt {
     //output
     for (int i = 0; i < tx.outputs.length; i++) {
       Map<String, dynamic> outputData = {};
-      // String amountKey = getKeyType(outputKeyType, 'AMOUNT');
-      // outputData[amountKey] = Codec.encodeHex(
-      //     Converter.intToLittleEndianBytes(tx.outputs[i].amount, 4));
+      String amountKey = getKeyType(outputKeyType, 'AMOUNT');
+      outputData[amountKey] = Codec.encodeHex(
+          Converter.intToLittleEndianBytes(tx.outputs[i].amount, 4));
 
-      // String scriptKey = getKeyType(outputKeyType, 'SCRIPT');
-      // outputData[scriptKey] = tx.outputs[i].scriptPubKey.serialize();
+      String scriptKey = getKeyType(outputKeyType, 'SCRIPT');
+      outputData[scriptKey] = tx.outputs[i].scriptPubKey.serialize();
 
       if (tx.outputs[i].isChangeOutput != null &&
           tx.outputs[i].isChangeOutput!) {
