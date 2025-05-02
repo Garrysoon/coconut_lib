@@ -202,14 +202,16 @@ class Psbt {
     for (int i = 0; i < psbtMap["outputs"].length; i++) {
       int? amount;
       ScriptPublicKey? script;
-      if (psbtMap["outputs"][i].containsKey("03")) {
-        amount = Converter.littleEndianToInt(
-            Codec.decodeHex(psbtMap["outputs"][i]["03"]));
-      }
+      // if (psbtMap["outputs"][i].containsKey("03")) {
+      //   amount = Converter.littleEndianToInt(
+      //       Codec.decodeHex(psbtMap["outputs"][i]["03"]));
+      // }
 
-      if (psbtMap["outputs"][i].containsKey("04")) {
-        script = ScriptPublicKey.parse(psbtMap["outputs"][i]["04"]);
-      }
+      // if (psbtMap["outputs"][i].containsKey("04")) {
+      //   script = ScriptPublicKey.parse(psbtMap["outputs"][i]["04"]);
+      // }
+      amount = unsignedTransaction!.outputs[i].amount;
+      script = unsignedTransaction!.outputs[i].scriptPubKey;
 
       DerivationPath? outputDerivationPath;
       psbtMap["outputs"][i].keys.forEach((key) {
