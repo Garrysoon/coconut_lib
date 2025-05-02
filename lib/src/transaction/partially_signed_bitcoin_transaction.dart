@@ -492,37 +492,37 @@ class Psbt {
       // String scriptKey = getKeyType(outputKeyType, 'SCRIPT');
       // outputData[scriptKey] = tx.outputs[i].scriptPubKey.serialize();
 
-      // if (tx.outputs[i].isChangeOutput != null &&
-      //     tx.outputs[i].isChangeOutput!) {
-      //   String bip32DerivationKeyType =
-      //       getKeyType(outputKeyType, 'BIP32_DERIVATION');
+      if (tx.outputs[i].isChangeOutput != null &&
+          tx.outputs[i].isChangeOutput!) {
+        String bip32DerivationKeyType =
+            getKeyType(outputKeyType, 'BIP32_DERIVATION');
 
-      //   if (wallet is SingleSignatureWalletBase) {
-      //     String publicKey = singleSignatureWallet.keyStore.getPublicKey(
-      //         WalletUtility.getAccountIndexFromDerivationPath(
-      //             tx.changeAddressDerivationPath!),
-      //         isChange: WalletUtility.isChangeFromDerivationPath(
-      //             tx.changeAddressDerivationPath!));
-      //     String fingerPrint = singleSignatureWallet.keyStore.masterFingerprint;
+        if (wallet is SingleSignatureWalletBase) {
+          String publicKey = singleSignatureWallet.keyStore.getPublicKey(
+              WalletUtility.getAccountIndexFromDerivationPath(
+                  tx.changeAddressDerivationPath!),
+              isChange: WalletUtility.isChangeFromDerivationPath(
+                  tx.changeAddressDerivationPath!));
+          String fingerPrint = singleSignatureWallet.keyStore.masterFingerprint;
 
-      //     outputData[bip32DerivationKeyType + publicKey] = fingerPrint +
-      //         Codec.encodeHex(
-      //             _serializeDerivationPath(tx.changeAddressDerivationPath!));
-      //   } else if (wallet is MultisignatureWalletBase) {
-      //     for (KeyStore keyStore in multisignatureWallet.keyStoreList) {
-      //       String publicKey = keyStore.getPublicKey(
-      //           WalletUtility.getAccountIndexFromDerivationPath(
-      //               tx.changeAddressDerivationPath!),
-      //           isChange: WalletUtility.isChangeFromDerivationPath(
-      //               tx.changeAddressDerivationPath!));
+          outputData[bip32DerivationKeyType + publicKey] = fingerPrint +
+              Codec.encodeHex(
+                  _serializeDerivationPath(tx.changeAddressDerivationPath!));
+        } else if (wallet is MultisignatureWalletBase) {
+          for (KeyStore keyStore in multisignatureWallet.keyStoreList) {
+            String publicKey = keyStore.getPublicKey(
+                WalletUtility.getAccountIndexFromDerivationPath(
+                    tx.changeAddressDerivationPath!),
+                isChange: WalletUtility.isChangeFromDerivationPath(
+                    tx.changeAddressDerivationPath!));
 
-      //       String fingerPrint = keyStore.masterFingerprint;
-      //       outputData[bip32DerivationKeyType + publicKey] = fingerPrint +
-      //           Codec.encodeHex(
-      //               _serializeDerivationPath(tx.changeAddressDerivationPath!));
-      //     }
-      //   }
-      // }
+            String fingerPrint = keyStore.masterFingerprint;
+            outputData[bip32DerivationKeyType + publicKey] = fingerPrint +
+                Codec.encodeHex(
+                    _serializeDerivationPath(tx.changeAddressDerivationPath!));
+          }
+        }
+      }
 
       psbtData["outputs"].add(outputData);
     }
