@@ -27,8 +27,8 @@ void main() {
     });
     group('serialize', () {
       test('Get base64 psbt', () {
-        expect(unsignedPsbt.serialize().hashCode, 1020912455);
-        expect(signedPsbt.serialize().hashCode, 1025914823);
+        expect(unsignedPsbt.serialize().hashCode, 933644050);
+        expect(signedPsbt.serialize().hashCode, 345417284);
       });
     });
     group('toKeyMap', () {
@@ -41,7 +41,7 @@ void main() {
     });
 
     group('Psbt.fromTransaction', () {
-      test('Generate psbt from transction object', () {
+      test('Generate psbt from transction object (siglesig)', () {
         SingleSignatureVault vault = MockFactory.createP2wpkhVault();
         Transaction tx = Transaction.forSinglePayment(
             MockFactory.createUtxoList(count: 1),
@@ -51,7 +51,22 @@ void main() {
             3,
             vault);
         Psbt psbt = Psbt.fromTransaction(tx, vault);
+
         expect(psbt.serialize().hashCode, unsignedPsbt.serialize().hashCode);
+      });
+
+      test('Generate psbt from transction object (multisig)', () {
+        MultisignatureVault vault = MockFactory.createP2wshVault();
+        Transaction tx = Transaction.forSinglePayment(
+            MockFactory.createUtxoList(count: 1),
+            vault.getAddress(1),
+            '${vault.derivationPath}/1/1',
+            15000,
+            3,
+            vault);
+        Psbt psbt = Psbt.fromTransaction(tx, vault);
+
+        expect(psbt.serialize().hashCode, 747261534);
       });
     });
     group('Psbt.parse', () {
@@ -92,8 +107,14 @@ void main() {
         expect(psbt.outputs[0].bip32Derivation!.publicKey,
             "0246c18ea7c5624b87e5f65a60842c9a22b27ae7e3630a95abeb35455259761824");
       });
-
       test('Generate psbt from base64 6', () {
+        String psbtString =
+            'cHNidP8BAIkCAAAAAfNQVSxA8DG4n4i3H1s1j2RJpIkpZ3X5bZoBEPlWLTo5AAAAAAD/////Apg6AAAAAAAAIgAgJRhRa9P3QWARqg+7N8PqjjBht5hkC0zTebkRkzx3NeqtSQEAAAAAACIAIP9vANiW3Z4tVtCAsOsqO62JSFbOgRbyRCv++o/yEPZRAAAAAE8BAldUgwQ591iwgAAAAorbsW1x14HiywcBbOJN5QGKT7zr//rK5XGdiTaeopVFA1w0v9PEyzuK+SuMrYm59D0AC1yhH4Q2Mz2kFBuolXvfFJYUnjQwAACAAQAAgAAAAIACAACATwECV1SDBHIub6uAAAAChfZG32EzkK5e6q/8nJq2Q7j/4YTVHvILSa2OfRCAhbcCqEd4vSwUNu7sajcyrNDWG6bn4HpZAOwF1GUqAWjy3ogUNgkjyTAAAIABAACAAAAAgAIAAIBPAQJXVIMEpLtogYAAAAKqj/e/lMHOWC7quWCPi8I+tUguT3HLE0WdYAYXJWj2cwMiRP7BirY0IFk3TaIrbc7bFb342BEK3RLjNKcXVFm2rhSbyeZbMAAAgAEAAIAAAACAAgAAgAABASughgEAAAAAACIAIGqUPLeTUPZ9rqI0uitCmxnaYzZTtT17oSpLlIvvo5duIgYC1kgcHp6tP4ZQjsXUtRUImuQFBfZCkB4HiCQYTpENM2MYlhSeNFQAAIABAACAAAAAgAAAAAAAAAAAIgYChpECvtMyJwff6+rwb54PibXRM+SO5IG81iTfwfobGIAYNgkjyVQAAIABAACAAAAAgAAAAAAAAAAAIgYCgQbltUSeC3jn4GxkNfckuXl9sJJu07pZsB1uPe6P10sYm8nmW1QAAIABAACAAAAAgAAAAAAAAAAAAQVpUiECgQbltUSeC3jn4GxkNfckuXl9sJJu07pZsB1uPe6P10shAoaRAr7TMicH3+vq8G+eD4m10TPkjuSBvNYk38H6GxiAIQLWSBwenq0/hlCOxdS1FQia5AUF9kKQHgeIJBhOkQ0zY1OuAAEDBJg6AAABBCMiACAlGFFr0/dBYBGqD7s3w+qOMGG3mGQLTNN5uRGTPHc16gABAwStSQEAAQQjIgAg/28A2Jbdni1W0ICw6yo7rYlIVs6BFvJEK/76j/IQ9lEiAgOh36B2evQihVn9BDRQgjZT1y9wJWpBNT+OhvfvWvhIcxyWFJ40MAAAgAEAAIAAAACAAgAAgAEAAAABAAAAIgIDs94XcehAh+/pkSmEfdnxKPW0L6Ve4kjh48jGlJk3uzgcNgkjyTAAAIABAACAAAAAgAIAAIABAAAAAQAAACICAuNIkH306xQBwBgDsP1AsAMxrwSNnpKwO2WjH4tzlPqtHJvJ5lswAACAAQAAgAAAAIACAACAAQAAAAEAAAAAAA==';
+        Psbt psbt = Psbt.parse(psbtString);
+        expect(psbt.extendedPublicKeyList.length, 3);
+      });
+
+      test('Generate psbt from base64 7', () {
         String psbtString =
             'cHNidP8BAFICAAAAAWUg7t4pxeA0A2pGGYAUkmjiY/7YpbjlJ+rYhiEj45BrAQAAAAABAAAAAfgqAAAAAAAAFgAUc/eqTbaEfqsnxZIU9u1yVGJ+feAAAAAAIgEChVOU1Zf1Ia2blwWLDAjxZrf+CE3VFyfmwWr8eJgiWM4Qd0e+VFQAAIABAACAAAAAgAABAN4CAAAAAAEBs4jOPTSThTEdjG6QIX4gambTCssZE2kUV3nCcApKPYUAAAAAAP3///8CI+cUEgAAAAAWABTJ0Ri4AKGR8zDoBd3jeQa9j3A6jwQtAAAAAAAAFgAUyzJcKawdn5xWq3fH9ln2owSnvQICRzBEAiBsMs59znYIj9uBw2u6EQrkrdOOzr/3rgPDYwgpOg35eQIgP3jemekJGVvwqBSWUK7VM+urYcmL5NatuIZGPdVQ4/8BIQLHhxEGkXj/F9d75Tp6ztu6ysTayik+QsYfcwM2IQj9ImUFKwABAR8ELQAAAAAAABYAFMsyXCmsHZ+cVqt3x/ZZ9qMEp70CIgYDOwSSv1wKAiKlXN6gTNwCKxdRESOBrm6ZcDGbPWsWHbkYzPDmxlQAAIABAACAAAAAgAAAAAAAAAAAIgIDOwSSv1wKAiKlXN6gTNwCKxdRESOBrm6ZcDGbPWsWHblIMEUCIQDzaaPhvftio/+HX6YLyYNDJt6teJok/8svr19IYoJA6AIgFMwhYwmo3tKWWXz9JoBShynApV5Dgm2K99Fg1Fvj34YBAAEDBPgqAAABBBcWABRz96pNtoR+qyfFkhT27XJUYn594CICApaPYnyq0NL/g79f7tMP2059h/m9ZVfoDSuJjgdjz4f6GMzw5sZUAACAAQAAgAAAAIAAAAAAAQAAAAAA';
         Psbt psbt = Psbt.parse(psbtString);

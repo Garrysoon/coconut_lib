@@ -15,7 +15,7 @@ class Psbt {
   List<PsbtOutput> outputs = [];
 
   /// @nodoc
-  List<DerivationPath> derivationPathList = [];
+  List<DerivationPath> extendedPublicKeyList = [];
 
   /// Get the fee of the transaction.
   int get fee => () {
@@ -73,7 +73,7 @@ class Psbt {
         String masterFingerprint = psbtMap["global"][key].substring(0, 8);
         String derivationPath = _parseDerivationPath(
             Codec.decodeHex(psbtMap["global"][key].substring(8)));
-        derivationPathList
+        extendedPublicKeyList
             .add(DerivationPath(publicKey, masterFingerprint, derivationPath));
       }
     });
@@ -335,8 +335,27 @@ class Psbt {
     Map<String, dynamic> globalData = {};
     String txKey = getKeyType(globalKeyType, 'UNSIGNED_TX');
     globalData[txKey] = tx._serializeLegacy(); //old serialze format BIP0174
-    psbtData["global"] = globalData;
 
+    if (wallet.addressType.isSingleSignature) {
+      KeyStore keyStore = singleSignatureWallet.keyStore;
+      String key =
+          "${getKeyType(globalKeyType, 'XPUB')}${keyStore.extendedPublicKey.serializeForPsbt()}";
+      String value =
+          "${keyStore.masterFingerprint}${Codec.encodeHex(_serializeDerivationPath(wallet.derivationPath))}";
+      globalData[key] = value;
+    }
+
+    if (wallet.addressType.isMultisignature) {
+      for (KeyStore keyStore in multisignatureWallet.keyStoreList) {
+        String key =
+            "${getKeyType(globalKeyType, 'XPUB')}${keyStore.extendedPublicKey.serializeForPsbt()}";
+        String value =
+            "${keyStore.masterFingerprint}${Codec.encodeHex(_serializeDerivationPath(wallet.derivationPath))}";
+        globalData[key] = value;
+      }
+    }
+
+    psbtData["global"] = globalData;
     //Input
     List<TransactionOutput> witnessUtxoList = [];
     for (int i = 0; i < tx.inputs.length; i++) {

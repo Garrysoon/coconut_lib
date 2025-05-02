@@ -54,7 +54,7 @@ void main() {
       test('Sign to psbt', () {
         Psbt psbt = MockFactory.createP2wpkhUnsignedPsbt();
         String signedPsbt = vault.addSignatureToPsbt(psbt.serialize());
-        expect(signedPsbt.hashCode, 1025914823);
+        expect(signedPsbt.hashCode, 345417284);
       });
     });
   });
