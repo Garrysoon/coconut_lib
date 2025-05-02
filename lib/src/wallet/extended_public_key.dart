@@ -89,7 +89,11 @@ class ExtendedPublicKey {
     Uint8List buffer = Uint8List(78);
     ByteData bytes = buffer.buffer.asByteData();
     if (toXpub) {
-      bytes.setUint32(0, 0x0488B21E);
+      if (NetworkType.currentNetworkType.isTestnet) {
+        bytes.setUint32(0, 0x043587CF);
+      } else {
+        bytes.setUint32(0, 0x0488B21E);
+      }
     } else {
       bytes.setUint32(0, version);
     }
@@ -110,7 +114,11 @@ class ExtendedPublicKey {
     Uint8List buffer = Uint8List(78);
     ByteData bytes = buffer.buffer.asByteData();
     if (toXpub) {
-      bytes.setUint32(0, 0x0488B21E);
+      if (NetworkType.currentNetworkType.isTestnet) {
+        bytes.setUint32(0, 0x043587CF);
+      } else {
+        bytes.setUint32(0, 0x0488B21E);
+      }
     } else {
       bytes.setUint32(0, version);
     }
