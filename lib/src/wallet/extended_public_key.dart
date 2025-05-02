@@ -106,6 +106,23 @@ class ExtendedPublicKey {
     return Codec.encodeBase58(combine);
   }
 
+  String serializeForPsbt() {
+    Uint8List buffer = Uint8List(78);
+    ByteData bytes = buffer.buffer.asByteData();
+    bytes.setUint32(0, version, Endian.big);
+    bytes.setUint8(4, depth);
+    bytes.setUint32(5, parentFingerprintByte.buffer.asByteData().getUint32(0));
+    bytes.setUint32(9, index);
+    buffer.setRange(13, 45, chainCode);
+    if (publicKey.length != 33) {
+      throw ArgumentError(
+          'Public key must be 33 bytes, got ${publicKey.length}');
+    }
+    buffer.setRange(45, 78, publicKey);
+
+    return Codec.encodeHex(buffer);
+  }
+
   @override
   String toString() {
     return serialize();
