@@ -466,44 +466,44 @@ class Psbt {
     //output
     for (int i = 0; i < tx.outputs.length; i++) {
       Map<String, dynamic> outputData = {};
-      String amountKey = getKeyType(outputKeyType, 'AMOUNT');
-      outputData[amountKey] = Codec.encodeHex(
-          Converter.intToLittleEndianBytes(tx.outputs[i].amount, 4));
+      // String amountKey = getKeyType(outputKeyType, 'AMOUNT');
+      // outputData[amountKey] = Codec.encodeHex(
+      //     Converter.intToLittleEndianBytes(tx.outputs[i].amount, 4));
 
-      String scriptKey = getKeyType(outputKeyType, 'SCRIPT');
-      outputData[scriptKey] = tx.outputs[i].scriptPubKey.serialize();
+      // String scriptKey = getKeyType(outputKeyType, 'SCRIPT');
+      // outputData[scriptKey] = tx.outputs[i].scriptPubKey.serialize();
 
-      if (tx.outputs[i].isChangeOutput != null &&
-          tx.outputs[i].isChangeOutput!) {
-        String bip32DerivationKeyType =
-            getKeyType(outputKeyType, 'BIP32_DERIVATION');
+      // if (tx.outputs[i].isChangeOutput != null &&
+      //     tx.outputs[i].isChangeOutput!) {
+      //   String bip32DerivationKeyType =
+      //       getKeyType(outputKeyType, 'BIP32_DERIVATION');
 
-        if (wallet is SingleSignatureWalletBase) {
-          String publicKey = singleSignatureWallet.keyStore.getPublicKey(
-              WalletUtility.getAccountIndexFromDerivationPath(
-                  tx.changeAddressDerivationPath!),
-              isChange: WalletUtility.isChangeFromDerivationPath(
-                  tx.changeAddressDerivationPath!));
-          String fingerPrint = singleSignatureWallet.keyStore.masterFingerprint;
+      //   if (wallet is SingleSignatureWalletBase) {
+      //     String publicKey = singleSignatureWallet.keyStore.getPublicKey(
+      //         WalletUtility.getAccountIndexFromDerivationPath(
+      //             tx.changeAddressDerivationPath!),
+      //         isChange: WalletUtility.isChangeFromDerivationPath(
+      //             tx.changeAddressDerivationPath!));
+      //     String fingerPrint = singleSignatureWallet.keyStore.masterFingerprint;
 
-          outputData[bip32DerivationKeyType + publicKey] = fingerPrint +
-              Codec.encodeHex(
-                  _serializeDerivationPath(tx.changeAddressDerivationPath!));
-        } else if (wallet is MultisignatureWalletBase) {
-          for (KeyStore keyStore in multisignatureWallet.keyStoreList) {
-            String publicKey = keyStore.getPublicKey(
-                WalletUtility.getAccountIndexFromDerivationPath(
-                    tx.changeAddressDerivationPath!),
-                isChange: WalletUtility.isChangeFromDerivationPath(
-                    tx.changeAddressDerivationPath!));
+      //     outputData[bip32DerivationKeyType + publicKey] = fingerPrint +
+      //         Codec.encodeHex(
+      //             _serializeDerivationPath(tx.changeAddressDerivationPath!));
+      //   } else if (wallet is MultisignatureWalletBase) {
+      //     for (KeyStore keyStore in multisignatureWallet.keyStoreList) {
+      //       String publicKey = keyStore.getPublicKey(
+      //           WalletUtility.getAccountIndexFromDerivationPath(
+      //               tx.changeAddressDerivationPath!),
+      //           isChange: WalletUtility.isChangeFromDerivationPath(
+      //               tx.changeAddressDerivationPath!));
 
-            String fingerPrint = keyStore.masterFingerprint;
-            outputData[bip32DerivationKeyType + publicKey] = fingerPrint +
-                Codec.encodeHex(
-                    _serializeDerivationPath(tx.changeAddressDerivationPath!));
-          }
-        }
-      }
+      //       String fingerPrint = keyStore.masterFingerprint;
+      //       outputData[bip32DerivationKeyType + publicKey] = fingerPrint +
+      //           Codec.encodeHex(
+      //               _serializeDerivationPath(tx.changeAddressDerivationPath!));
+      //     }
+      //   }
+      // }
 
       psbtData["outputs"].add(outputData);
     }
@@ -511,17 +511,17 @@ class Psbt {
     Psbt psbt = Psbt(psbtData);
 
     //check input amount is enough
-    int totalInputAmount = 0;
-    for (PsbtInput input in psbt.inputs) {
-      totalInputAmount += input.witnessUtxo!.amount;
-    }
-    int totalOutputAmount = 0;
-    for (PsbtOutput output in psbt.outputs) {
-      totalOutputAmount += output.outAmount!;
-    }
-    if (totalOutputAmount > totalInputAmount) {
-      throw Exception('Not enough input amount');
-    }
+    // int totalInputAmount = 0;
+    // for (PsbtInput input in psbt.inputs) {
+    //   totalInputAmount += input.witnessUtxo!.amount;
+    // }
+    // int totalOutputAmount = 0;
+    // for (PsbtOutput output in psbt.outputs) {
+    //   totalOutputAmount += output.outAmount!;
+    // }
+    // if (totalOutputAmount > totalInputAmount) {
+    //   throw Exception('Not enough input amount');
+    // }
 
     return psbt;
   }
