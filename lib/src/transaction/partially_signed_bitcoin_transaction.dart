@@ -244,7 +244,7 @@ class Psbt {
       psbtBytes.add(0x00);
     }
 
-    psbtBytes.add(0x00);
+    // psbtBytes.add(0x00);
     return base64Encode(psbtBytes);
   }
 
