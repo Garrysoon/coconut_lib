@@ -106,10 +106,14 @@ class ExtendedPublicKey {
     return Codec.encodeBase58(combine);
   }
 
-  String serializeForPsbt() {
+  String serializeForPsbt({bool toXpub = false}) {
     Uint8List buffer = Uint8List(78);
     ByteData bytes = buffer.buffer.asByteData();
-    bytes.setUint32(0, version, Endian.big);
+    if (toXpub) {
+      bytes.setUint32(0, 0x0488B21E);
+    } else {
+      bytes.setUint32(0, version);
+    }
     bytes.setUint8(4, depth);
     bytes.setUint32(5, parentFingerprintByte.buffer.asByteData().getUint32(0));
     bytes.setUint32(9, index);

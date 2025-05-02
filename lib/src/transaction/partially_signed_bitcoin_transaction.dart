@@ -339,7 +339,7 @@ class Psbt {
     if (wallet.addressType.isSingleSignature) {
       KeyStore keyStore = singleSignatureWallet.keyStore;
       String key =
-          "${getKeyType(globalKeyType, 'XPUB')}${keyStore.extendedPublicKey.serializeForPsbt()}";
+          "${getKeyType(globalKeyType, 'XPUB')}${keyStore.extendedPublicKey.serializeForPsbt(toXpub: true)}";
       String value =
           "${keyStore.masterFingerprint}${Codec.encodeHex(_serializeDerivationPath(wallet.derivationPath))}";
       globalData[key] = value;
@@ -348,7 +348,7 @@ class Psbt {
     if (wallet.addressType.isMultisignature) {
       for (KeyStore keyStore in multisignatureWallet.keyStoreList) {
         String key =
-            "${getKeyType(globalKeyType, 'XPUB')}${keyStore.extendedPublicKey.serializeForPsbt()}";
+            "${getKeyType(globalKeyType, 'XPUB')}${keyStore.extendedPublicKey.serializeForPsbt(toXpub: true)}";
         String value =
             "${keyStore.masterFingerprint}${Codec.encodeHex(_serializeDerivationPath(wallet.derivationPath))}";
         globalData[key] = value;
