@@ -489,8 +489,8 @@ class Psbt {
       outputData[amountKey] = Codec.encodeHex(
           Converter.intToLittleEndianBytes(tx.outputs[i].amount, 4));
 
-      String scriptKey = getKeyType(outputKeyType, 'SCRIPT');
-      outputData[scriptKey] = tx.outputs[i].scriptPubKey.serialize();
+      // String scriptKey = getKeyType(outputKeyType, 'SCRIPT');
+      // outputData[scriptKey] = tx.outputs[i].scriptPubKey.serialize();
 
       if (tx.outputs[i].isChangeOutput != null &&
           tx.outputs[i].isChangeOutput!) {
