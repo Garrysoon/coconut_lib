@@ -352,6 +352,10 @@ class Psbt {
       String witnessUtxoKey = getKeyType(inputKeyType, 'WITNESS_UTXO');
       inputData[witnessUtxoKey] = witnessUtxoList[i].serialize();
 
+      String sigHashTypeKey = getKeyType(inputKeyType, 'SIGHASH_TYPE');
+      inputData[sigHashTypeKey] =
+          Codec.encodeHex(Converter.intToLittleEndianBytes(1, 4));
+
       // Each address type
       if (wallet.addressType == AddressType.p2wpkh) {
         String bip32DerivationKeyType =

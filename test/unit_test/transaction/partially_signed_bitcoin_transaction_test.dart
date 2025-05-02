@@ -51,6 +51,7 @@ void main() {
             3,
             vault);
         Psbt psbt = Psbt.fromTransaction(tx, vault);
+        print(psbt.serialize());
         expect(psbt.serialize().hashCode, unsignedPsbt.serialize().hashCode);
       });
     });
