@@ -656,18 +656,24 @@ class Transaction {
   }
 
   /// check if the signature is valid in the transaction.
-  bool validateEcdsa(
-      int inputIndex, TransactionOutput utxo, AddressType addressType,
+  bool validateEcdsa(int inputIndex, TransactionOutput utxo,
       {String? witnessScript}) {
+    // get address type from utxo
+    late AddressType utxoAddressType;
+    if (utxo.scriptPubKey.isP2wpkh()) {
+      utxoAddressType = AddressType.p2wpkh;
+    } else if (utxo.scriptPubKey.isP2wsh()) {
+      utxoAddressType = AddressType.p2wsh;
+    } else {
+      throw Exception('Unsupported Address Type');
+    }
+
     // 1. Generate sigHash
     String sigHash;
-    if (addressType == AddressType.p2wpkh) {
-      sigHash = getSigHash(inputIndex, utxo, addressType);
-    } else if (addressType == AddressType.p2wsh) {
-      if (witnessScript == null) {
-        throw ArgumentError('witnessScript is required for p2wsh');
-      }
-      sigHash = getSigHash(inputIndex, utxo, addressType,
+    if (utxoAddressType == AddressType.p2wpkh) {
+      sigHash = getSigHash(inputIndex, utxo, utxoAddressType);
+    } else if (utxoAddressType == AddressType.p2wsh) {
+      sigHash = getSigHash(inputIndex, utxo, utxoAddressType,
           witnessScript: witnessScript);
     } else {
       throw Exception('Unsupported Address Type');
@@ -675,7 +681,7 @@ class Transaction {
     Uint8List msg = Codec.decodeHex(sigHash);
 
     // 2.Validate signature
-    if (addressType == AddressType.p2wsh) {
+    if (utxoAddressType == AddressType.p2wsh) {
       String script = inputs[inputIndex].witnessList.last;
       String size =
           Codec.encodeHex(Codec.encodeVariableInteger(script.length ~/ 2));
@@ -715,7 +721,7 @@ class Transaction {
         }
       }
       return validSigs >= requiredSigs;
-    } else if (addressType == AddressType.p2wpkh) {
+    } else if (utxoAddressType == AddressType.p2wpkh) {
       //validate single signature
       String signature;
       String publicKey;
