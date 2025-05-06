@@ -196,6 +196,9 @@ class Psbt {
             muSig2participantPubKeyList,
             muSig2PubNonces,
             muSig2PartialSigs));
+      } else {
+        inputs.add(PsbtInput.forSignatureOnly(partialSigList,
+            witnessScript: witnessScript));
       }
     }
 
@@ -916,13 +919,15 @@ class Psbt {
 /// @nodoc
 class PsbtInput {
   //Field for Segwit v0
-  final TransactionOutput? witnessUtxo; //0x01
+  TransactionOutput? witnessUtxo; //0x01
   List<Signature>? partialSig; //0x02
   List<DerivationPath>? bip32Derivation; //0x03
   MultisignatureScript? witnessScript; //0x05
 
   PsbtInput.forSegwit(this.witnessUtxo, this.bip32Derivation, this.partialSig,
       {this.witnessScript, this.tapKeySig});
+
+  PsbtInput.forSignatureOnly(this.partialSig, {this.witnessScript});
 
   //Field for taproot
   String? tapKeySig; //0x13(19)

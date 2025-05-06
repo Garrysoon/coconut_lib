@@ -47,14 +47,16 @@ void main() {
       });
 
       test('Serialise extended public key to xpub', () {
+        NetworkType.setNetworkType(NetworkType.mainnet);
         SingleSignatureVault vault = MockFactory.createP2wpkhVault();
         expect(vault.keyStore.extendedPublicKey.serialize(toXpub: true),
-            'xpub6DDYSSSm1PRNqz2dtX4FU5KTutAsiZZ7oQhec4aA9vwVbfn2HVnV15JUKcQMZPh82bXyjaYSiT4ZkRdGTRtkEToTtTg6NvLr1dFa55eay2L');
+            'xpub6CGPh2qh56Rq6cq3jeemUUuSRcha3GrVrs9QMLkikfu253nziERNLqabWB49qyqkVvHJ1iB9M3CCxkHNLv2xrSNhhbxHTku6Ld22Az4cMG6');
       });
     });
 
     group('get hashCode', () {
       test('Get hash code', () {
+        NetworkType.setNetworkType(NetworkType.regtest);
         SingleSignatureVault vault = MockFactory.createP2wpkhVault();
         HDWallet hdWallet = vault.keyStore.hdWallet;
         ExtendedPublicKey extendedPublicKey = ExtendedPublicKey.fromHdWallet(

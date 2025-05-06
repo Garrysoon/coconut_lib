@@ -27,15 +27,15 @@ void main() {
     });
     group('serialize', () {
       test('Get base64 psbt', () {
-        expect(unsignedPsbt.serialize().hashCode, 933644050);
-        expect(signedPsbt.serialize().hashCode, 345417284);
+        expect(unsignedPsbt.serialize().hashCode, 655253436);
+        expect(signedPsbt.serialize().hashCode, 222298681);
       });
     });
     group('toKeyMap', () {
       test('Get key map', () {
         Map<String, dynamic> psbtMap = unsignedPsbt.toKeyMap();
         String input0 =
-            '{"01": "a086010000000000160014b54542413855bca0894e855b7858cd07bca87b80", "060246c18ea7c5624b87e5f65a60842c9a22b27ae7e3630a95abeb35455259761824": "98C7D7745400008001000080000000800000000000000000"}';
+            '{"01": "a086010000000000160014b54542413855bca0894e855b7858cd07bca87b80", "03": "01000000", "060246c18ea7c5624b87e5f65a60842c9a22b27ae7e3630a95abeb35455259761824": "98C7D7745400008001000080000000800000000000000000"}';
         expect(psbtMap['inputs'][0], jsonDecode(input0));
       });
     });
@@ -69,7 +69,7 @@ void main() {
             vault);
         Psbt psbt = Psbt.fromTransaction(tx, vault);
 
-        expect(psbt.serialize().hashCode, 747261534);
+        expect(psbt.serialize().hashCode, 400493295);
       });
     });
     group('Psbt.parse', () {

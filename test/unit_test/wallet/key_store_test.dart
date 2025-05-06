@@ -121,7 +121,7 @@ void main() {
         Psbt unsignedPsbt = MockFactory.createP2wpkhUnsignedPsbt();
         String signedPsbtText = MockFactory.createP2wpkhVault()
             .addSignatureToPsbt(unsignedPsbt.serialize());
-        expect(signedPsbtText.hashCode, 345417284);
+        expect(signedPsbtText.hashCode, 222298681);
       });
     });
 
