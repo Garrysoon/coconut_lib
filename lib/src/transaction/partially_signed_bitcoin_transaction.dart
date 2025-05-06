@@ -793,8 +793,7 @@ class Psbt {
   }
 
   /// Get the transaction if all inputs are signed.
-  Transaction getSignedTransaction(AddressType addressType,
-      {bool ignoreSignatureValidation = false}) {
+  Transaction getSignedTransaction(AddressType addressType) {
     Transaction signedTransaction =
         Transaction.parseUnsignedTransaction(unsignedTransaction!.serialize());
     signedTransaction._isSegwit = addressType.isSegwit;
@@ -807,7 +806,7 @@ class Psbt {
             addressType, inputs[i].partialSig!,
             witnessScript: inputs[i].witnessScript);
 
-        if (ignoreSignatureValidation) {
+        if (inputs[i].witnessUtxo == null) {
           continue;
         }
 
@@ -826,7 +825,7 @@ class Psbt {
         signedTransaction.inputs[i]
             .setSignature(addressType, inputs[i].partialSig!);
 
-        if (ignoreSignatureValidation) {
+        if (inputs[i].witnessUtxo == null) {
           continue;
         }
 
@@ -847,7 +846,7 @@ class Psbt {
           signedTransaction.inputs[i]
               .setTaprootKeyPathSpendingSignature(inputs[i].tapKeySig!);
 
-          if (ignoreSignatureValidation) {
+          if (utxoList.isEmpty) {
             continue;
           }
 
@@ -890,10 +889,6 @@ class Psbt {
 
         Uint8List aggregatedSignature =
             Ecc.getAggregatedSignatureForMuSig2(sessionContext, signatureList);
-
-        if (ignoreSignatureValidation) {
-          continue;
-        }
 
         if (Ecc.verifySchnorr(message, aggregatedPubKey, aggregatedSignature)) {
           signedTransaction.inputs[i].setTaprootKeyPathSpendingSignature(
