@@ -30,100 +30,123 @@ You can use the Coconut_lib to create your own air-gap based vault and wallet.
   ![image](doc/design/wallet_class_diagram.jpg)
 - [transaction](https://github.com/noncelab/coconut_lib/blob/main/lib/src/transaction): Provides code related to Bitcoin scripts and transactions. Also use PSBT(BIP-0174) to communicate vaults and wallets.
   ![image](doc/design/transaction_class_diagram.jpg)
-- [network](https://github.com/noncelab/coconut_lib/blob/main/lib/src/network): Provide you with the code to communicate with a Bitcoin node. Feel free to send Bitcoins through the RegTest we provide.
 
 > For more development information, visit the [coconut_lib docs](https://pub.dev/documentation/coconut_lib/latest/coconut_lib/coconut_lib-library.html).
 
 ## Example
 
 ```dart
-import 'dart:io';
 import 'package:coconut_lib/coconut_lib.dart';
 
+import '../../test/mock_factory.dart';
+
 void main() async {
-  /*
-  This shows the process from creating a Bitcoin wallet in the Coconut Library to sending Bitcoin.
-  Please check that the roles of the Vault and the Wallet are separate.
-  Enjoy Bitcoin programming with Coconut Library!
-  */
+  print("0. Set the Bitcoin Network");
+  NetworkType.setNetworkType(NetworkType.regtest);
 
-  /// >> In Vault
-  /// choose the Bitcoin Network
-  // BitcoinNetwork.setNetwork(BitcoinNetwork.mainnet);
-  // BitcoinNetwork.setNetwork(BitcoinNetwork.testnet);
-  BitcoinNetwork.setNetwork(BitcoinNetwork.regtest);
+  print("1-1. Create a single signature vault");
+  Seed seed = Seed.fromMnemonic(
+      'thank split shrimp error own spirit slow glow act evidence globe slight');
 
-  /// generate air-gapped vault
-  /// random vault
-  // SingleSignatureVault randomMnemonicVault =
-  //     SingleSignatureVault.random(AddressType.p2wpkh);
-  // print("Generated Mnemonic : ${randomMnemonicVault.keyStore.seed.mnemonic}");
+  SingleSignatureVault singleSignatureVault =
+      SingleSignatureVault.fromSeed(seed);
+  print(
+      ' - Master Fingerprint: ${singleSignatureVault.keyStore.masterFingerprint}');
 
-  /// mnemonic vault
-  SingleSignatureVault mnemonicVault = SingleSignatureVault.fromMnemonic(
+  print("1-2. Create a 2-of-3 Multisignature vault");
+  SingleSignatureVault insideVault1 = SingleSignatureVault.fromMnemonic(
       'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
-      AddressType.p2wpkh,
       passphrase: 'ABC');
 
-  // >> In Wallet
-  /// import expub to watch-only wallet with descriptor(BIP-0380)
-  SingleSignatureWallet watchOnlyWallet =
-      SingleSignatureWallet.fromDescriptor(mnemonicVault.descriptor);
+  SingleSignatureVault outsideVault1 = SingleSignatureVault.fromMnemonic(
+      'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
+      passphrase: 'DEF');
 
-  /// Obtain the bitcoin from faucet
-  print("address : ${watchOnlyWallet.getAddress(0)}");
+  SingleSignatureVault outsideVault2 = SingleSignatureVault.fromMnemonic(
+      'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
+      passphrase: 'GHI');
 
-  /// connect to the node and fetch transaction data
-  Repository.initialize('Coconut_Tutorial'); // db for tx history
-  NodeConnector nodeConnector = await NodeConnector.connectSync(
-      'regtest-electrum.coconut.onl', 60401,
-      ssl: true); // node connection
-  var syncResult = await nodeConnector.fetch(watchOnlyWallet); // fetch tx data
-  if (syncResult.isFailure) {
-    throw Exception(" - Sync failed : ${syncResult.error}");
+  //Generate P2WSH Keystore
+  KeyStore insideKey1 =
+      KeyStore.fromSeed(insideVault1.keyStore.seed, AddressType.p2wsh);
+  KeyStore outsideKey1 = KeyStore.fromSignerBsms(
+      outsideVault1.getSignerBsms(AddressType.p2wsh, "OutsideSigner1"));
+  KeyStore outsideKey2 = KeyStore.fromSignerBsms(
+      outsideVault2.getSignerBsms(AddressType.p2wsh, "OutsideSigner2"));
+
+  MultisignatureVault multisignatureVault =
+      MultisignatureVault.fromKeyStoreList(
+          [insideKey1, outsideKey1, outsideKey2], 2);
+
+  // Share Coordinator BSMS with Outside Signers
+  MultisignatureVault outsideMultisignatureVault =
+      MultisignatureVault.fromCoordinatorBsms(
+          multisignatureVault.getCoordinatorBsms());
+
+  // Find Seed in Outside Vault and bind it to KeyStore
+  outsideMultisignatureVault.bindSeedToKeyStore(outsideVault1.keyStore.seed);
+
+  print(
+      ' - Master Fingerprint of Key Store [0]: ${multisignatureVault.keyStoreList[0].masterFingerprint}');
+  print(
+      ' - Master Fingerprint of Key Store [1]: ${multisignatureVault.keyStoreList[1].masterFingerprint}');
+  print(
+      ' - Master Fingerprint of Key Store [2]: ${multisignatureVault.keyStoreList[2].masterFingerprint}');
+
+  print("2-1. Sync to the single signature wallet");
+  // Repository.initialize('Coconut_Wallet');
+  SingleSignatureWallet singleSignatureWallet =
+      SingleSignatureWallet.fromDescriptor(singleSignatureVault.descriptor);
+  print(
+      ' - Extended Public Key: ${singleSignatureWallet.keyStore.extendedPublicKey.serialize()}');
+
+  print("2-2. Sync to the multisignature wallet");
+  MultisignatureWallet multisignatureWallet;
+
+  Descriptor descriptor = Descriptor.parse(multisignatureVault.descriptor);
+  if (descriptor.scriptType == 'wsh') {
+    multisignatureWallet =
+        MultisignatureWallet.fromDescriptor(multisignatureVault.descriptor);
+    // } else if (descriptor.scriptType == 'wpkh') {
+    //   watchOnlyWallet =
+    //       SingleSignatureWallet.fromDescriptor(multisignatureVault.descriptor);
   } else {
-    print(' - Transaction Sync Success');
-    await Repository()
-        .sync(watchOnlyWallet, syncResult.value!); // save tx data into db
+    throw Exception('Unsupported Address Type');
   }
+  print(
+      ' - Extended Public Key of Key Store [0]: ${multisignatureWallet.keyStoreList[0].extendedPublicKey.serialize()}');
+  print(
+      ' - Extended Public Key of Key Store [1]: ${multisignatureWallet.keyStoreList[1].extendedPublicKey.serialize()}');
+  print(
+      ' - Extended Public Key of Key Store [2]: ${multisignatureWallet.keyStoreList[2].extendedPublicKey.serialize()}');
 
-  /// and then, check the balance
-  print("balance : ${watchOnlyWallet.getBalance()}");
+  print(
+      "4. Send Bitcoin from the single signature wallet to the multisignature wallet");
+  String receiverAddress = multisignatureWallet.getAddress(0);
+  String changeAddress = singleSignatureWallet.getAddress(0, isChange: true);
+  int sendingAmount = 1000;
+  double feeRate = 3.0;
+  List<Utxo> utxosForSingleSignatureWallet = [
+    Utxo('5c5fa04bc94647ee339083d6fd381a3b1ac4de7d7bfa966788971d62072a1e66', 1,
+        100000000, "m/84'/1'/0'/0/68")
+  ];
+  print(' - Generating unsigned PSBT');
+  List<Utxo> utxoList = [
+    Utxo('393a2d56f910019a6df975672989a449648f355b1fb7889fb831f0402c5550f3', 0,
+        21000, "m/84'/1'/0'/0/0")
+  ];
+  Transaction unsignedTransaction = Transaction.forSinglePayment(utxoList,
+      receiverAddress, "m/84'/1'/0'/1/0", 2000, 2, singleSignatureWallet);
+  String unsignedPsbt =
+      Psbt.fromTransaction(unsignedTransaction, singleSignatureWallet)
+          .serialize();
 
-  /// create a PSBT(BIP-0174) to my another address
-  PSBT unsignedPSBT = PSBT.forSending(
-      "bcrt1qyyl6eld8zq0zgh5jf8u5n3lv4jz9tjzeny2lq9", 1000, 3, watchOnlyWallet);
-
-  /// >> In Vault
-  /// vault can sign the PSBT
-  String signedPsbt =
-      mnemonicVault.addSignatureToPsbt(unsignedPSBT.serialize());
-
-  /// >> In Wallet
-  // watchOnlyWallet can broadcast the signed transaction
-  PSBT signedPSBT =
-      PSBT.parse(signedPsbt); // parse the PSBT received from vault
-  Transaction completedTx = signedPSBT
-      .getSignedTransaction(watchOnlyWallet.addressType); // transaction object
-  Result result =
-      await nodeConnector.broadcast(completedTx.serialize()); // broadcast
-  print(' - Transaction is broadcasted: ${result.value}');
-
-  /// need to sync again
-  var finalSyncResult =
-      await nodeConnector.fetch(watchOnlyWallet); // fetch tx data
-  if (syncResult.isFailure) {
-    throw Exception(" - Sync failed : ${finalSyncResult.error}");
-  } else {
-    print(' - Transaction Sync Success');
-    await Repository()
-        .sync(watchOnlyWallet, finalSyncResult.value!); // save tx data into db
-  }
-
-  /// check the balance again
-  print("balance : ${watchOnlyWallet.getBalance()}");
-
-  exit(0);
+  print(' - Add signature from vault');
+  String signedPsbt = singleSignatureVault.addSignatureToPsbt(unsignedPsbt);
+  Psbt walletReceivedPsbt = Psbt.parse(signedPsbt);
+  Transaction signedTransaction = walletReceivedPsbt
+      .getSignedTransaction(singleSignatureWallet.addressType);
+  print(' - Final Transaction : ${signedTransaction.serialize()}');
 }
 ```
 
@@ -172,12 +195,17 @@ sh ./generate_unit_coverage.sh
 - [BIP-48](https://github.com/bitcoin/bips/blob/master/bip-0048.mediawiki): Multi-Script Hierarchy for Multi-Sig Wallets
 - [BIP-67](https://github.com/bitcoin/bips/blob/master/bip-0067.mediawiki): Deterministic Multisig Key Sorting
 - [BIP-84](https://github.com/bitcoin/bips/blob/master/bip-0084.mediawiki): Derivation scheme for P2WPKH based accounts
+- [BIP-86](https://github.com/bitcoin/bips/blob/master/bip-0086.mediawiki): Key Derivation for Single Key P2TR Outputs
 - [BIP-129](https://github.com/bitcoin/bips/blob/master/bip-0129.mediawiki): Bitcoin Secure Multisig Setup (BSMS)
 - [BIP-142](https://github.com/bitcoin/bips/blob/master/bip-0142.mediawiki): Address Format for Segregated Witness
 - [BIP-143](https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki): Transaction Signature Verification for Version 0 Witness Program
 - [BIP-173](https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki): Base32 address format for native v0-16 witness outputs
 - [BIP-174](https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki): Partially Signed Bitcoin Transaction Format
+- [BIP-327](https://github.com/bitcoin/bips/blob/master/bip-0327.mediawiki): MuSig2 for BIP340-compatible Multi-Signatures
+- [BIP-340](https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki): Schnorr Signatures for secp256k1
+- [BIP-341](https://github.com/bitcoin/bips/blob/master/bip-0341.mediawiki): SegWit version 1 spending rules
 - [BIP-370](https://github.com/bitcoin/bips/blob/master/bip-0370.mediawiki): PSBT Version 2
+- [BIP-371](https://github.com/bitcoin/bips/blob/master/bip-0371.mediawiki): Taproot Fields for PSBT
 - [BIP-380](https://github.com/bitcoin/bips/blob/master/bip-0380.mediawiki): Output Script Descriptors General Operation
 - [BIP-381](https://github.com/bitcoin/bips/blob/master/bip-0381.mediawiki): Non-Segwit Output Script Descriptors
 - [BIP-382](https://github.com/bitcoin/bips/blob/master/bip-0382.mediawiki): Segwit Output Script Descriptors
