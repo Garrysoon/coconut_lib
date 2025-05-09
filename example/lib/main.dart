@@ -1,5 +1,7 @@
 import 'package:coconut_lib/coconut_lib.dart';
 
+import '../../test/mock_factory.dart';
+
 void main() async {
   print("0. Set the Bitcoin Network");
   NetworkType.setNetworkType(NetworkType.regtest);
@@ -91,13 +93,12 @@ void main() async {
         100000000, "m/84'/1'/0'/0/68")
   ];
   print(' - Generating unsigned PSBT');
-  Transaction unsignedTransaction = Transaction.forSinglePayment(
-      utxosForSingleSignatureWallet,
-      receiverAddress,
-      changeAddress,
-      sendingAmount,
-      feeRate,
-      singleSignatureWallet);
+  List<Utxo> utxoList = [
+    Utxo('393a2d56f910019a6df975672989a449648f355b1fb7889fb831f0402c5550f3', 0,
+        21000, "m/84'/1'/0'/0/0")
+  ];
+  Transaction unsignedTransaction = Transaction.forSinglePayment(utxoList,
+      receiverAddress, "m/84'/1'/0'/1/0", 2000, 2, singleSignatureWallet);
   String unsignedPsbt =
       Psbt.fromTransaction(unsignedTransaction, singleSignatureWallet)
           .serialize();

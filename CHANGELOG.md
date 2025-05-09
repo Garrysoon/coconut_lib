@@ -1,3 +1,7 @@
+## 0.10.0
+- Added support for hardware wallets (Keystone, SeedSigner)
+- Implemented MuSig2 spending functionality
+
 ## 0.9.2
 - Fix DER encoding bug
 
