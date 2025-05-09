@@ -1,4 +1,4 @@
-## 0.10.0
+## 0.10.1
 - Added support for hardware wallets (Keystone, SeedSigner)
 - Implemented MuSig2 spending functionality
 
