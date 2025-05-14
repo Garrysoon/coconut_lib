@@ -226,7 +226,7 @@ abstract class MultisignatureWalletBase extends WalletBase {
           }
           if (derivationPath.masterFingerprint == keyStore.masterFingerprint) {
             // print("add signature to psbt ${keyStore.seed.passphrase}");
-            keyStore.addSignatureToPsbt(
+            keyStore.addSignatureToPsbtInput(
                 psbtInput, addressType, derivationPath.path, sigHash,
                 sessionContext: sessionContext);
             break;

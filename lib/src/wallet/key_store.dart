@@ -253,8 +253,131 @@ class KeyStore {
     psbtInput.addMuSig2PubNonce(publicKey, publicNonce);
   }
 
+  String addSignatureToPsbt(String psbt, AddressType addressType) {
+    if (!hasSeed) {
+      throw Exception('This vault does not have seed');
+    }
+    Psbt psbtObject = Psbt.parse(psbt);
+    if (canSignToPsbt(psbtObject.serialize()) == false) {
+      throw Exception('This vault can not sign this PSBT');
+    }
+    if (psbtObject.inputs.length !=
+        psbtObject.unsignedTransaction!.inputs.length) {
+      throw Exception('Not enought psbt inputs or transaction inputs');
+    }
+
+    for (int inputIndex = 0;
+        inputIndex < psbtObject.unsignedTransaction!.inputs.length;
+        inputIndex++) {
+      PsbtInput psbtInput = psbtObject.inputs[inputIndex];
+
+      if (psbtInput.requiredSignature <= psbtInput.signedCount) {
+        continue;
+      }
+
+      // Generate sig hash
+      late String sigHash;
+
+      if (!addressType.isTaproot) {
+        // ECDSA
+        TransactionOutput utxo = psbtInput.witnessUtxo!;
+        if (addressType == AddressType.p2wsh) {
+          String? witnessScript = psbtInput.witnessScript!.rawSerialize();
+          sigHash = psbtObject.unsignedTransaction!.getSigHash(
+              inputIndex, utxo, addressType,
+              witnessScript: witnessScript);
+        } else {
+          sigHash = psbtObject.unsignedTransaction!
+              .getSigHash(inputIndex, utxo, addressType);
+        }
+      } else {
+        // Taproot
+        List<TransactionOutput> utxoList = [];
+        for (int j = 0;
+            j < psbtObject.unsignedTransaction!.inputs.length;
+            j++) {
+          utxoList.add(psbtObject.inputs[j].witnessUtxo!);
+        }
+        sigHash = psbtObject.unsignedTransaction!
+            .getTaprootSigHash(inputIndex, utxoList);
+      }
+      String derivationPath = psbtInput.derivationPathList[inputIndex].path;
+
+      addSignatureToPsbtInput(psbtInput, addressType, derivationPath, sigHash);
+
+      // 2. Calculate signatures and get public keys
+      // List<String> signatureList = [];
+      // List<String> publicKeyList = [];
+      // for (int pathIndex = 0;
+      //     pathIndex < psbtInput.derivationPathList.length;
+      //     pathIndex++) {
+      //   if (psbtInput.derivationPathList[pathIndex].masterFingerprint !=
+      //       masterFingerprint) {
+      //     continue;
+      //   }
+      //   String derivationPath = psbtInput.derivationPathList[pathIndex].path;
+      //   HDWallet hdWallet = getChildHdWallet(
+      //           WalletUtility.isChangeFromDerivationPath(derivationPath))
+      //       .derive(WalletUtility.getAccountIndexFromDerivationPath(
+      //           derivationPath));
+      //   publicKeyList.add(getPublicKey(
+      //       psbtInput.derivationPathList[pathIndex].accountIndex,
+      //       isChange: psbtInput.derivationPathList[pathIndex].isChange,
+      //       applyTweak: addressType.applyTweak));
+
+      //   if (!addressType.isTaproot) {
+      //     // ECDSA
+      //     signatureList.add(
+      //         Codec.encodeHex(hdWallet.signEcdsa(Codec.decodeHex(sigHash))));
+      //   } else {
+      //     //Schnorr
+      //     signatureList.add(Codec.encodeHex(hdWallet.signSchnorr(
+      //         Codec.decodeHex(sigHash), addressType.applyTweak)));
+      //   }
+      // }
+
+      // // 3. Validate signature
+      // for (int j = 0; j < signatureList.length; j++) {
+      //   Uint8List signature = Codec.decodeHex(signatureList[j]);
+      //   Uint8List publicKey = Codec.decodeHex(publicKeyList[j]);
+      //   if (!addressType.isTaproot) {
+      //     // ECDSA
+      //     if (!Ecc.verifyEcdsa(Codec.decodeHex(sigHash), publicKey,
+      //         Converter.derToRawSignature(signature))) {
+      //       throw Exception('Invalid signature');
+      //     }
+      //   } else {
+      //     // Schnorr
+      //     if (!Ecc.verifySchnorr(
+      //         Codec.decodeHex(sigHash), publicKey, signature)) {
+      //       throw Exception('Invalid signature');
+      //     }
+      //   }
+      // }
+
+      // // 4. Attach signature to PSBT
+      // for (int j = 0; j < signatureList.length; j++) {
+      //   if (!addressType.isTaproot) {
+      //     // ECDSA
+      //     psbtObject.addPartialSig(
+      //         inputIndex, signatureList[j], publicKeyList[j]);
+      //   } else {
+      //     // Taproot
+      //     if (addressType.applyTweak) {
+      //       // Key path
+      //       psbtObject.addTapKeySig(j, signatureList[j]);
+      //     } else {
+      //       // Script path
+      //       psbtObject.addTapScriptSig(j, signatureList[j], publicKeyList[j]);
+      //     }
+      //   }
+      // }
+    }
+    return psbtObject.serialize();
+  }
+
   ///add signature to PSBT if it's possible.
-  void addSignatureToPsbt(PsbtInput psbtInput, AddressType addressType,
+  void addSignatureToPsbtInput(PsbtInput psbtInput, AddressType addressType,
       String derivationPath, String sigHash,
       {MuSig2SessionContext? sessionContext}) {
     if (!hasSeed) {

@@ -70,6 +70,7 @@ void main() {
         Psbt unsignedPsbt = MockFactory.createP2wshUnsignedPsbt();
         String signedPsbtText =
             vault.addSignatureToPsbt(unsignedPsbt.serialize());
+        print(signedPsbtText);
         expect(signedPsbtText.hashCode, 21710574);
 
         Psbt signedPsbt = Psbt.parse(signedPsbtText);

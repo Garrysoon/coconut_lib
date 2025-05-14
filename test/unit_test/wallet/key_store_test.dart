@@ -116,12 +116,26 @@ void main() {
       });
     });
     group('addSignatureToPsbt', () {
-      test('Sign to PSBT', () {
+      test('Sign to PSBT (single signature)', () {
         NetworkType.setNetworkType(NetworkType.regtest);
         Psbt unsignedPsbt = MockFactory.createP2wpkhUnsignedPsbt();
-        String signedPsbtText = MockFactory.createP2wpkhVault()
-            .addSignatureToPsbt(unsignedPsbt.serialize());
+        SingleSignatureVault vault = MockFactory.createP2wpkhVault();
+
+        String signedPsbtText = vault.keyStore
+            .addSignatureToPsbt(unsignedPsbt.serialize(), vault.addressType);
         expect(signedPsbtText.hashCode, 222298681);
+      });
+      test('Sign to PSBT (multisignature)', () {
+        NetworkType.setNetworkType(NetworkType.regtest);
+        Psbt unsignedPsbt = MockFactory.createP2wshUnsignedPsbt();
+        MultisignatureVault vault = MockFactory.createP2wshVault();
+        String partialSignedPsbtText = vault.keyStoreList[0]
+            .addSignatureToPsbt(unsignedPsbt.serialize(), vault.addressType);
+        String signedPsbtText = vault.keyStoreList[1]
+            .addSignatureToPsbt(partialSignedPsbtText, vault.addressType);
+
+        print(signedPsbtText);
+        expect(signedPsbtText.hashCode, 21710574);
       });
     });
 
