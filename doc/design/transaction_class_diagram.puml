@@ -17,7 +17,6 @@ skinparam nodesep 60
 skinparam ranksep 80
 skinparam padding 8
 skinparam roundcorner 20
-!option handwritten false
 skinparam defaultTextAlignment center
 
 ' Transaction Classes
