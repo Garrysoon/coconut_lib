@@ -126,9 +126,9 @@ abstract class MultisignatureWalletBase extends WalletBase {
   }
 
   @override
-  bool canSignToPsbt(String psbt) {
+  bool hasPublicKeyInPsbt(String psbt) {
     for (KeyStore keyStore in keyStoreList) {
-      if (keyStore.canSignToPsbt(psbt)) {
+      if (keyStore.hasPublicKeyInPsbt(psbt)) {
         return true;
       }
     }

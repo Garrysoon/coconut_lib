@@ -100,10 +100,10 @@ void main() {
       });
     });
 
-    group('canSignToPsbt', () {
+    group('hasPublicKeyInPsbt', () {
       test('Check sign possibility with wrong key store', () {
         Psbt psbt = MockFactory.createP2wpkhUnsignedPsbt();
-        expect(keyStore.canSignToPsbt(psbt.serialize()), false);
+        expect(keyStore.hasPublicKeyInPsbt(psbt.serialize()), false);
       });
       test('Check sign possibility with right key store', () {
         Psbt psbt = MockFactory.createP2wpkhUnsignedPsbt();
@@ -111,7 +111,7 @@ void main() {
         expect(
             MockFactory.createP2wpkhVault()
                 .keyStore
-                .canSignToPsbt(psbt.serialize()),
+                .hasPublicKeyInPsbt(psbt.serialize()),
             true);
       });
     });
@@ -134,7 +134,6 @@ void main() {
         String signedPsbtText = vault.keyStoreList[1]
             .addSignatureToPsbt(partialSignedPsbtText, vault.addressType);
 
-        print(signedPsbtText);
         expect(signedPsbtText.hashCode, 21710574);
       });
     });

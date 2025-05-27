@@ -81,8 +81,8 @@ abstract class SingleSignatureWalletBase extends WalletBase {
   }
 
   @override
-  bool canSignToPsbt(String psbt) {
-    return keyStore.canSignToPsbt(psbt);
+  bool hasPublicKeyInPsbt(String psbt) {
+    return keyStore.hasPublicKeyInPsbt(psbt);
   }
 
   @override

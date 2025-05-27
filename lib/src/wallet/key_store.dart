@@ -190,7 +190,7 @@ class KeyStore {
   }
 
   ///Check if the PSBT can be signed from this vault.
-  bool canSignToPsbt(String psbt) {
+  bool hasPublicKeyInPsbt(String psbt) {
     Psbt psbtObj = Psbt.parse(psbt);
 
     if (psbtObj.inputs[0].bip32Derivation != null) {
@@ -258,7 +258,7 @@ class KeyStore {
       throw Exception('This vault does not have seed');
     }
     Psbt psbtObject = Psbt.parse(psbt);
-    if (canSignToPsbt(psbtObject.serialize()) == false) {
+    if (hasPublicKeyInPsbt(psbtObject.serialize()) == false) {
       throw Exception('This vault can not sign this PSBT');
     }
     if (psbtObject.inputs.length !=

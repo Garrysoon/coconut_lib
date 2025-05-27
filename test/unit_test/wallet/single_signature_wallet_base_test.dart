@@ -41,13 +41,13 @@ void main() {
             "tb1qyg29ghzqe5fweer9tyga4dtccxhnx4yqudfygp");
       });
     });
-    group('canSignToPsbt', () {
+    group('hasPublicKeyInPsbt', () {
       test('Can right vault can sign', () {
         Psbt psbt = MockFactory.createP2wpkhUnsignedPsbt();
-        expect(vault.canSignToPsbt(psbt.serialize()), true);
+        expect(vault.hasPublicKeyInPsbt(psbt.serialize()), true);
 
         SingleSignatureVault targetVault = SingleSignatureVault.random();
-        expect(targetVault.canSignToPsbt(psbt.serialize()), false);
+        expect(targetVault.hasPublicKeyInPsbt(psbt.serialize()), false);
       });
     });
     group('addSignatureToPsbt', () {

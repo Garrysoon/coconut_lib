@@ -90,7 +90,7 @@ class MultisignatureVault extends MultisignatureWalletBase {
     if (addressType != AddressType.p2trMuSig2) {
       throw Exception("Only MuSig2 needs public nonce.");
     }
-    if (!canSignToPsbt(psbt)) {
+    if (!hasPublicKeyInPsbt(psbt)) {
       throw Exception('No keyStore can sign to the PSBT.');
     }
     Psbt psbtObject = Psbt.parse(psbt);

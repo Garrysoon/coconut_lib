@@ -61,8 +61,8 @@ void main() {
         MultisignatureVault otherVault =
             MockFactory.createP2wshVault(testWalletType: TestWalletType.random);
         Psbt psbt = MockFactory.createP2wshUnsignedPsbt();
-        expect(otherVault.canSignToPsbt(psbt.serialize()), false);
-        expect(vault.canSignToPsbt(psbt.serialize()), true);
+        expect(otherVault.hasPublicKeyInPsbt(psbt.serialize()), false);
+        expect(vault.hasPublicKeyInPsbt(psbt.serialize()), true);
       });
     });
     group('addSignatureToPsbt', () {

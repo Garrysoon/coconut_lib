@@ -27,9 +27,9 @@ You can use the Coconut_lib to create your own air-gap based vault and wallet.
 ## Architecture
 
 - [wallet](https://github.com/noncelab/coconut_lib/blob/main/lib/src/wallet): Provides a cryptography-based key management method. Create two apps instancing the Wallet and Vault classes.
-  ![image](doc/design/wallet_class_diagram.jpg)
+  <img src="doc/design/wallet_class_diagram.png" width="1300" alt="Wallet Class Diagram">
 - [transaction](https://github.com/noncelab/coconut_lib/blob/main/lib/src/transaction): Provides code related to Bitcoin scripts and transactions. Also use PSBT(BIP-0174) to communicate vaults and wallets.
-  ![image](doc/design/transaction_class_diagram.jpg)
+  <img src="doc/design/transaction_class_diagram.png" width="700" alt="Transaction Class Diagram">
 
 > For more development information, visit the [coconut_lib docs](https://pub.dev/documentation/coconut_lib/latest/coconut_lib/coconut_lib-library.html).
 

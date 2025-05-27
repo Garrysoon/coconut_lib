@@ -28,7 +28,7 @@ abstract class WalletBase {
   /// Get the address from derivation path
   String getAddressWithDerivationPath(String derivationPath);
 
-  bool canSignToPsbt(String psbt);
+  bool hasPublicKeyInPsbt(String psbt);
 
   String addSignatureToPsbt(String psbt);
 }
