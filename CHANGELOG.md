@@ -1,3 +1,7 @@
+## 0.10.2
+- Change method name canSignToPsbt -> hasPublicKeyInPsbt
+- Add PlantUML class diagram
+
 ## 0.10.1
 - Added support for hardware wallets (Keystone, SeedSigner)
 - Implemented MuSig2 spending functionality
