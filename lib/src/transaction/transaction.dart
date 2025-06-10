@@ -247,6 +247,20 @@ class Transaction {
     }
   }
 
+  /// Get the length of a variable integer based on its first byte
+  static int _getVariableIntegerLength(Uint8List bytes, int offset) {
+    int firstByte = bytes[offset];
+    if (firstByte < 0xfd) {
+      return 1;
+    } else if (firstByte == 0xfd) {
+      return 3;
+    } else if (firstByte == 0xfe) {
+      return 5;
+    } else {
+      return 9;
+    }
+  }
+
   factory Transaction._parseSegwit(Uint8List txBytes) {
     int offset = 0;
     Uint8List version = txBytes.sublist(0, 4);
@@ -258,7 +272,7 @@ class Transaction {
     }
     int numInputs = Codec.decodeVariableInteger(txBytes, offset);
     //print(numInputs);
-    offset += 1;
+    offset += _getVariableIntegerLength(txBytes, offset);
     List<TransactionInput> inputs = [];
     //print(Converter.bytesToHex(txBytes.sublist(offset)));
     for (int i = 0; i < numInputs; i++) {
@@ -270,7 +284,7 @@ class Transaction {
       offset += size;
     }
     int numOutputs = Codec.decodeVariableInteger(txBytes, offset);
-    offset += 1;
+    offset += _getVariableIntegerLength(txBytes, offset);
     //print(numOutputs);
     List<TransactionOutput> outputs = [];
     for (int i = 0; i < numOutputs; i++) {
@@ -282,11 +296,12 @@ class Transaction {
     }
     //witness
     for (TransactionInput txIn in inputs) {
-      int numItems = Codec.decodeVariableInteger(txBytes, offset++);
+      int numItems = Codec.decodeVariableInteger(txBytes, offset);
+      offset += _getVariableIntegerLength(txBytes, offset);
       List items = [];
       for (int i = 0; i < numItems; i++) {
         int itemLen = Codec.decodeVariableInteger(txBytes, offset);
-        offset++;
+        offset += _getVariableIntegerLength(txBytes, offset);
         if (itemLen == 0) {
           items.add(0);
         } else {
@@ -318,7 +333,7 @@ class Transaction {
     offset += 4;
     int numInputs = Codec.decodeVariableInteger(txBytes, offset);
     //print("numInputs : $numInputs");
-    offset += 1;
+    offset += _getVariableIntegerLength(txBytes, offset);
     List<TransactionInput> inputs = [];
     for (int i = 0; i < numInputs; i++) {
       TransactionInput input =
@@ -333,7 +348,7 @@ class Transaction {
     }
 
     int numOutputs = Codec.decodeVariableInteger(txBytes, offset);
-    offset++;
+    offset += _getVariableIntegerLength(txBytes, offset);
     // print("numOutputs : $numOutputs");
     List<TransactionOutput> outputs = [];
     for (int i = 0; i < numOutputs; i++) {
@@ -355,7 +370,7 @@ class Transaction {
     offset += 4;
 
     int numInputs = Codec.decodeVariableInteger(txBytes, offset);
-    offset += 1;
+    offset += _getVariableIntegerLength(txBytes, offset);
     List<TransactionInput> inputs = [];
 
     for (int i = 0; i < numInputs; i++) {
@@ -372,7 +387,7 @@ class Transaction {
     }
 
     int numOutputs = Codec.decodeVariableInteger(txBytes, offset);
-    offset += 1;
+    offset += _getVariableIntegerLength(txBytes, offset);
     List<TransactionOutput> outputs = [];
     for (int i = 0; i < numOutputs; i++) {
       TransactionOutput output =
