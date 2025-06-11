@@ -1,3 +1,7 @@
+## 0.10.3
+- Fix transaction parser
+- Fix script parser
+
 ## 0.10.2
 - Change method name canSignToPsbt -> hasPublicKeyInPsbt
 - Add PlantUML class diagram
