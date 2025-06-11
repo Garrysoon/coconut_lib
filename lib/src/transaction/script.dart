@@ -27,11 +27,11 @@ class Script {
   static List<dynamic> parseToCommand(Uint8List script) {
     int offset = 0;
     int length = Codec.decodeVariableInteger(script, offset);
-    offset += (length < 0xfd)
+    offset += (script[0] < 0xfd)
         ? 1
-        : (length == 0xfd)
+        : (script[0] == 0xfd)
             ? 3
-            : (length == 0xfe)
+            : (script[0] == 0xfe)
                 ? 5
                 : 9;
     List<dynamic> cmds = [];

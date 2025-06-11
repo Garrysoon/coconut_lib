@@ -26,6 +26,7 @@ class Transaction {
 
   /// Get the transaction hash.
   String get transactionHash {
+    // String hash = Hash.sha256fromHex(Hash.sha256fromHex(_serializeLegacy()));
     String hash = Hash.sha256fromHex(Hash.sha256fromHex(_serializeLegacy()));
     String littleEndian = Converter.toLittleEndian(hash);
     return littleEndian;
