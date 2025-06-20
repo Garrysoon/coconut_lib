@@ -974,7 +974,9 @@ class PsbtInput {
       }.toList();
 
   int get requiredSignature {
-    if (witnessScript == null) {
+    if (muSig2ParticipantPubkeys != null) {
+      return muSig2ParticipantPubkeys!.length;
+    } else if (witnessScript == null) {
       return 1;
     } else {
       return witnessScript!.getRequiredSignature();
