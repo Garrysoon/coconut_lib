@@ -6,8 +6,8 @@ void main() {
     test('should generate a valid brain wallet', () {
       NetworkType.setNetworkType(NetworkType.regtest);
       String keyword0 = '루이스';
-      String keyword1 = '엘라';
-      String keyword2 = '도이';
+      String keyword1 = '도이';
+      String keyword2 = '엘라';
       KeyStore keyStore0 =
           KeyStore.fromEntropy(Hash.sha256(keyword0), AddressType.p2trMuSig2);
       KeyStore keyStore1 =
@@ -23,7 +23,7 @@ void main() {
           MultisignatureWallet.fromDescriptor(vault.descriptor);
 
       print(vault.getAddress(0));
-      print(wallet.getAddress(0));
+      print(vault.getAddregatedPublilcKey(0, false, isSort: false));
 
       // Psbt psbt = Psbt.fromTransaction(Transaction.forSinglePayment(utxoList, receiveAddress, changeAddressDerivationPath, amount, feeRate, wallet), wallet)
 

@@ -159,7 +159,7 @@ class Psbt {
             final hexPart = concatenatedPubKeys.substring(i * 64, (i + 1) * 64);
             muSig2participantPubKeyList!.add(hexPart);
           }
-          muSig2participantPubKeyList!.sort();
+          // muSig2participantPubKeyList!.sort();
         }
 
         // 27: 'MUSIG2_PUB_NONCE'
@@ -463,7 +463,8 @@ class Psbt {
         String musig2ParticipantPubKeyType =
             getKeyType(inputKeyType, 'MUSIG2_PARTICIPANT_PUBKEY');
         String aggregatePubKey = multisignatureWallet.getAddregatedPublilcKey(
-            tx.utxoList[i].accountIndex, tx.utxoList[i].isChange);
+            tx.utxoList[i].accountIndex, tx.utxoList[i].isChange,
+            isSort: false);
         inputData[musig2ParticipantPubKeyType + aggregatePubKey] =
             publicKeys.join();
 
