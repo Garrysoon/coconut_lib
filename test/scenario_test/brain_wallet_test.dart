@@ -6,8 +6,8 @@ void main() {
     test('should generate a valid brain wallet', () {
       NetworkType.setNetworkType(NetworkType.regtest);
       String keyword0 = '루이스';
-      String keyword1 = '도이';
-      String keyword2 = '엘라';
+      String keyword1 = '엘라';
+      String keyword2 = '도이';
       KeyStore keyStore0 =
           KeyStore.fromEntropy(Hash.sha256(keyword0), AddressType.p2trMuSig2);
       KeyStore keyStore1 =

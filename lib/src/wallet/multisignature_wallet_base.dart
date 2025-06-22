@@ -48,6 +48,11 @@ abstract class MultisignatureWalletBase extends WalletBase {
       throw Exception('Invalid derivation path.');
     }
 
+    if (_addressType == AddressType.p2trMuSig2) {
+      _keyStoreList
+          .sort((a, b) => a.masterFingerprint.compareTo(b.masterFingerprint));
+    }
+
     for (KeyStore keyStore in _keyStoreList) {
       if (NetworkType.currentNetworkType.isTestnet !=
           AddressType.isTestnetVersion(keyStore.extendedPublicKey.version)) {

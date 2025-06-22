@@ -21,7 +21,28 @@ void main() {
         expect(() => MultisignatureVault.fromKeyStoreList(keyStoreList, 4),
             throwsException);
       });
+      test('Generate MuSig2 vault from key store list', () {
+        KeyStore keyStore0 =
+            KeyStore.fromEntropy(Hash.sha256("A"), AddressType.p2trMuSig2);
+        KeyStore keyStore1 =
+            KeyStore.fromEntropy(Hash.sha256("B"), AddressType.p2trMuSig2);
+        KeyStore keyStore2 =
+            KeyStore.fromEntropy(Hash.sha256("C"), AddressType.p2trMuSig2);
+        List<KeyStore> keyStoreList_1 = [keyStore0, keyStore1, keyStore2];
+        List<KeyStore> keyStoreList_2 = [keyStore1, keyStore0, keyStore2];
+        MultisignatureVault targetVault_1 =
+            MultisignatureVault.fromKeyStoreList(keyStoreList_1, 3,
+                addressType: AddressType.p2trMuSig2);
+        MultisignatureVault targetVault_2 =
+            MultisignatureVault.fromKeyStoreList(keyStoreList_2, 3,
+                addressType: AddressType.p2trMuSig2);
+
+        expect(targetVault_1, isA<MultisignatureVault>());
+        expect(targetVault_2, isA<MultisignatureVault>());
+        expect(targetVault_1.descriptor, targetVault_2.descriptor);
+      });
     });
+
     group('MultisignatureVault.fromSeedList', () {
       test('Generate multisignature vault from seed list', () {
         List<Seed> seedList = [];
