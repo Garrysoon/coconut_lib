@@ -237,7 +237,42 @@ class KeyStore {
     }
   }
 
-  void addMuSig2PublicNonceToPsbt(
+  String addMuSig2PublicNonceToPsbt(String psbt) {
+    if (!hasSeed) {
+      throw Exception('This key store does not have seed');
+    }
+    Psbt psbtObject = Psbt.parse(psbt);
+    if (psbtObject.addressType != AddressType.p2trMuSig2) {
+      throw Exception('Only musig2 needs public nonce.');
+    }
+    if (psbtObject.inputs.length !=
+        psbtObject.unsignedTransaction!.inputs.length) {
+      throw Exception('Not enought psbt inputs or transaction inputs');
+    }
+    List<TransactionOutput> utxoList = [];
+    if (hasPublicKeyInPsbt(psbtObject.serialize()) == false) {
+      throw Exception('This vault can not sign this PSBT');
+    }
+    for (int j = 0; j < psbtObject.unsignedTransaction!.inputs.length; j++) {
+      utxoList.add(psbtObject.inputs[j].witnessUtxo!);
+    }
+    for (int inputIndex = 0;
+        inputIndex < psbtObject.unsignedTransaction!.inputs.length;
+        inputIndex++) {
+      PsbtInput psbtInput = psbtObject.inputs[inputIndex];
+      String sigHash = psbtObject.unsignedTransaction!
+          .getTaprootSigHash(inputIndex, utxoList);
+      for (DerivationPath derivationPath in psbtInput.tapBip32Derivation!) {
+        if (masterFingerprint == derivationPath.masterFingerprint) {
+          addMuSig2PublicNonceToPsbtInput(
+              psbtInput, derivationPath.path, sigHash);
+        }
+      }
+    }
+    return psbtObject.serialize();
+  }
+
+  void addMuSig2PublicNonceToPsbtInput(
       PsbtInput psbtInput, String derivationPath, String sigHash) {
     if (!hasSeed) {
       throw Exception('This vault does not have seed');

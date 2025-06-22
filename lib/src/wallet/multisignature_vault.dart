@@ -117,7 +117,7 @@ class MultisignatureVault extends MultisignatureWalletBase {
         for (KeyStore keyStore in keyStoreList) {
           if (keyStore.hasSeed &&
               derivationPath.masterFingerprint == keyStore.masterFingerprint) {
-            keyStore.addMuSig2PublicNonceToPsbt(
+            keyStore.addMuSig2PublicNonceToPsbtInput(
                 psbtInput, derivationPath.path, sigHash);
           }
         }
