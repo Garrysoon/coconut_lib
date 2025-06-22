@@ -205,9 +205,10 @@ class KeyStore {
             publicKey = publicKey.substring(2);
           }
           if (thisInput.derivationPathList[j].masterFingerprint ==
-                  masterFingerprint &&
-              publicKeyInPsbt == publicKey) {
-            return true;
+              masterFingerprint) {
+            if (publicKeyInPsbt == publicKey) {
+              return true;
+            }
           }
         }
       }
@@ -220,14 +221,29 @@ class KeyStore {
           String publicKeyInPsbt = thisInput.tapBip32Derivation![j].publicKey;
           String publicKey = getPublicKey(
               thisInput.tapBip32Derivation![j].accountIndex,
-              isChange: thisInput.tapBip32Derivation![j].isChange);
+              isChange: thisInput.tapBip32Derivation![j].isChange,
+              isXOnly: true);
+
+          //getPublicKey(tx.utxoList[i].accountIndex,
+          //isChange: tx.utxoList[i].isChange, isXOnly: true)
           if (publicKeyInPsbt.length != publicKey.length) {
             publicKey = publicKey.substring(2);
           }
-          if (thisInput.tapBip32Derivation![j].masterFingerprint ==
-                  masterFingerprint &&
-              publicKeyInPsbt == publicKey) {
-            return true;
+
+          print(
+              'thisInput.tapBip32Derivation![j].masterFingerprint: ${thisInput.tapBip32Derivation![j].masterFingerprint}');
+          print('masterFingerprint: $masterFingerprint');
+
+          print('publicKeyInPsbt: $publicKeyInPsbt');
+          print('publicKey: $publicKey');
+
+          if (thisInput.derivationPathList[j].masterFingerprint ==
+              masterFingerprint) {
+            if (publicKeyInPsbt == publicKey) {
+              return true;
+            } else if (publicKeyInPsbt == publicKey.substring(2)) {
+              return true;
+            }
           }
         }
       }

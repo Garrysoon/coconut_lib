@@ -67,7 +67,6 @@ void main() {
       String partialNoncePsbt1 =
           musig2Vault1.addMuSig2PublicNonce(unsignedPsbt);
 
-      // add nonce musig2Vault2
       String partialNoncePsbt2 =
           musig2Vault2.addMuSig2PublicNonce(partialNoncePsbt1);
 
