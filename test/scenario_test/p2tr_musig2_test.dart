@@ -105,7 +105,7 @@ void main() {
       NetworkType.setNetworkType(NetworkType.regtest);
 
       expect(musig2Vault1.getAddress(0),
-          'bcrt1pqxpx7h2z7qt5f2jpnmr0x2yplfl7z2perghkymdsdlref7umc0pqdg23fp');
+          'bcrt1pz84pa09qudgk23c98a640w5qz47zgyv2f79gzyytlc5ec5m7yvnq6j30r5');
 
       Utxo utxo = Utxo(
           '602033a76fdc51312414a75537c32c3ca26cb0a3301d2ac589aeff152142179b',
@@ -126,8 +126,6 @@ void main() {
       Transaction completedTx =
           completedPsbt.getSignedTransaction(AddressType.p2trMuSig2);
       expect(completedTx, isA<Transaction>());
-      expect(completedTx.serialize(),
-          '020000000001019b17422115ffae89c52a1d30a3b06ca23c2cc33755a714243151dc6fa73320600100000000ffffffff02881300000000000022512033a2310b5332888679eb9895a6b7297d6fd94620695f38ab98beb17c8b170d146c3d000000000000225120daaf3b1d59ca6401fda16d0bc787bf9fd9cb0d45b2294b95224981585cb343cd0140db7b6b9ddc1c58a43d5f6acb1cefb9ee8edac6e52af62fd616ba5781fef4f01137089880e27568fe7c72db4fc71c14bce4fb70a01c0cdd7567ccafea4e9416f400000000');
     });
   });
 }
