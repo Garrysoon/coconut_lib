@@ -123,6 +123,15 @@ void main() {
         final descriptor = Descriptor.parse(bip84Descriptor);
         expect(descriptor.getDerivationPath(0), "m/84'/1'/0'");
       });
+      test('h derivation path', () {
+        const bip84Descriptor =
+            "wpkh([98c7d774/84h/1h/0h]tpubDDbAxgGSifNq7nDVLi3LfzeqF1GXhx4BM3HwxcdJVqhPLxSjMida9WyJZeV95teMpW4tMA4KFYtcSc7srHjz7uFkx4RQ4T15baqyqBdYTgm/0/*)";
+        final descriptor =
+            Descriptor.parse(bip84Descriptor, ignoreChecksum: true);
+        expect(descriptor, isA<Descriptor>());
+        expect(descriptor.scriptType, 'wpkh');
+        expect(descriptor.getDerivationPath(0), "m/84'/1'/0'");
+      });
     });
     group('getFingerprint', () {
       test('Get fingerprint', () {

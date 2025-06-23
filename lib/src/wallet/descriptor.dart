@@ -111,7 +111,7 @@ class Descriptor {
     List<String> list = derivationPathMatch.group(1)!.split('/').sublist(1);
     String derivationPath = 'm/${list.join('/')}';
 
-    return derivationPath;
+    return derivationPath.replaceAll('h', "'");
   }
 
   /// Get the fingerprint.

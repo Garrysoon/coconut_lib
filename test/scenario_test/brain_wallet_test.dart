@@ -9,30 +9,30 @@ void main() {
       String keyword1 = '도이';
       String keyword2 = '엘라';
       KeyStore keyStore0 =
-          KeyStore.fromEntropy(Hash.sha256(keyword0), AddressType.p2trMuSig2);
+          KeyStore.fromEntropy(Hash.sha256(keyword0), AddressType.p2wpkh);
       KeyStore keyStore1 =
-          KeyStore.fromEntropy(Hash.sha256(keyword1), AddressType.p2trMuSig2);
+          KeyStore.fromEntropy(Hash.sha256(keyword1), AddressType.p2wpkh);
       KeyStore keyStore2 =
-          KeyStore.fromEntropy(Hash.sha256(keyword2), AddressType.p2trMuSig2);
+          KeyStore.fromEntropy(Hash.sha256(keyword2), AddressType.p2wpkh);
 
-      MultisignatureVault vault = MultisignatureVault.fromKeyStoreList(
-          [keyStore0, keyStore1, keyStore2], 3,
-          addressType: AddressType.p2trMuSig2);
+      SingleSignatureVault sVault0 =
+          SingleSignatureVault.fromKeyStore(keyStore0);
+      SingleSignatureVault sVault1 =
+          SingleSignatureVault.fromKeyStore(keyStore1);
+      SingleSignatureVault sVault2 =
+          SingleSignatureVault.fromKeyStore(keyStore2);
 
-      MultisignatureWallet wallet =
-          MultisignatureWallet.fromDescriptor(vault.descriptor);
+      MultisignatureVault vault = MultisignatureVault.fromKeyStoreList([
+        KeyStore.fromSignerBsms(
+            sVault0.getSignerBsms(AddressType.p2trMuSig2, "")),
+        KeyStore.fromSignerBsms(
+            sVault1.getSignerBsms(AddressType.p2trMuSig2, "")),
+        KeyStore.fromSignerBsms(
+            sVault2.getSignerBsms(AddressType.p2trMuSig2, ""))
+      ], 3, addressType: AddressType.p2trMuSig2);
 
+      print(vault.descriptor);
       print(vault.getAddress(0));
-      print(vault.getAddregatedPublilcKey(0, false, isSort: false));
-
-      // Psbt psbt = Psbt.fromTransaction(Transaction.forSinglePayment(utxoList, receiveAddress, changeAddressDerivationPath, amount, feeRate, wallet), wallet)
-
-// 84079059
-// 31b68a0cd0b90b1afeab55ba5b1b79a1ec838ca476d66049f8f4834e796705f8
-// m/86'/1'/0'/0/0
-// 3c71beb5eee9ae6709d31db6659956a7574f895d934ea9228060c98ffea91a22
-// 84079059
-// m/86'/1'/0'
     });
   });
 }
