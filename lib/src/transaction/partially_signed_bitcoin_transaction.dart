@@ -920,6 +920,9 @@ class Psbt {
             //   return false;
             // }
             if (!addressType!.isTaproot) {
+              if (input.signatureList.isEmpty) {
+                return false;
+              }
               for (Signature signature in input.signatureList) {
                 if (signature.publicKey == publicKey) {
                   return true;
@@ -927,6 +930,9 @@ class Psbt {
               }
               return false;
             } else if (addressType == AddressType.p2trMuSig2) {
+              if (input.muSig2PartialSigs == null) {
+                return false;
+              }
               for (Signature signature in input.muSig2PartialSigs!) {
                 if (signature.publicKey == publicKey) {
                   return true;
