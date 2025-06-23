@@ -230,12 +230,12 @@ class KeyStore {
             publicKey = publicKey.substring(2);
           }
 
-          print(
-              'thisInput.tapBip32Derivation![j].masterFingerprint: ${thisInput.tapBip32Derivation![j].masterFingerprint}');
-          print('masterFingerprint: $masterFingerprint');
+          // print(
+          //     'thisInput.tapBip32Derivation![j].masterFingerprint: ${thisInput.tapBip32Derivation![j].masterFingerprint}');
+          // print('masterFingerprint: $masterFingerprint');
 
-          print('publicKeyInPsbt: $publicKeyInPsbt');
-          print('publicKey: $publicKey');
+          // print('publicKeyInPsbt: $publicKeyInPsbt');
+          // print('publicKey: $publicKey');
 
           if (thisInput.derivationPathList[j].masterFingerprint ==
               masterFingerprint) {

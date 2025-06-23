@@ -144,7 +144,8 @@ void main() {
             AddressType.p2trMuSig2);
         String signedPsbtText =
             keyStore.addSignatureToPsbt(psbt, AddressType.p2trMuSig2);
-        print(signedPsbtText);
+        Psbt signedPsbt = Psbt.parse(signedPsbtText);
+        expect(signedPsbt.isSigned(keyStore), true);
       });
     });
 

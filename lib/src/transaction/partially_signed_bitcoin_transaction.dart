@@ -905,28 +905,40 @@ class Psbt {
   }
 
   bool isSigned(KeyStore keyStore, {isKeyPathSpending = false}) {
-    bool isSigned = false;
     for (PsbtInput input in inputs) {
       for (DerivationPath path in input.derivationPathList) {
         if (keyStore.masterFingerprint == path.masterFingerprint) {
-          isSigned = true;
           if (isKeyPathSpending) {
             return (input.tapKeySig != null);
           } else {
             String publicKey = keyStore.getPublicKey(
                 WalletUtility.getAccountIndexFromDerivationPath(path.path),
-                isChange: WalletUtility.isChangeFromDerivationPath(path.path));
-            // getPublicKeyWithDerivationPath(path.path);
-            if (!input.signatureList
-                .any((element) => element.publicKey == publicKey)) {
+                isChange: WalletUtility.isChangeFromDerivationPath(path.path),
+                isXOnly: addressType!.isTaproot);
+            // if (!input.signatureList
+            //     .any((element) => element.publicKey == publicKey)) {
+            //   return false;
+            // }
+            if (!addressType!.isTaproot) {
+              for (Signature signature in input.signatureList) {
+                if (signature.publicKey == publicKey) {
+                  return true;
+                }
+              }
+              return false;
+            } else if (addressType == AddressType.p2trMuSig2) {
+              for (Signature signature in input.muSig2PartialSigs!) {
+                if (signature.publicKey == publicKey) {
+                  return true;
+                }
+              }
               return false;
             }
           }
         }
       }
     }
-
-    return isSigned;
+    return false;
   }
 }
 
