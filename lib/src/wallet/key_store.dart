@@ -353,8 +353,18 @@ class KeyStore {
             .getTaprootSigHash(inputIndex, utxoList);
       }
       String derivationPath = psbtInput.derivationPathList[inputIndex].path;
+      MuSig2SessionContext? sessionContext;
+      if (addressType == AddressType.p2trMuSig2) {
+        sessionContext = MuSig2SessionContext(
+            Codec.decodeHex(psbtInput.getAggregatedPublicNonce()),
+            psbtInput.muSig2ParticipantPubkeys!
+                .map((e) => Codec.decodeHex('02$e'))
+                .toList(),
+            Codec.decodeHex(sigHash));
+      }
 
-      addSignatureToPsbtInput(psbtInput, addressType, derivationPath, sigHash);
+      addSignatureToPsbtInput(psbtInput, addressType, derivationPath, sigHash,
+          sessionContext: sessionContext);
 
       // 2. Calculate signatures and get public keys
       // List<String> signatureList = [];

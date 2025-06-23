@@ -72,7 +72,9 @@ void main() {
             MultisignatureVault.fromCoordinatorBsms(vault.getCoordinatorBsms(),
                 addressType: AddressType.p2wsh);
         for (int i = 0; i < targetVault.keyStoreList.length; i++) {
+          expect(targetVault.keyStoreList[i].hasSeed, false);
           targetVault.bindSeedToKeyStore(vault.keyStoreList[i].seed);
+          expect(targetVault.keyStoreList[i].hasSeed, true);
         }
         for (int i = 0; i < targetVault.keyStoreList.length; i++) {
           expect(vault.keyStoreList[i].seed, targetVault.keyStoreList[i].seed);
