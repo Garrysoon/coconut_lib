@@ -1,6 +1,5 @@
 ## 0.10.4
 - Support brain wallet
-- Fix script parser
 
 ## 0.10.3
 - Fix transaction parser
