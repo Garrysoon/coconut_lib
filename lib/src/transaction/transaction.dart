@@ -139,7 +139,8 @@ class Transaction {
     // print("Fee : $fee");
     int changeAmount = totalInputAmount - totalOutputAmount - fee;
     if (changeAmount < 0) {
-      tx.outputs.remove(changeOutput);
+      // tx.outputs.remove(changeOutput);
+      throw Exception('Not enough amount for sending. (Fee : $fee)');
     } else {
       changeOutput.setAmount(changeAmount);
 
