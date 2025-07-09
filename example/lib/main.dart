@@ -1,6 +1,6 @@
-import 'package:coconut_lib/coconut_lib.dart';
+// ignore_for_file: unused_local_variable
 
-import '../../test/mock_factory.dart';
+import 'package:coconut_lib/coconut_lib.dart';
 
 void main() async {
   print("0. Set the Bitcoin Network");

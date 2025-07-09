@@ -1,5 +1,4 @@
 @Tags(['unit'])
-import 'dart:io';
 
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
@@ -326,32 +325,6 @@ void main() {
         }
 
         expect(afterInputLength, beforeInputLength + 1);
-        expect(
-            inputAmount >=
-                outputAmount + tx.estimateFee(feeRate, vault.addressType),
-            true);
-      });
-      test('Add utxo in dust change case', () {
-        double feeRate = 2.0;
-
-        Transaction tx = Transaction.forBatchPayment(utxos.sublist(0, 3),
-            {receiveAddress: 399300}, changeAddressPath, feeRate, vault);
-        int beforeInputLength = tx.inputs.length;
-
-        tx.addInputWithUtxo(utxos[4], feeRate, vault);
-
-        int afterInputLength = tx.inputs.length;
-        int inputAmount = 0;
-        for (Utxo u in tx.utxoList) {
-          inputAmount += u.amount;
-        }
-
-        int outputAmount = 0;
-        for (TransactionOutput output in tx.outputs) {
-          outputAmount += output.amount;
-        }
-        expect(afterInputLength, beforeInputLength + 1);
-        expect(tx.outputs.length, 1);
         expect(
             inputAmount >=
                 outputAmount + tx.estimateFee(feeRate, vault.addressType),

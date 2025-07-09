@@ -271,4 +271,49 @@ abstract class WalletUtility {
       return Q;
     }
   }
+
+  static double estimateVirtualByte(
+      AddressType addressType, int numberOfInputs, int numberOfOutputs,
+      {int? requiredSignature, int? totalSigner}) {
+    final int baseByte = 12;
+    final int inputSize = 41;
+    final int outputSize = 34;
+    int signatureSize = 73;
+    int pubKeySize = 34;
+
+    int nonWitnessSize = baseByte;
+    int witnessSize = 1; // number of witness
+    if (addressType.isTaproot) {
+      signatureSize = 65; // 64 + 1(length)
+      pubKeySize = 0; // 32 + 1(length)
+    }
+    if (addressType == AddressType.p2wpkh) {
+      nonWitnessSize += numberOfInputs * inputSize;
+      nonWitnessSize += numberOfOutputs * outputSize;
+      witnessSize = numberOfInputs * (signatureSize + pubKeySize + 1);
+    } else if (addressType == AddressType.p2wsh) {
+      if (requiredSignature == null || totalSigner == null) {
+        throw ArgumentError(
+            'requiredSignature and totalSignature is required for p2wsh');
+      }
+      nonWitnessSize += numberOfInputs * inputSize;
+      nonWitnessSize += numberOfOutputs * outputSize;
+
+      // 각 입력당 witness 크기 계산
+      for (int i = 0; i < numberOfInputs; i++) {
+        witnessSize += 1; // 00
+        witnessSize += requiredSignature * signatureSize;
+        int scriptSize = 0;
+        scriptSize += 3; // m,n,OP_CHECKMULTISIG
+        scriptSize += totalSigner * pubKeySize + 1;
+        witnessSize += scriptSize;
+        witnessSize += totalSigner + 1; //script size
+      }
+    } else {
+      throw Exception('Unsupported address type');
+    }
+
+    double vByte = ((nonWitnessSize * 4) + witnessSize) / 4;
+    return vByte;
+  }
 }

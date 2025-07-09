@@ -143,7 +143,6 @@ class Transaction {
       throw Exception('Not enough amount for sending. (Fee : $fee)');
     } else {
       changeOutput.setAmount(changeAmount);
-
       if (changeOutput.isDustOutput(wallet.addressType.isSegwit)) {
         tx.outputs.remove(changeOutput);
       }

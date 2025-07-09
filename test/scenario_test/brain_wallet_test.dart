@@ -30,9 +30,6 @@ void main() {
         KeyStore.fromSignerBsms(
             sVault2.getSignerBsms(AddressType.p2trMuSig2, ""))
       ], 3, addressType: AddressType.p2trMuSig2);
-
-      print(vault.descriptor);
-      print(vault.getAddress(0));
     });
   });
 }

@@ -335,5 +335,33 @@ void main() {
             '69BC22BFA5D106306E48A20679DE1D7389386124D07571D0D872686028C26A3E');
       });
     });
+    group('estimateVirtualByte', () {
+      test('Estimate virtual byte for p2wpkh', () {
+        Transaction transaction = Transaction.parse(
+            '02000000000101e651891f611e71f59151325620d01b40808c6eab359cdc4164008fd02366db190100000000fdffffff025bfd100300000000160014192e80ed2c7c412bdc2a6c8f371d15cb90f3c85bb3ff0200000000001600142aa810d27d2f384feadab9fdda547678fbc9939e024730440220320a44fc713353c149b37f6f8b32e77ca79586cd0d84799ca3095feec143c02b0220025da285e3f22804dd3a8824aca745fa8d01ef8eac9f27bbc53ff9a13b038000012103b01bd095f648ea829f000207087f16622431077bb5cc0875225ada601375c88500000000');
+        int tolerance = transaction.inputs.length * 2;
+        tolerance = transaction.outputs.length * 5;
+        expect(
+            WalletUtility.estimateVirtualByte(AddressType.p2wpkh,
+                transaction.inputs.length, transaction.outputs.length),
+            inInclusiveRange(transaction.getVirtualByte() - tolerance,
+                transaction.getVirtualByte() + tolerance));
+      });
+
+      test('Estimate virtual byte for p2wsh', () {
+        Transaction transaction = Transaction.parse(
+            '010000000001016ac6a4a7967d8ef65e06b89b876b5916790c0d2e9aa47403e3aa495fd698435d0300000000ffffffff0400366e0100000000160014df9ceb5a5535fbb3f271d7fac54a4f16051a3085f76fd2010000000017a9141d2e927680fdcaf127501f968c7bdea5ed5d96de876b90b70200000000160014417b365c93b581ec927aaa316c8b55abff17f8e486ab4a0b00000000220020701a8d401c84fb13e6baf169d59684e17abd9fa216c8cc5b9fc63d622ff8c58d04004730440220312fed48b206af9f4fc6fef9800ffd337c52dbf2180a28d85d94b595eba604410220379f772b93c0dea29f40cb9425b517bb55192e26396c4779b2129d11ec073a430147304402204f286ed4c8e8d2037a2d36037ac3c9cc3f856fb2d6a078c703e5df5e98377b2402203f9f8d10866c9476321d37e18305ff25a976f61d61bd0cd9957139cb939035ff016952210279d1f38c1c80d47cb00ddbbe2915a60d5706e1ef66056a169150f083b288eb952102cb7d02b654f8616bfc5ab017b7a3ec9092e466381af0f552b7efcd8d920453672103c96d495bfdd5ba4145e3e046fee45e84a8a48ad05bd8dbb395c011a32cf9f88053ae00000000');
+        int requiredSignature = 2;
+        int totalSigner = 3;
+        int tolerance = transaction.inputs.length * requiredSignature * 2;
+        tolerance = transaction.outputs.length * 5;
+        expect(
+            WalletUtility.estimateVirtualByte(AddressType.p2wsh,
+                transaction.inputs.length, transaction.outputs.length,
+                requiredSignature: requiredSignature, totalSigner: totalSigner),
+            inInclusiveRange(transaction.getVirtualByte() - tolerance,
+                transaction.getVirtualByte() + tolerance));
+      });
+    });
   });
 }

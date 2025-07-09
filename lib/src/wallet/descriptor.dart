@@ -145,7 +145,7 @@ class Descriptor {
       body += "))";
     } else if (_addressType == AddressType.p2trMuSig2) {
       body = "$_scriptType(musig(sorted(";
-      body += _publicKeyList.map((e) => "$e").join(',');
+      body += _publicKeyList.map((e) => e).join(',');
       body += ")))";
     } else {
       throw Exception('Unsupported script type.');
