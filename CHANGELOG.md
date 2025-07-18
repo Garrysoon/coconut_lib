@@ -1,3 +1,6 @@
+## 0.10.5
+- Add estimate fee with number of input/output
+
 ## 0.10.4
 - Support brain wallet
 
