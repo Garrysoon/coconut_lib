@@ -442,7 +442,7 @@ class Transaction {
           serialized += '00';
         } else {
           int size = inputs[i].witnessList[j].length ~/ 2;
-          serialized += Converter.decToHex(size);
+          serialized += Codec.encodeHex(Codec.encodeVariableInteger(size));
           serialized += inputs[i].witnessList[j];
         }
       }
