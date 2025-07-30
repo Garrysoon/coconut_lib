@@ -138,6 +138,7 @@ void main() {
         expect(tx.outputs.length, 1);
       });
     });
+
     group('Transaction.forBatchPayment', () {
       test('Generate transaction for batch', () {
         SingleSignatureVault vault = MockFactory.createP2wpkhVault();
@@ -152,6 +153,24 @@ void main() {
 
         expect(tx.outputs.length == 3, isTrue);
         expect(tx.serialize().hashCode, 960424395);
+      });
+    });
+    group('Transaction.forBatchSweep', () {
+      test('Generate transaction for batch sweep', () {
+        SingleSignatureVault vault = MockFactory.createP2wpkhVault();
+        List<Utxo> utxos = MockFactory.createUtxoList(count: 5);
+        Map<String, int> paymentMap = {
+          'bcrt1qzf8qs6qgyq9kgu225jatvvx0nvvm3u3ka5gf7w': 1000,
+          'bcrt1qwr2aleje6vh48xzh9djeap9qcnc7atf57l302c': 2000
+        };
+        String remainderAddress =
+            'bcrt1q8e5ghfg8gpe4dlfv7qqck2c2jc47lnllul3puh';
+        Transaction tx = Transaction.forBatchSweep(
+            utxos, paymentMap, remainderAddress, 1, vault);
+        expect(tx.outputs.length == 3, isTrue);
+        expect(tx.serialize().hashCode, 440536889);
+        expect(tx.outputs[2].amount, 496556);
+        expect(tx.outputs[2].getAddress(), remainderAddress);
       });
     });
     group('Transaction.parse', () {

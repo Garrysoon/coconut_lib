@@ -42,9 +42,8 @@ class TransactionInput {
     Uint8List bytes = Codec.decodeHex(input);
     //print("full : " + Converter.bytesToHex(bytes));
     var txHash = bytes.sublist(0, 32);
-    //print("txHash : " + Converter.bytesToHex(txHash));
     var index = bytes.sublist(32, 36);
-    //print("index : " + Converter.bytesToHex(index));
+
     var scriptSize = 0;
     ScriptSignature script;
     //if (isSegwit || isUnsignedSignature) {

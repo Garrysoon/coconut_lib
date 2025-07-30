@@ -231,6 +231,74 @@ class Transaction {
     return transaction;
   }
 
+  /// Create a batch transaction for sending all Bitcoin in the wallet.
+  factory Transaction.forBatchSweep(
+      List<Utxo> utxoList,
+      Map<String, int> paymentMap,
+      String remainderAddress,
+      double feeRate,
+      WalletBase wallet,
+      {int version = 2,
+      int lockTime = 0}) {
+    int totalInputAmount = 0;
+    List<TransactionInput> inputs = [];
+    List<TransactionOutput> outputs = [];
+    for (Utxo utxo in utxoList) {
+      totalInputAmount += utxo.amount;
+      inputs.add(TransactionInput.forPayment(utxo.transactionHash, utxo.index));
+    }
+
+    int totalOutputAmount =
+        paymentMap.values.fold(0, (sum, value) => sum + value);
+
+    for (var entry in paymentMap.entries) {
+      String recipientAddress = entry.key;
+      int amount = entry.value;
+
+      outputs.add(TransactionOutput.forPayment(amount, recipientAddress,
+          isChangeOutput: false));
+    }
+    TransactionOutput changeOutput = TransactionOutput.forPayment(
+        0, remainderAddress,
+        isChangeOutput: false);
+    outputs.add(changeOutput);
+
+    Transaction tx = Transaction.withInputsAndOutputs(
+        inputs, outputs, wallet.addressType,
+        version: version, lockTime: lockTime);
+
+    // print("Input : ${tx.inputs.length}, Output : ${tx.outputs.length}");
+
+    double vByte = 0.0;
+    if (!wallet.addressType.isMultisignature) {
+      vByte = tx.estimateVirtualByte(wallet.addressType);
+    } else {
+      MultisignatureWalletBase multisignatureWallet =
+          wallet as MultisignatureWalletBase;
+      vByte = tx.estimateVirtualByte(wallet.addressType,
+          requiredSignature: multisignatureWallet.requiredSignature,
+          totalSigner: multisignatureWallet.totalSigner);
+    }
+
+    int fee = (vByte * feeRate).ceil();
+
+    // print("Fee : $fee");
+    int changeAmount = totalInputAmount - totalOutputAmount - fee;
+    if (changeAmount < 0) {
+      // tx.outputs.remove(changeOutput);
+      throw Exception('Not enough amount for sending. (Fee : $fee)');
+    } else {
+      changeOutput.setAmount(changeAmount);
+      if (changeOutput.isDustOutput(wallet.addressType.isSegwit)) {
+        tx.outputs.remove(changeOutput);
+      }
+    }
+
+    tx._paymentMap = paymentMap;
+    tx._utxoList = utxoList;
+    return tx;
+  }
+
   /// Parse the transaction.
   factory Transaction.parse(String transaction,
       {bool isEmptySignature = false}) {
