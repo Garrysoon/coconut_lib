@@ -10,6 +10,13 @@ class ScriptSignature extends Script {
     return ScriptSignature(Script.parseToCommand(Codec.decodeHex(script)));
   }
 
+  factory ScriptSignature.forCoinbase(String script) {
+    ScriptSignature scriptSignature = ScriptSignature(
+        Script.parseToCommand(Codec.decodeHex(script), isCoinbase: true));
+    scriptSignature.isCoinbase = true;
+    return scriptSignature;
+  }
+
   /// Get P2PKH script signature from given signature and public key.
   factory ScriptSignature.p2pkh(Uint8List signature, Uint8List publicKey) {
     return ScriptSignature([signature.toList(), publicKey.toList()]);

@@ -43,8 +43,20 @@ class TransactionInput {
     //print("full : " + Converter.bytesToHex(bytes));
     var txHash = bytes.sublist(0, 32);
     var index = bytes.sublist(32, 36);
-
     var scriptSize = 0;
+
+    // coinbase transaction
+    if (Codec.encodeHex(txHash) ==
+            '0000000000000000000000000000000000000000000000000000000000000000' &&
+        Codec.encodeHex(index) == 'ffffffff') {
+      scriptSize = bytes[36];
+      var sequence =
+          bytes.sublist(36 + 1 + scriptSize, 36 + 1 + scriptSize + 4);
+      var script = bytes.sublist(36, 36 + 1 + scriptSize);
+      return TransactionInput(txHash, index,
+          ScriptSignature.forCoinbase(Codec.encodeHex(script)), sequence);
+    }
+
     ScriptSignature script;
     //if (isSegwit || isUnsignedSignature) {
     if (bytes[36] == 0x00 && bytes[37] != 0x14) {
@@ -53,10 +65,8 @@ class TransactionInput {
       var scriptSig = bytes.sublist(36);
       script = ScriptSignature.parse(Codec.encodeHex(scriptSig));
     }
-    //print("scriptSig : " + Converter.bytesToHex(scriptSig));
     scriptSize = script.serialize().length ~/ 2;
     var sequence = bytes.sublist(36 + scriptSize, 36 + scriptSize + 4);
-    //print(Converter.bytesToHex(sequence));
     return TransactionInput(txHash, index, script, sequence);
   }
 

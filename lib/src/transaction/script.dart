@@ -3,6 +3,7 @@ part of '../../coconut_lib.dart';
 /// Represents a script in a transaction.
 class Script {
   final List<dynamic> _cmds;
+  bool isCoinbase = false;
 
   /// Script commands.
   List<dynamic> get commands => _cmds;
@@ -24,7 +25,13 @@ class Script {
   Script(this._cmds);
 
   /// Parse the script from the given script bytes.
-  static List<dynamic> parseToCommand(Uint8List script) {
+  static List<dynamic> parseToCommand(Uint8List script,
+      {bool isCoinbase = false}) {
+    if (isCoinbase) {
+      Script coinbaseScript = Script(script.sublist(1));
+      return coinbaseScript.commands;
+    }
+
     int offset = 0;
     int length = Codec.decodeVariableInteger(script, offset);
     offset += (script[0] < 0xfd)
@@ -76,6 +83,9 @@ class Script {
   }
 
   Uint8List _rawSerialize() {
+    if (isCoinbase) {
+      return Uint8List.fromList(_cmds as List<int>);
+    }
     List<int> serialized = [];
     for (var cmd in commands) {
       if (cmd is int) {

@@ -349,12 +349,10 @@ class Transaction {
           TransactionInput.parse(Codec.encodeHex(txBytes.sublist(offset)));
       inputs.add(input);
       int size = input.serialize().length ~/ 2;
-      //print("size:" + size.toString());
       offset += size;
     }
     int numOutputs = Codec.decodeVariableInteger(txBytes, offset);
     offset += _getVariableIntegerLength(txBytes, offset);
-    //print(numOutputs);
     List<TransactionOutput> outputs = [];
     for (int i = 0; i < numOutputs; i++) {
       TransactionOutput output =
