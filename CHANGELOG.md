@@ -1,3 +1,7 @@
+## 1.0.0
+- Add parse coinbase transaction
+- Add sweep to multiple address
+
 ## 0.10.5
 - Add estimate fee with number of input/output
 
