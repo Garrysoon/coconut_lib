@@ -87,10 +87,10 @@ class KeyStore {
     return KeyStore.fromSeed(seed, addressType, accountIndex: accountIndex);
   }
 
-  factory KeyStore.fromExtendedPublicKey(String extendedPublicKey) {
+  factory KeyStore.fromExtendedPublicKey(String extendedPublicKey, String masterFingerprint) {
     ExtendedPublicKey exPub = ExtendedPublicKey.parse(extendedPublicKey);
     HDWallet wallet = HDWallet.fromPublicKey(exPub.publicKey, exPub.chainCode);
-    return KeyStore(exPub.parentFingerprint, wallet, exPub);
+    return KeyStore(masterFingerprint, wallet, exPub);
   }
 
   factory KeyStore.fromSignerBsms(String signer) {
