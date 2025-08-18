@@ -32,6 +32,9 @@ class TransactionOutput {
         address.startsWith('n')) {
       return TransactionOutput(amountBytes, ScriptPublicKey.p2pkh(address),
           isChangeOutput: isChangeOutput);
+    } else if (address.startsWith('3') || address.startsWith('2')) {
+      return TransactionOutput(amountBytes, ScriptPublicKey.p2sh(address),
+          isChangeOutput: isChangeOutput);
     } else if (address.startsWith('bc1q') ||
         address.startsWith('tb1q') ||
         address.startsWith('bcrt1q')) {
