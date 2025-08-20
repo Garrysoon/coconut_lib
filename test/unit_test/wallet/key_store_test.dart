@@ -52,8 +52,8 @@ void main() {
       test('Generate key store from extended public key', () {
         String exPub =
             'Vpub5n3ihNrEwZjBFZ32N6STEsMaUPAJ42pjoVMgbZUAuPbuubQR5eDXUyB8nw6ASMmzpM4PjyVsx6BHGhZwufeyVzCHxwLcXW5RoQ5feCiE6Qm';
-        KeyStore keyStore = KeyStore.fromExtendedPublicKey(exPub);
-        expect(keyStore.masterFingerprint, 'ae2e1224');
+        KeyStore keyStore = KeyStore.fromExtendedPublicKey(exPub, 'ae2e1224');
+        expect(keyStore.extendedPublicKey.serialize(), exPub);
       });
     });
     group('KeyStore.fromSignerBsms', () {

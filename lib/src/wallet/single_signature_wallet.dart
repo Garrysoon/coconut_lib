@@ -65,7 +65,7 @@ class SingleSignatureWallet extends SingleSignatureWalletBase {
 
   factory SingleSignatureWallet.fromCryptoAccountPayload(
       Map<String, dynamic> payload) {
-    String masterFingerprint = Converter.decToHex(payload['1']);
+    String masterFingerprint = Converter.decToHexWithPadding(payload['1'], 8);
     for (var item in payload['2']) {
       if (item['6']['1'][0] == 84) {
         // p2wpkh
@@ -73,7 +73,7 @@ class SingleSignatureWallet extends SingleSignatureWalletBase {
             Codec.encodeHex(Uint8List.fromList(item['3'].cast<int>()));
         String chainCode =
             Codec.encodeHex(Uint8List.fromList(item['4'].cast<int>()));
-        String parentFingerprint = Converter.decToHex(item['8']);
+        String parentFingerprint = Converter.decToHexWithPadding(item['8'], 8);
         List<dynamic> raw = item['6']['1'];
         final buffer = StringBuffer('m');
         for (int i = 0; i < raw.length; i += 2) {
