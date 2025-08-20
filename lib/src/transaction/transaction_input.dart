@@ -40,6 +40,9 @@ class TransactionInput {
   /// Parse the transaction input from the given input string.
   factory TransactionInput.parse(String input) {
     Uint8List bytes = Codec.decodeHex(input);
+    if (bytes.length < 36) {
+      throw Exception('Invalid transaction input ($input)');
+    }
     //print("full : " + Converter.bytesToHex(bytes));
     var txHash = bytes.sublist(0, 32);
     var index = bytes.sublist(32, 36);
