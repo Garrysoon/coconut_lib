@@ -1,4 +1,7 @@
 ## 1.0.0
+- Fix finger printer bug
+
+## 1.0.0
 - Add parse coinbase transaction
 - Add sweep to multiple address
 
