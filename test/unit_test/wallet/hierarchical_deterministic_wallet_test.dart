@@ -1,4 +1,5 @@
 @Tags(['unit'])
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:coconut_lib/coconut_lib.dart';
@@ -60,15 +61,15 @@ void main() {
             throwsException);
       });
       test('Derive from child', () {
-        Seed seed = Seed.fromMnemonic(
-            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about");
+        Seed seed = Seed.fromMnemonic(utf8.encode(
+            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"));
         HDWallet rootWallet = HDWallet.fromRootSeed(seed.rootSeed);
         expect(rootWallet.derivePath("m/84'/1'/0'/1").getMasterPrivateKey(),
             '3twVhJJ3ecUjpz9uQk3wbQ6mU5MBMkWxxRXrsJSvRpvh5cL');
       });
       test('Derive from child with h', () {
-        Seed seed = Seed.fromMnemonic(
-            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about");
+        Seed seed = Seed.fromMnemonic(utf8.encode(
+            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"));
         HDWallet rootWallet = HDWallet.fromRootSeed(seed.rootSeed);
         expect(rootWallet.derivePath("m/84h/1h/0h/1").getMasterPrivateKey(),
             '3twVhJJ3ecUjpz9uQk3wbQ6mU5MBMkWxxRXrsJSvRpvh5cL');
@@ -76,8 +77,8 @@ void main() {
     });
     group('sign', () {
       test('Get signature with ecdsa', () {
-        String hex = Hash.sha256("Message");
-        expect(Codec.encodeHex(hdWallet.signEcdsa(Codec.decodeHex(hex))),
+        Uint8List hex = Hash.sha256("Message");
+        expect(Codec.encodeHex(hdWallet.signEcdsa(hex)),
             '3045022100ea10cba17d4603d90deeb5bee645ac362d2e88da75aff555a66db12df132939b022073c0e4d7e78ae921fc3e929cec58b70fed71166618bea91c81c64df652dac02801');
       });
     });
@@ -165,19 +166,19 @@ void main() {
     });
     group('verify', () {
       test('Verify success', () {
-        String hex = Hash.sha256("Message");
+        Uint8List hex = Hash.sha256("Message");
         expect(
             hdWallet.verifyEcdsa(
-                Codec.decodeHex(hex),
+                hex,
                 Codec.decodeHex(
                     'ea10cba17d4603d90deeb5bee645ac362d2e88da75aff555a66db12df132939b73c0e4d7e78ae921fc3e929cec58b70fed71166618bea91c81c64df652dac028')),
             true);
       });
       test('Verify failed', () {
-        String hex = Hash.sha256("Message");
+        Uint8List hex = Hash.sha256("Message");
         expect(
             hdWallet.verifyEcdsa(
-                Codec.decodeHex(hex),
+                hex,
                 Codec.decodeHex(
                     'ea10cba17d4603d90deeb5bee645ac362d2e88da75aff555a66db12df132939b73c0e4d7e78ae921fc3e929cec58b70fed71166618bea91c81c64df652dac027')),
             false);
@@ -308,18 +309,22 @@ void main() {
       test('Generate HDwallet from root seed', () {
         String rootSeed =
             'ae6a87214c18fb91824b34b4e027f46d51061fdece2b3042ca51bf9b80f5d075fddb304fd9857ff1e147f9d0147bdc3116572657d9e2232540e6fc962a11a254';
-        expect(Codec.encodeHex(HDWallet.fromRootSeed(rootSeed).fingerprint),
+        expect(
+            Codec.encodeHex(
+                HDWallet.fromRootSeed(Codec.decodeHex(rootSeed)).fingerprint),
             '98c7d774');
       });
       test('Too long Root seed length exception', () {
         String rootSeed =
-            'ae6a87214c18fb91824b34b4e027f46d51061fdece2b3042ca51bf9b80f5d075fddb304fd9857ff1e147f9d0147bdc3116572657d9e2232540e6fc962a11a2525';
-        expect(() => HDWallet.fromRootSeed(rootSeed), throwsException);
+            'ae6a87214c18fb91824b34b4e027f46d51061fdece2b3042ca51bf9b80f5d075fddb304fd9857ff1e147f9d0147bdc3116572657d9e2232540e6fc962a11a25252';
+        expect(() => HDWallet.fromRootSeed(Codec.decodeHex(rootSeed)),
+            throwsException);
       });
 
       test('Too short Root seed length exception', () {
         String rootSeed = 'ae6a87214c18';
-        expect(() => HDWallet.fromRootSeed(rootSeed), throwsException);
+        expect(() => HDWallet.fromRootSeed(Codec.decodeHex(rootSeed)),
+            throwsException);
       });
     });
     group('toJson', () {

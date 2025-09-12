@@ -8,10 +8,10 @@ part of '../../coconut_lib.dart';
 
 class Hash {
   Hash._();
-  static String sha256(String input) {
+  static Uint8List sha256(String input) {
     var bytes = utf8.encode(input);
     var digest = SHA256Digest().process(bytes);
-    return Codec.encodeHex(digest);
+    return digest;
   }
 
   static String sha256fromHex(String hex) {
@@ -47,15 +47,16 @@ class Hash {
     return ripemd;
   }
 
-  static pbkdf2(String secret, String salt) {
+  static Uint8List pbkdf2(Uint8List secret, Uint8List salt) {
     PBKDF2KeyDerivator derivator =
         PBKDF2KeyDerivator(HMac(SHA512Digest(), 128));
 
-    final saltList = Uint8List.fromList(utf8.encode(salt));
     derivator.reset();
-    derivator.init(Pbkdf2Parameters(saltList, 2048, 64));
-    var array = derivator.process(Uint8List.fromList(secret.codeUnits));
-    return array.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join('');
+    derivator.init(Pbkdf2Parameters(salt, 2048, 64));
+    // var array =
+    //     derivator.process(Uint8List.fromList(utf8.decode(secret).codeUnits));
+    // return array.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join('');
+    return derivator.process(Uint8List.fromList(utf8.decode(secret).codeUnits));
   }
 
   static String taggedHash(String tag, List<int> data) {

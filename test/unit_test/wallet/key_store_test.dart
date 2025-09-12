@@ -1,4 +1,5 @@
 @Tags(['unit'])
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:coconut_lib/coconut_lib.dart';
@@ -11,8 +12,8 @@ void main() {
     late Seed seed;
     late KeyStore keyStore;
     setUpAll(() async {
-      seed = Seed.fromMnemonic(
-          "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about");
+      seed = Seed.fromMnemonic(utf8.encode(
+          "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"));
       keyStore = KeyStore.fromSeed(seed, AddressType.p2wpkh);
     });
     group('KeyStore.fromSeed', () {
@@ -26,7 +27,8 @@ void main() {
     group('KeyStore.fromMnemonic', () {
       test('Generate key store with mnemonic', () {
         KeyStore keyStore = KeyStore.fromMnemonic(
-            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+            utf8.encode(
+                "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"),
             AddressType.p2wpkh);
         expect(keyStore, isA<KeyStore>());
         expect(keyStore.extendedPublicKey.serialize(),
@@ -41,15 +43,19 @@ void main() {
     });
     group('KeyStore.fromEntropy', () {
       test('Generate key store from entropy', () {
+        NetworkType.setNetworkType(NetworkType.mainnet);
         KeyStore keyStore = KeyStore.fromEntropy(
-            "11111111111111111111111111111111", AddressType.p2wpkh);
+            Codec.decodeHex("00000000000000000000000000000000"),
+            AddressType.p2wpkh);
+        print(utf8.decode(keyStore.seed.mnemonic));
         expect(keyStore, isA<KeyStore>());
         expect(keyStore.extendedPublicKey.serialize(),
-            'vpub5ZdiLsDFtRYJRUx3ovW4FhpN4PVteQ5NYDCTPmCzndUas71bsVDRcuHh9VfJR9kAPXXyRoi2BZnqZdnMGTKM615fcwnu9YG28HmnCWEKjDq');
+            'zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXNfE3EfH1r1ADqtfSdVCToUG868RvUUkgDKf31mGDtKsAYz2oz2AGutZYs');
       });
     });
     group('KeyStore.fromExtendedPublicKey', () {
       test('Generate key store from extended public key', () {
+        NetworkType.setNetworkType(NetworkType.regtest);
         String exPub =
             'Vpub5n3ihNrEwZjBFZ32N6STEsMaUPAJ42pjoVMgbZUAuPbuubQR5eDXUyB8nw6ASMmzpM4PjyVsx6BHGhZwufeyVzCHxwLcXW5RoQ5feCiE6Qm';
         KeyStore keyStore = KeyStore.fromExtendedPublicKey(exPub, 'ae2e1224');
@@ -91,7 +97,8 @@ void main() {
       test('Get public key for schnorr', () {
         NetworkType.setNetworkType(NetworkType.mainnet);
         SingleSignatureVault vault = SingleSignatureVault.fromMnemonic(
-            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+            utf8.encode(
+                "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"),
             addressType: AddressType.p2trKeyPathSpending);
         expect(
             vault.keyStore.getPublicKey(0,
@@ -140,8 +147,7 @@ void main() {
         String psbt =
             'cHNidP8BAIkCAAAAAe6MtxPAYSTxkQOQmRhczfCliWawRnEFLehdr+PMFTwVAAAAAAD/////AqCGAQAAAAAAIlEgDy036tJxPD6GiZvifcUpzL40adHBgOY4eyrwGwk7TwTWWfQFAAAAACJRIAMz3fdx21W1Qb1RXvGXvdTANUPPSPaDxxLZ5K55/Q17AAAAAE8BBDWHzwN0QKodgAAAAGSDetZp3KbsbOtiv7YRtD6HPVvk5bovKcMbkHJIWsKZA+Kr7P96Wz1xNDt2JeuvWywUCCquQV/xkPui3Hz313DvEBS3eQpWAACAAQAAgAAAAIBPAQQ1h88DAwXxBoAAAACQQH3tvyPzkLBzZQeBbW9osGa+dqHlRZOoeM0ok59/qQMocdeF8lzP1U+72HlL7FlwriXTmlwschGLye/KyK7NARA7YUJIVgAAgAEAAIAAAACATwEENYfPAxrzLCiAAAAAN1y5BnspfGLnG6LztYWO4/tMOc7M9op5FwhaafoIAnID93rLidjVZ3lta8YIbuzlWb9P/GjZ9SLw1OEMy3ObjNIQhAeQWVYAAIABAACAAAAAgAABASsA4fUFAAAAACJRIHyT+XJSTLrVaCEbaASn5MjVqnVC61RKzU+/iiiO+GUcAQMEAQAAACEWpJYFf53a8RWIlvqVDOakw/8fS96ON85wCC2acRsc5/sYFLd5ClYAAIABAACAAAAAgAAAAAAAAAAAIRYjsAvgs/sFvnqeKpFQTGvFh9ikYTainS7SoX44CWxoexg7YUJIVgAAgAEAAIAAAACAAAAAAAAAAAAhFjxxvrXu6a5nCdMdtmWZVqdXT4ldk06pIoBgyY/+qRoiGIQHkFlWAACAAQAAgAAAAIAAAAAAAAAAACEafJP5clJMutVoIRtoBKfkyNWqdULrVErNT7+KKI74ZRxgpJYFf53a8RWIlvqVDOakw/8fS96ON85wCC2acRsc5/sjsAvgs/sFvnqeKpFQTGvFh9ikYTainS7SoX44CWxoezxxvrXu6a5nCdMdtmWZVqdXT4ldk06pIoBgyY/+qRoiIRuklgV/ndrxFYiW+pUM5qTD/x9L3o43znAILZpxGxzn+0IDIXFcyRJHJnJwskEUxbA6ljUMXYDNcPJM1NePJKKxxtMD4VEhGYBJj7VyIxCS6PPXxngS7WMCKX7maZJ5JEObvy4hGyOwC+Cz+wW+ep4qkVBMa8WH2KRhNqKdLtKhfjgJbGh7QgLcg2852K2/525p/+iNi3wdVn13uM7FteftIU8ZuXLRBgM4Td0uBNE4OL/yDWE5K55VJ+wIRqo0W7BsrDHEf7GA6yEbPHG+te7prmcJ0x22ZZlWp1dPiV2TTqkigGDJj/6pGiJCAtxUK5Vtb5WdCqmVdSFpJL1pa5mybSkABYg6Y/mmvv0SAmlkplWrIxanjLjliOv2bEBwK5CyF0Vd1NFrZecSpwx0AAAiAgNfzZAGT7L554APmYWb7ldKsCVEMKC4mB0JoGm6RWS72RgUt3kKVgAAgAEAAIAAAACAAQAAAAAAAAAiAgKHOaCTQbZnKQlxga5nnfAEy7PSFpGUODCsNGuTRuEw7hg7YUJIVgAAgAEAAIAAAACAAQAAAAAAAAAiAgMPeM4eBC0IkxqSvm/AMtJBv1An+looIH/oCIxL4tYl7BiEB5BZVgAAgAEAAIAAAACAAQAAAAAAAAAA';
         KeyStore keyStore = KeyStore.fromSeed(
-            Seed.fromHexadecimalEntropy(Hash.sha256('도이')),
-            AddressType.p2trMuSig2);
+            Seed.fromEntropy(Hash.sha256('도이')), AddressType.p2trMuSig2);
         String signedPsbtText =
             keyStore.addSignatureToPsbt(psbt, AddressType.p2trMuSig2);
         Psbt signedPsbt = Psbt.parse(signedPsbtText);
@@ -282,22 +288,6 @@ void main() {
             '02E5BBC21C69270F59BD634FCBFA281BE9D76601295345112C58954625BF23793A021307511C79F95D38ACACFF1B4DA98228B77E65AA216AD075E9673286EFB4EAF3');
       });
     });
-    group('toJson', () {
-      test('Generate json', () {
-        expect(keyStore.toJson().hashCode, 301565750);
-      });
-    });
-    group('KeyStore.fromJson', () {
-      test('Generate key store from json', () {
-        String json = keyStore.toJson();
-        KeyStore generatedKeyStore = KeyStore.fromJson(json);
-        expect(generatedKeyStore, isA<KeyStore>());
-        expect(generatedKeyStore.seed, keyStore.seed);
-        expect(generatedKeyStore.extendedPublicKey.serialize(),
-            keyStore.extendedPublicKey.serialize());
-        expect(generatedKeyStore.masterFingerprint, keyStore.masterFingerprint);
-      });
-    });
     group('toString', () {
       test('Generate to String', () {
         expect(keyStore.toString().hashCode, 1018029796);
@@ -321,7 +311,7 @@ void main() {
     });
     group('get hashCode', () {
       test('Hash code test', () {
-        expect(keyStore.hashCode, 128267478);
+        expect(keyStore.hashCode, 39299120);
       });
     });
   });

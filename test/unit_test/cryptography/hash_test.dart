@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
@@ -7,7 +8,7 @@ void main() {
     group('sha256', () {
       test('Get sha256', () {
         final result = Hash.sha256('test');
-        expect(result,
+        expect(Codec.encodeHex(result),
             '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08');
       });
     });
@@ -265,15 +266,17 @@ void main() {
     });
     group('pbkdf2', () {
       test('Get pbkdf2', () {
-        final result = Hash.pbkdf2('password', 'salt');
-        expect(result,
-            '91be23564f09fc855c82ce84a223ebe7d63d8b49d69372593a0d9ed39e143c83e1ab2f722a5ddb969feefc88403f7e2afe1afb8b2f0e6b20add0fb7b28368807');
+        final result =
+            Hash.pbkdf2(utf8.encode('password'), utf8.encode('salt'));
+        expect(
+            result,
+            Codec.decodeHex(
+                '91be23564f09fc855c82ce84a223ebe7d63d8b49d69372593a0d9ed39e143c83e1ab2f722a5ddb969feefc88403f7e2afe1afb8b2f0e6b20add0fb7b28368807'));
       });
     });
     group('taggedHash', () {
       test('Get tagged hash', () {
-        final result =
-            Hash.taggedHash('tag', Codec.decodeHex(Hash.sha256('salt')));
+        final result = Hash.taggedHash('tag', Hash.sha256('salt'));
         expect(result,
             '8a38cdedb7e8e90315ef4d169732c89e7dbfe24e28a7467d43841c5e74c04aec');
       });

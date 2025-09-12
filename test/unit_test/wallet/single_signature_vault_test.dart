@@ -1,5 +1,7 @@
 @Tags(['unit'])
 
+import 'dart:convert';
+
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
 
@@ -25,9 +27,9 @@ void main() {
     group('SingleSignatureVault.random', () {
       test('Generate random single signature vault', () {
         SingleSignatureVault targetVault = SingleSignatureVault.random(
-            mnemonicLength: 24, passphrase: 'passphrase');
+            mnemonicLength: 24, passphrase: utf8.encode('passphrase'));
         SingleSignatureVault matcherVault = SingleSignatureVault.random(
-            mnemonicLength: 24, passphrase: 'passphrase');
+            mnemonicLength: 24, passphrase: utf8.encode('passphrase'));
         expect(
             targetVault.keyStore.masterFingerprint ==
                 matcherVault.keyStore.masterFingerprint,
@@ -53,26 +55,13 @@ void main() {
     group('SingleSignatureVault.fromEntropy', () {
       test('Generate single signature vault from entropy', () {
         SingleSignatureVault targetVault = SingleSignatureVault.fromEntropy(
-            "11111111111111111111111111111111");
+            utf8.encode("11111111111111111111111111111111"));
         expect(targetVault, isA<SingleSignatureVault>());
       });
     });
     group('getSignerBsms', () {
       test('Get signer bsms', () {
         expect(vault.getSignerBsms(AddressType.p2wsh, "").hashCode, 380644378);
-      });
-    });
-    group('toJson', () {
-      test('Get json text', () {
-        expect(vault.toJson().hashCode, 879780569);
-      });
-    });
-    group('SingleSignatureVault.fromJson', () {
-      test('Generate single signature vault from json', () {
-        SingleSignatureVault targetVault =
-            SingleSignatureVault.fromJson(vault.toJson());
-        expect(targetVault.keyStore.masterFingerprint,
-            vault.keyStore.masterFingerprint);
       });
     });
   });

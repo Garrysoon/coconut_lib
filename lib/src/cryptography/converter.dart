@@ -89,6 +89,14 @@ class Converter {
     return int.parse(binString, radix: 2);
   }
 
+  static int uint8ListToDec(Uint8List bytes) {
+    int result = 0;
+    for (int i = 0; i < bytes.length; i++) {
+      result = (result << 8) | bytes[i];
+    }
+    return result;
+  }
+
   static String binToHex(String binary) {
     if (binary.length % 4 != 0) {
       throw Exception('Invalid binary string(not multiple of 4)');
@@ -113,16 +121,6 @@ class Converter {
     }
 
     return Uint8List.fromList(bytes);
-  }
-
-  static String bytesToBin(List<int> bytes) {
-    String binary = '';
-    for (int byte in bytes) {
-      String byteString = byte.toRadixString(2).padLeft(8, '0');
-      binary += byteString;
-    }
-
-    return binary;
   }
 
   static int bytesToDec(Uint8List byteList) {
@@ -166,6 +164,45 @@ class Converter {
     List<int> bytes = Codec.decodeHex(hexString).toList();
     bytes = bytes.reversed.toList();
     return Codec.encodeHex(Uint8List.fromList(bytes));
+  }
+
+  static Uint8List binaryToBytes(List<int> binary) {
+    List<int> eightBits = [];
+    if (binary.length < 8) {
+      for (int i = 8 - binary.length; i > 0; i--) {
+        eightBits.add(0);
+      }
+      eightBits.addAll(binary);
+    } else {
+      eightBits.addAll(binary);
+    }
+    Uint8List bytes = Uint8List(eightBits.length ~/ 8);
+    for (int i = 0; i < eightBits.length; i += 8) {
+      int byte = 0;
+      for (int j = 0; j < 8; j++) {
+        byte = (byte << 1) | eightBits[i + j];
+      }
+      bytes[i ~/ 8] = byte;
+    }
+    return bytes;
+  }
+
+  static List<int> bytesToBinary(Uint8List bytes) {
+    final bits = <int>[];
+    for (final b in bytes) {
+      for (int i = 7; i >= 0; i--) {
+        bits.add((b >> i) & 1);
+      }
+    }
+    return bits;
+  }
+
+  static int binaryToDecimal(List<int> binary) {
+    int result = 0;
+    for (int bit in binary) {
+      result = (result << 1) | bit;
+    }
+    return result;
   }
 
   static List<int> convertBits(List<int> data, int from, int to,

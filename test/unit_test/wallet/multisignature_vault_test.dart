@@ -1,4 +1,6 @@
 @Tags(['unit'])
+import 'dart:convert';
+
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
 
@@ -76,22 +78,6 @@ void main() {
           targetVault.bindSeedToKeyStore(vault.keyStoreList[i].seed);
           expect(targetVault.keyStoreList[i].hasSeed, true);
         }
-        for (int i = 0; i < targetVault.keyStoreList.length; i++) {
-          expect(vault.keyStoreList[i].seed, targetVault.keyStoreList[i].seed);
-        }
-      });
-    });
-    group('toJson', () {
-      test('Get json text', () {
-        int hash = vault.toJson().hashCode;
-        expect(hash, 1025753301);
-      });
-    });
-    group('MultisignatureVault.fromJson', () {
-      test('Generate multisignature vault from json', () {
-        String json = vault.toJson();
-        MultisignatureVault targetVault = MultisignatureVault.fromJson(json);
-        expect(vault.descriptor, targetVault.descriptor);
         for (int i = 0; i < targetVault.keyStoreList.length; i++) {
           expect(vault.keyStoreList[i].seed, targetVault.keyStoreList[i].seed);
         }

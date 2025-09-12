@@ -572,7 +572,7 @@ class Transaction {
     String type =
         Codec.encodeHex(Converter.intToLittleEndianBytes(hashType, 4));
     String sigHash = forSig.serialize() + type;
-    return Hash.sha256(sigHash);
+    return Codec.encodeHex(Hash.sha256(sigHash));
   }
 
   //BIP143

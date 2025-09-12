@@ -54,10 +54,17 @@ void main() {
         expect(Converter.binToBytes(binary), [173]);
       });
     });
-    group('bytesToBin', () {
+    group('bytesToBinary', () {
       test('Get binary from bytes', () {
         List<int> bytes = [173];
-        expect(Converter.bytesToBin(bytes), '10101101');
+        expect(Converter.bytesToBinary(Uint8List.fromList(bytes)),
+            [1, 0, 1, 0, 1, 1, 0, 1]);
+      });
+    });
+    group('binaryToDecimal', () {
+      test('Get decimal from binary', () {
+        List<int> binary = [1, 0, 1, 0, 1, 1, 0, 1];
+        expect(Converter.binaryToDecimal(binary), 173);
       });
     });
     group('intToLittleEndianBytes', () {
@@ -77,6 +84,12 @@ void main() {
         List<int> bytes = [10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0, 10, 0, 0, 0];
         expect(Converter.littleEndianToBigInt(Uint8List.fromList(bytes)),
             BigInt.parse('13292279960944008827972097230598307840'));
+      });
+    });
+    group('bitsToBytes', () {
+      test('Check bits to uint8 list', () {
+        expect(
+            Converter.binaryToBytes([0, 0, 1, 1]), Uint8List.fromList([0x03]));
       });
     });
     group('convertBits', () {

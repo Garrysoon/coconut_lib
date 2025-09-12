@@ -102,49 +102,41 @@ abstract class WalletUtility {
   }
 
   /// Check if the given mnemonic is valid.
-  static bool validateMnemonic(String mnemonicList) {
-    List<String> mnemonic = mnemonicList.split(' ');
+  static bool validateMnemonic(Uint8List mnemonic) {
+    List<String> mnemonicWordsString = utf8.decode(mnemonic).split(' ');
+    int wordLength = mnemonicWordsString.length;
 
-    final words = english_words.wordList;
-    String binaryMnemonic = '';
-    for (String word in mnemonic) {
-      int index = words.indexOf(word);
-      if (index < 0) {
-        return false;
-      }
-      String binIndex = Converter.decToBin(index).padLeft(11, '0');
-      binaryMnemonic = binaryMnemonic + binIndex;
-    }
-
-    //validate mnemonic
-    return _validateChecksum(binaryMnemonic);
-  }
-
-  static bool _validateChecksum(String fullBinary) {
-    // print("full : " + fullBinary.length.toString());
-    int wordLength = (fullBinary.length ~/ 11);
-    // print("wordLength : " + wordLength.toString());
-
-    int checksumLength = wordLength ~/ 3;
-    // print("checksumLength : " + checksumLength.toString());
-
-    String body = fullBinary.substring(0, fullBinary.length - checksumLength);
-    String checkSum = fullBinary.substring(
-        fullBinary.length - checksumLength, fullBinary.length);
-
-    // print("body : " + Converter.binToHex(body));
-    // print("hash : " +
-    //     Converter.bytesToBin(Hash.sha256fromByte(Converter.binToBytes(body))));
-    String target =
-        (Converter.bytesToBin(Hash.sha256fromByte(Converter.binToBytes(body))))
-            .substring(0, checksumLength);
-
-    // print("checksum : " + checkSum + " target : " + target);
-    if (checkSum == target) {
-      return true;
-    } else {
+    if (wordLength != 12 && wordLength != 24) {
       return false;
     }
+
+    int checksumLength = mnemonicWordsString.length ~/ 3;
+    List<int> mnemonicWordBinary = [];
+    for (String word in mnemonicWordsString) {
+      int index = english_words.wordList.indexOf(word);
+      if (index == -1) {
+        return false;
+      }
+      String binary = index.toRadixString(2).padLeft(11, '0');
+
+      for (int i = 0; i < binary.length; i++) {
+        mnemonicWordBinary.add(int.parse(binary[i]));
+      }
+      index = 0;
+      binary = '';
+    }
+
+    List<int> entropy = mnemonicWordBinary.sublist(
+        0, mnemonicWordBinary.length - checksumLength);
+    List<int> checkSumBinary = mnemonicWordBinary.sublist(
+        mnemonicWordBinary.length - checksumLength, mnemonicWordBinary.length);
+    Uint8List body = Converter.binaryToBytes(entropy);
+    int target = Converter.binaryToDecimal(
+        Converter.bytesToBinary(Hash.sha256fromByte(body))
+            .sublist(0, checksumLength));
+    int checkSum = Converter.binaryToDecimal(checkSumBinary);
+
+    return target == checkSum;
   }
 
   static bool validateDerivationPath(String derivationPath) {
@@ -315,5 +307,18 @@ abstract class WalletUtility {
 
     double vByte = ((nonWitnessSize * 4) + witnessSize) / 4;
     return vByte;
+  }
+
+  bool compareUint8List(Uint8List list1, Uint8List list2) {
+    if (list1.length != list2.length) {
+      return false;
+    }
+    for (int i = 0; i < list1.length; i++) {
+      if (list1[i] != list2[i]) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }

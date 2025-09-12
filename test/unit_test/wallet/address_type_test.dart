@@ -1,4 +1,5 @@
 @Tags(['unit'])
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:coconut_lib/coconut_lib.dart';
@@ -78,7 +79,8 @@ void main() {
         test('getP2trSingleSignatureAddress', () {
           NetworkType.setNetworkType(NetworkType.mainnet);
           KeyStore keyStore = KeyStore.fromMnemonic(
-              "machine crack daughter fish credit glare raven fever tunnel delay fish record",
+              utf8.encode(
+                  "machine crack daughter fish credit glare raven fever tunnel delay fish record"),
               AddressType.p2trKeyPathSpending);
 
           // print(vault.derivationPath);
@@ -100,7 +102,8 @@ void main() {
         test('getP2trKeyPathSpendingAddress (case 1)', () {
           NetworkType.setNetworkType(NetworkType.mainnet);
           SingleSignatureVault vault = SingleSignatureVault.fromMnemonic(
-              "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+              utf8.encode(
+                  "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"),
               addressType: AddressType.p2trKeyPathSpending);
           expect(
               AddressType.p2trKeyPathSpending.getAddress(vault.keyStore
@@ -110,7 +113,8 @@ void main() {
         test('getP2trKeyPathSpendingAddress (case 2)', () {
           NetworkType.setNetworkType(NetworkType.mainnet);
           SingleSignatureVault vault = SingleSignatureVault.fromMnemonic(
-              "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+              utf8.encode(
+                  "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"),
               addressType: AddressType.p2trKeyPathSpending);
 
           expect(
@@ -121,7 +125,8 @@ void main() {
         test('getP2trKeyPathSpendingAddress (case 3)', () {
           NetworkType.setNetworkType(NetworkType.mainnet);
           SingleSignatureVault vault = SingleSignatureVault.fromMnemonic(
-              "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+              utf8.encode(
+                  "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"),
               addressType: AddressType.p2trKeyPathSpending);
 
           expect(

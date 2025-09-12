@@ -1,4 +1,6 @@
 @Tags(['unit'])
+import 'dart:convert';
+
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
 
@@ -191,13 +193,13 @@ void main() {
     group('validateMnemonic', () {
       test('Check mnemonic validation', () {
         expect(
-            WalletUtility.validateMnemonic(
-                'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon'),
-            false);
-        expect(
-            WalletUtility.validateMnemonic(
-                'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'),
+            WalletUtility.validateMnemonic(utf8.encode(
+                'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about')),
             true);
+        expect(
+            WalletUtility.validateMnemonic(utf8.encode(
+                'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon')),
+            false);
       });
       test('Test mnemonic validation exception', () {
         String wrongMnemonic1 =
@@ -208,10 +210,14 @@ void main() {
             'wise tragic potato piece tail intact second bird ignore absent sleep attract cradle double arm';
         String wrongMnemonic4 =
             'foster across update trigger grid print choose tag water secon system town';
-        expect(WalletUtility.validateMnemonic(wrongMnemonic1), false);
-        expect(WalletUtility.validateMnemonic(wrongMnemonic2), false);
-        expect(WalletUtility.validateMnemonic(wrongMnemonic3), false);
-        expect(WalletUtility.validateMnemonic(wrongMnemonic4), false);
+        expect(
+            WalletUtility.validateMnemonic(utf8.encode(wrongMnemonic1)), false);
+        expect(
+            WalletUtility.validateMnemonic(utf8.encode(wrongMnemonic2)), false);
+        expect(
+            WalletUtility.validateMnemonic(utf8.encode(wrongMnemonic3)), false);
+        expect(
+            WalletUtility.validateMnemonic(utf8.encode(wrongMnemonic4)), false);
       });
     });
     group('validateDerivationPath', () {

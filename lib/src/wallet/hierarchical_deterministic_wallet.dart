@@ -314,16 +314,16 @@ class HDWallet {
   }
 
   /// @nodoc
-  factory HDWallet.fromRootSeed(String seed) {
-    Uint8List seedBytes = Uint8List.fromList(HEX.decode(seed));
+  factory HDWallet.fromRootSeed(Uint8List seed) {
+    // Uint8List seedBytes = Uint8List.fromList(HEX.decode(seed));
 
-    if (seedBytes.length < 16) {
+    if (seed.length < 16) {
       throw Exception("Seed should be at least 128 bits");
     }
-    if (seedBytes.length > 64) {
+    if (seed.length > 64) {
       throw Exception(" Seed should be at most 512 bits");
     }
-    final I = Hash.hmacSha512(utf8.encode("Bitcoin seed"), seedBytes);
+    final I = Hash.hmacSha512(utf8.encode("Bitcoin seed"), seed);
     final privateKey = I.sublist(0, 32);
     final chainCode = I.sublist(32);
     final publicKey = Ecc.pointFromScalar(privateKey, true)!;

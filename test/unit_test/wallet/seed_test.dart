@@ -1,5 +1,7 @@
 @Tags(['unit'])
 
+import 'dart:convert';
+
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
 
@@ -13,109 +15,103 @@ void main() {
     });
     group('get mnemonic', () {
       test('Get mnemonic from seed', () {
-        expect(seed.hashCode, 287424639);
+        expect(
+            seed.mnemonic,
+            utf8.encode(
+                'machine crack daughter fish credit glare raven fever tunnel delay fish record'));
       });
     });
     group('get passphrase', () {
       test('Get passphrase from seed', () {
-        Seed targetSeed = Seed.fromHexadecimalEntropy(
-            '000102030405060708090a0b0c0d0e0f',
-            passphrase: 'passphrase');
-        expect(targetSeed.passphrase, 'passphrase');
+        Seed targetSeed = Seed.fromEntropy(
+            Codec.decodeHex('00000000000000000000000000000000'),
+            passphrase: utf8.encode('passphrase'));
+        expect(utf8.decode(targetSeed.mnemonic),
+            'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
+        expect(targetSeed.passphrase, utf8.encode('passphrase'));
       });
     });
     group('get rootSeed', () {
       test('Get root seed from seed', () {
-        expect(seed.rootSeed.hashCode, 431800215);
+        expect(Codec.encodeHex(seed.rootSeed),
+            'ae6a87214c18fb91824b34b4e027f46d51061fdece2b3042ca51bf9b80f5d075fddb304fd9857ff1e147f9d0147bdc3116572657d9e2232540e6fc962a11a254');
       });
     });
     group('Seed.random', () {
       test('Generate random seed', () {
-        Seed seed1 = Seed.random(mnemonicLength: 24, passphrase: 'passphrase');
-        Seed seed2 = Seed.random(mnemonicLength: 24, passphrase: 'passphrase');
+        Seed seed1 = Seed.random(
+            mnemonicLength: 24, passphrase: utf8.encode('passphrase'));
+        Seed seed2 = Seed.random(
+            mnemonicLength: 24, passphrase: utf8.encode('passphrase'));
         expect(seed1 != seed2, true);
       });
 
       test('Generate random seed with invalid mnemonic length exception', () {
-        expect(() => Seed.random(mnemonicLength: 11, passphrase: 'passphrase'),
+        expect(
+            () => Seed.random(
+                mnemonicLength: 11, passphrase: utf8.encode('passphrase')),
             throwsException);
-        expect(() => Seed.random(mnemonicLength: 25, passphrase: 'passphrase'),
+        expect(
+            () => Seed.random(
+                mnemonicLength: 25, passphrase: utf8.encode('passphrase')),
             throwsException);
-        expect(() => Seed.random(mnemonicLength: 16, passphrase: 'passphrase'),
+        expect(
+            () => Seed.random(
+                mnemonicLength: 16, passphrase: utf8.encode('passphrase')),
             throwsException);
       });
     });
-    group('Seed.fromHexadecimalEntropy', () {
+    group('Seed.fromEntropy', () {
       test('Generate seed from hex entropy', () {
-        Seed targetSeed = Seed.fromHexadecimalEntropy(
-            '000102030405060708090a0b0c0d0e0f',
-            passphrase: 'passphrase');
-        expect(targetSeed.passphrase, 'passphrase');
+        Seed targetSeed = Seed.fromEntropy(
+            utf8.encode('000102030405060708090a0b0c0d0e0f'),
+            passphrase: utf8.encode('passphrase'));
+        expect(targetSeed.passphrase, utf8.encode('passphrase'));
       });
       test('Generate seed from hex entropy with invalid length exception', () {
         expect(
-            () => Seed.fromHexadecimalEntropy(
-                '000102030405060708090a0b0c0d0e0fa',
-                passphrase: 'passphrase'),
+            () => Seed.fromEntropy(
+                utf8.encode('000102030405060708090a0b0c0d0e0fa'),
+                passphrase: utf8.encode('passphrase')),
             throwsException);
         expect(
-            () => Seed.fromHexadecimalEntropy(
-                '000102030405060708090a0b0c0d0e0fa000102030405060708090a0b0c0d0e0fa',
-                passphrase: 'passphrase'),
+            () => Seed.fromEntropy(
+                utf8.encode(
+                    '000102030405060708090a0b0c0d0e0fa000102030405060708090a0b0c0d0e0fa'),
+                passphrase: utf8.encode('passphrase')),
             throwsException);
       });
     });
-    group('Seed.fromBinaryEntropy', () {
-      test('Generate seed from binary', () {
-        Seed targetSeed = Seed.fromBinaryEntropy(
-            '00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000');
-        expect(targetSeed.rootSeed.hashCode, 224017974);
-      });
-      test('Generate seed from binary with invalid length exception', () {
-        expect(
-            () => Seed.fromBinaryEntropy(
-                '0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'),
-            throwsException);
-      });
-    });
+
     group('Seed.fromMnemonic', () {
       test('Generate seed from mnemonic', () {
-        Seed targetSeed = Seed.fromMnemonic(
-            'machine crack daughter fish credit glare raven fever tunnel delay fish record');
-        expect(seed, targetSeed);
+        Seed targetSeed = Seed.fromMnemonic(utf8.encode(
+            'machine crack daughter fish credit glare raven fever tunnel delay fish record'));
+        expect(seed.mnemonic, targetSeed.mnemonic);
       });
 
       test('Invalid mnemonic exception', () {
         expect(
-            () => Seed.fromMnemonic(
-                'machine crack daughter fish credit glare raven fever tunnel delay fish abandon'),
+            () => Seed.fromMnemonic(utf8.encode(
+                'machine crack daughter fish credit glare raven fever tunnel delay fish abandon')),
             throwsException);
-      });
-    });
-    group('toJson', () {
-      test('Get json text from seed', () {
-        expect(seed.toJson().hashCode, 1031440946);
-      });
-    });
-    group('Seed.fromJson', () {
-      test('Generate seed from json text', () {
-        String jsonText = seed.toJson();
-        Seed targetSeed = Seed.fromJson(jsonText);
-        expect(targetSeed, seed);
       });
     });
     group('operator ==', () {
       test('Check equal', () {
-        Seed seed1 = Seed.fromMnemonic(
-            'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
-        Seed seed2 = Seed.fromMnemonic(
-            'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about');
+        Seed seed1 = Seed.fromMnemonic(utf8.encode(
+            'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'));
+        Seed seed2 = Seed.fromMnemonic(utf8.encode(
+            'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'));
         expect(seed1 == seed2, true);
       });
     });
     group('get hashCode', () {
       test('Get hash code', () {
-        expect(seed.hashCode, 287424639);
+        Seed targetSeed = Seed.fromEntropy(
+            utf8.encode('000102030405060708090a0b0c0d0e0f'),
+            passphrase: utf8.encode('passphrase'));
+        expect(targetSeed.hashCode, 678682958);
       });
     });
   });

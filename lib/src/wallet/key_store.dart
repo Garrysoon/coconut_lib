@@ -57,16 +57,16 @@ class KeyStore {
   }
 
   /// Create a key store from a mnemonic.
-  factory KeyStore.fromMnemonic(String mnemonicWords, AddressType addressType,
-      {String passphrase = '', int accountIndex = 0}) {
-    Seed seed = Seed.fromMnemonic(mnemonicWords, passphrase: passphrase);
+  factory KeyStore.fromMnemonic(Uint8List mnemonic, AddressType addressType,
+      {Uint8List? passphrase, int accountIndex = 0}) {
+    Seed seed = Seed.fromMnemonic(mnemonic, passphrase: passphrase);
 
     return KeyStore.fromSeed(seed, addressType, accountIndex: accountIndex);
   }
 
   /// Create a key store from a random.
   factory KeyStore.random(AddressType addressType,
-      {int mnemonicLength = 24, String passphrase = '', int accountIndex = 0}) {
+      {int mnemonicLength = 24, Uint8List? passphrase, int accountIndex = 0}) {
     if (mnemonicLength != 12 &&
         mnemonicLength != 15 &&
         mnemonicLength != 18 &&
@@ -81,13 +81,14 @@ class KeyStore {
   }
 
   /// Create a key store from a entropy.
-  factory KeyStore.fromEntropy(String entropy, AddressType addressType,
-      {String passphrase = '', int accountIndex = 0}) {
-    Seed seed = Seed.fromHexadecimalEntropy(entropy, passphrase: passphrase);
+  factory KeyStore.fromEntropy(Uint8List entropy, AddressType addressType,
+      {Uint8List? passphrase, int accountIndex = 0}) {
+    Seed seed = Seed.fromEntropy(entropy, passphrase: passphrase);
     return KeyStore.fromSeed(seed, addressType, accountIndex: accountIndex);
   }
 
-  factory KeyStore.fromExtendedPublicKey(String extendedPublicKey, String masterFingerprint) {
+  factory KeyStore.fromExtendedPublicKey(
+      String extendedPublicKey, String masterFingerprint) {
     ExtendedPublicKey exPub = ExtendedPublicKey.parse(extendedPublicKey);
     HDWallet wallet = HDWallet.fromPublicKey(exPub.publicKey, exPub.chainCode);
     return KeyStore(masterFingerprint, wallet, exPub);

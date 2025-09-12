@@ -2,156 +2,123 @@ part of '../../coconut_lib.dart';
 
 /// Represents a seed.
 class Seed {
-  late String _entropy;
-  List<String> _mnemonic = [];
-  String _passphrase = '';
+  Uint8List _mnemonic = Uint8List.fromList([]); // 12 or 24 words
+  Uint8List _passphrase = utf8.encode('');
 
   /// The mnemonic words of the seed.
-  String get mnemonic => _getMnemonic();
+  Uint8List get mnemonic => _mnemonic;
 
   /// The passphrase of the seed.
-  String get passphrase => _passphrase;
+  Uint8List get passphrase => _passphrase;
 
   /// The root seed of the seed.
-  String get rootSeed => utf8.decode(_getRootSeed());
+  Uint8List get rootSeed => _getRootSeed();
 
-  Seed._(
-      {String entropy = '',
-      List<String> mnemonic = const [],
-      String passphrase = ''}) {
+  Seed._(Uint8List mnemonic, Uint8List passphrase) {
     _mnemonic = mnemonic;
     _passphrase = passphrase;
-    _entropy = entropy;
-
-    if (_mnemonic.isEmpty && _entropy != '') {
-      _setMnemonic();
-    }
-    //_createHdWallet();
   }
 
   /// Create a seed from random entropy.
-  factory Seed.random({mnemonicLength = 24, passphrase = ''}) {
+  factory Seed.random({int mnemonicLength = 24, Uint8List? passphrase}) {
     if (mnemonicLength < 12 || mnemonicLength > 24 || mnemonicLength % 3 != 0) {
       throw Exception('MnemonicLength is not valid.');
     }
     int digit = (mnemonicLength ~/ 3 * 32) ~/ 8;
 
     Random random = Random.secure();
-    List<int> bytes = List<int>.generate(digit, (_) => random.nextInt(256));
-    String hexEntropy =
-        bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
+    Uint8List hexEntropy = Uint8List.fromList(
+        List<int>.generate(digit, (_) => random.nextInt(256)));
 
-    return Seed._(entropy: hexEntropy, passphrase: passphrase);
+    return Seed._(_generateMnemonicFromEntropy(hexEntropy),
+        passphrase ?? utf8.encode(''));
   }
 
-  factory Seed.fromHexadecimalEntropy(String entropy,
-      {String passphrase = ''}) {
-    if (entropy.length != 32 && entropy.length != 64) {
+  /// Create a seed from entropy.
+  factory Seed.fromEntropy(Uint8List entropy, {Uint8List? passphrase}) {
+    if (entropy.length != 16 && entropy.length != 32) {
       throw (Exception("Seed : 32 or 64 hex entropy supported."));
     }
 
-    return Seed._(entropy: entropy, passphrase: passphrase);
+    return Seed._(
+        _generateMnemonicFromEntropy(entropy), passphrase ?? utf8.encode(''));
   }
 
-  factory Seed.fromBinaryEntropy(String binEntropy, {String passphrase = ''}) {
-    if (binEntropy.length != 128 && binEntropy.length != 256) {
-      throw (Exception("Seed : 128 or 256 binary entropy supported."));
-    }
-    // print(Converter.binToHex(binEntropy));
-    return Seed.fromHexadecimalEntropy(Converter.binToHex(binEntropy),
-        passphrase: passphrase);
-  }
-
-  factory Seed.fromMnemonic(String mnemonicString, {String passphrase = ''}) {
-    if (!WalletUtility.validateMnemonic(mnemonicString)) {
+  /// Create a seed from mnemonic.
+  factory Seed.fromMnemonic(Uint8List mnemonic, {Uint8List? passphrase}) {
+    if (!WalletUtility.validateMnemonic(mnemonic)) {
       throw Exception('Seed : Invalid mnemonic words.');
     }
-    List<String> mnemonic = mnemonicString.split(' ');
-    final words = english_words.wordList;
-    String binaryMnemonic = '';
-    for (String word in mnemonic) {
-      int index = words.indexOf(word);
-      if (index == -1) {
-        throw Exception('Seed : Invalid mnemonic words.');
-      }
 
-      String binIndex = Converter.decToBin(index).padLeft(11, '0');
-      binaryMnemonic = binaryMnemonic + binIndex;
-    }
-
-    return Seed._(mnemonic: mnemonic, passphrase: passphrase);
+    return Seed._(mnemonic, passphrase ?? utf8.encode(''));
   }
 
-  void _setMnemonic() {
-    if (_entropy == '' || _entropy.isEmpty) {
-      throw (Exception("Seed : No entropy."));
-    }
+  static Uint8List _generateMnemonicFromEntropy(Uint8List entropy) {
+    int checksumLength = (entropy.length * 4 ~/ 16).toInt();
 
-    // print(_entropy.length);
+    List<int> binaryEntropy = Converter.bytesToBinary(entropy);
 
-    int checksumLength = (_entropy.length * 4 ~/ 32).toInt();
+    List<int> checksum = Converter.bytesToBinary(Hash.sha256fromByte(entropy))
+        .sublist(0, checksumLength);
 
-    String checksum = Converter.hexToBin(Hash.sha256fromHex(_entropy))
-        .substring(0, checksumLength);
-    //.padLeft(8, '0');
-    String binEntropy = Converter.hexToBin(_entropy);
+    List<int> entropyWithChecksum = [...binaryEntropy, ...checksum];
 
-    String fullBin = binEntropy + checksum;
+    int mnemonicLength = (entropyWithChecksum.length ~/ 11).toInt();
 
-    // print(binEntropy.length);
-    // print(checksum.length);
-    int mnemonicLength = (fullBin.length ~/ 11).toInt();
-
-    List<String> mnemonicIndex = [];
+    List<int> mnemonicIndex = [];
 
     for (int i = 0, j = 0; j < mnemonicLength; i += 11, j++) {
-      mnemonicIndex.add((fullBin).substring(i, i + 11));
+      mnemonicIndex.add(
+          int.parse(entropyWithChecksum.sublist(i, i + 11).join(''), radix: 2));
     }
 
     final words = english_words.wordList;
 
     List<String> mnemonicWords = [];
 
-    for (String index in mnemonicIndex) {
-      final word = words.elementAt(Converter.binToDec(index));
+    for (int index in mnemonicIndex) {
+      final word = words.elementAt(index);
       mnemonicWords.add(word);
     }
 
-    if (!WalletUtility.validateMnemonic(mnemonicWords.join(' '))) {
-      throw Exception("Seed : Invalid mnemonic words.");
+    Uint8List mnemonic = utf8.encode(mnemonicWords.join(' '));
+
+    for (int i = 0; i < mnemonicWords.length; i++) {
+      mnemonicWords[i] = '';
     }
 
-    _mnemonic = mnemonicWords;
-  }
-
-  String _getMnemonic() {
-    if (_mnemonic.isEmpty) {
-      _setMnemonic();
+    for (int i = 0; i < mnemonicIndex.length; i++) {
+      mnemonicIndex[i] = 0;
     }
 
-    return _mnemonic.join(' ');
+    for (int i = 0; i < entropyWithChecksum.length; i++) {
+      entropyWithChecksum[i] = 0;
+    }
+
+    mnemonicWords.clear();
+    mnemonicIndex.clear();
+    entropyWithChecksum.clear();
+
+    return mnemonic;
   }
 
   Uint8List _getRootSeed() {
-    return utf8.encode(Hash.pbkdf2(_getMnemonic(), 'mnemonic$passphrase'));
+    String passphraseString = utf8.decode(passphrase);
+    Uint8List salt =
+        Uint8List.fromList(utf8.encode('mnemonic$passphraseString'));
+    passphraseString = '';
+    return Hash.pbkdf2(mnemonic, salt);
   }
 
-  ///@nodoc
+  ///@deprecated
   String toJson() {
-    return jsonEncode({
-      'entropy': _entropy,
-      'mnemonic': _mnemonic,
-      'passphrase': _passphrase
-    });
+    return jsonEncode({'mnemonic': _mnemonic, 'passphrase': _passphrase});
   }
 
-  ///@nodoc
+  ///@deprecated
   factory Seed.fromJson(String json) {
     Map<String, dynamic> map = jsonDecode(json);
-    return Seed._(
-        entropy: map['entropy'],
-        mnemonic: List<String>.from(map['mnemonic']),
-        passphrase: map['passphrase']);
+    return Seed._(map['mnemonic'], map['passphrase']);
   }
 
   @override
@@ -164,5 +131,7 @@ class Seed {
   }
 
   @override
-  int get hashCode => Codec.encodeHex(_getRootSeed()).hashCode;
+  int get hashCode {
+    return Codec.encodeHex(Hash.sha256fromByte(_getRootSeed())).hashCode;
+  }
 }

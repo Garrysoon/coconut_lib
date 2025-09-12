@@ -1,5 +1,7 @@
 // ignore_for_file: unused_local_variable
 
+import 'dart:convert';
+
 import 'package:coconut_lib/coconut_lib.dart';
 
 void main() async {
@@ -7,8 +9,8 @@ void main() async {
   NetworkType.setNetworkType(NetworkType.regtest);
 
   print("1-1. Create a single signature vault");
-  Seed seed = Seed.fromMnemonic(
-      'thank split shrimp error own spirit slow glow act evidence globe slight');
+  Seed seed = Seed.fromMnemonic(utf8.encode(
+      'thank split shrimp error own spirit slow glow act evidence globe slight'));
 
   SingleSignatureVault singleSignatureVault =
       SingleSignatureVault.fromSeed(seed);
@@ -17,16 +19,19 @@ void main() async {
 
   print("1-2. Create a 2-of-3 Multisignature vault");
   SingleSignatureVault insideVault1 = SingleSignatureVault.fromMnemonic(
-      'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
-      passphrase: 'ABC');
+      utf8.encode(
+          'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'),
+      passphrase: utf8.encode('ABC'));
 
   SingleSignatureVault outsideVault1 = SingleSignatureVault.fromMnemonic(
-      'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
-      passphrase: 'DEF');
+      utf8.encode(
+          'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'),
+      passphrase: utf8.encode('DEF'));
 
   SingleSignatureVault outsideVault2 = SingleSignatureVault.fromMnemonic(
-      'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about',
-      passphrase: 'GHI');
+      utf8.encode(
+          'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'),
+      passphrase: utf8.encode('GHI'));
 
   //Generate P2WSH Keystore
   KeyStore insideKey1 =

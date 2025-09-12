@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:coconut_lib/coconut_lib.dart';
@@ -17,8 +18,9 @@ abstract class MockFactory {
     SingleSignatureVault? vault;
     if (testWalletType == TestWalletType.forNormal) {
       vault = SingleSignatureVault.fromMnemonic(
-          'machine crack daughter fish credit glare raven fever tunnel delay fish record',
-          passphrase: passphrase);
+          utf8.encode(
+              'machine crack daughter fish credit glare raven fever tunnel delay fish record'),
+          passphrase: utf8.encode(passphrase));
     } else if (testWalletType == TestWalletType.random) {
       vault = SingleSignatureVault.random();
     }
@@ -31,9 +33,10 @@ abstract class MockFactory {
     SingleSignatureVault? vault;
     if (testWalletType == TestWalletType.forNormal) {
       vault = SingleSignatureVault.fromMnemonic(
-          'machine crack daughter fish credit glare raven fever tunnel delay fish record',
+          utf8.encode(
+              'machine crack daughter fish credit glare raven fever tunnel delay fish record'),
           addressType: AddressType.p2trKeyPathSpending,
-          passphrase: passphrase);
+          passphrase: utf8.encode(passphrase));
     } else if (testWalletType == TestWalletType.random) {
       vault = SingleSignatureVault.random();
     }
@@ -88,7 +91,7 @@ abstract class MockFactory {
     if (entropy.isEmpty) {
       entropy = "FakeTransactionHash${Random().nextInt(100000)}";
     }
-    String fakeTransactionHash = Hash.sha256(entropy);
+    String fakeTransactionHash = Codec.encodeHex(Hash.sha256(entropy));
     return Utxo(fakeTransactionHash, 0, amount, derivationPath);
   }
 
@@ -185,8 +188,8 @@ abstract class MockFactory {
           '0000000000000000000000000000000000000000000000000000000000000000',
           4294967295));
     } else {
-      inputs.add(
-          TransactionInput.forPayment(Hash.sha256('$scriptPubKey$amount'), 0));
+      inputs.add(TransactionInput.forPayment(
+          Codec.encodeHex(Hash.sha256('$scriptPubKey$amount')), 0));
     }
 
     List<TransactionOutput> outputs = [
@@ -200,22 +203,26 @@ abstract class MockFactory {
     // FP : 382892b6
     // addr : ...8mgl
     return SingleSignatureVault.fromMnemonic(
-        "mind shy assist luxury isolate family spray fabric twice seven bargain fan",
-        passphrase: "qwerty");
+        utf8.encode(
+            "mind shy assist luxury isolate family spray fabric twice seven bargain fan"),
+        passphrase: utf8.encode("qwerty"));
   }
 
   static SingleSignatureVault createClickVault() {
     //FP : f75f5ab5
     //addr : ... yfma
     return SingleSignatureVault.fromMnemonic(
-        "click exotic patient apple fence abandon abandon abandon abandon abandon abandon abstract");
+        utf8.encode(
+            "click exotic patient apple fence abandon abandon abandon abandon abandon abandon abstract"),
+        passphrase: utf8.encode("qwerty"));
   }
 
   static SingleSignatureVault createThankVault() {
     SingleSignatureVault vault = SingleSignatureVault.fromMnemonic(
-        "thank split shrimp error own spirit slow glow act evidence globe slight",
-        passphrase:
-            "f4137717e5b9750f09af0168609b73201a4c5d528ebcb22ef4360d0efc77f88e");
+        utf8.encode(
+            "thank split shrimp error own spirit slow glow act evidence globe slight"),
+        passphrase: utf8.encode(
+            "f4137717e5b9750f09af0168609b73201a4c5d528ebcb22ef4360d0efc77f88e"));
     //FP: a419d566
     //addr : ... 5jk
     return vault;

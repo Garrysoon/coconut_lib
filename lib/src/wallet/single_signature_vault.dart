@@ -23,7 +23,7 @@ class SingleSignatureVault extends SingleSignatureWalletBase {
   factory SingleSignatureVault.random({
     AddressType? addressType,
     int mnemonicLength = 24,
-    String passphrase = '',
+    Uint8List? passphrase,
     int accountIndex = 0,
   }) {
     addressType ??= AddressType.p2wpkh;
@@ -37,10 +37,8 @@ class SingleSignatureVault extends SingleSignatureWalletBase {
   }
 
   /// Create a single signature vault from mnemonic words.
-  factory SingleSignatureVault.fromMnemonic(String mnemonicWords,
-      {AddressType? addressType,
-      String passphrase = '',
-      int accountIndex = 0}) {
+  factory SingleSignatureVault.fromMnemonic(Uint8List mnemonicWords,
+      {AddressType? addressType, Uint8List? passphrase, int accountIndex = 0}) {
     addressType ??= AddressType.p2wpkh;
     KeyStore keyStore = KeyStore.fromMnemonic(mnemonicWords, addressType,
         passphrase: passphrase, accountIndex: accountIndex);
@@ -61,10 +59,8 @@ class SingleSignatureVault extends SingleSignatureWalletBase {
   }
 
   /// Create a single signature vault from hex entropy.
-  factory SingleSignatureVault.fromEntropy(String entropy,
-      {AddressType? addressType,
-      String passphrase = '',
-      int accountIndex = 0}) {
+  factory SingleSignatureVault.fromEntropy(Uint8List entropy,
+      {AddressType? addressType, Uint8List? passphrase, int accountIndex = 0}) {
     addressType ??= AddressType.p2wpkh;
     KeyStore keyStore = KeyStore.fromEntropy(entropy, addressType,
         passphrase: passphrase, accountIndex: accountIndex);
