@@ -646,6 +646,13 @@ class KeyStore {
     return KeyStore(fingerprint, hdWallet, extendedPublicKey, seed);
   }
 
+  //wipe the seed
+  void wipeSeed() {
+    if (_seed != null) {
+      _seed!.wipe();
+    }
+  }
+
   ///@nodoc
   @override
   String toString() {

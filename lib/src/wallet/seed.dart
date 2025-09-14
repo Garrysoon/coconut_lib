@@ -134,4 +134,19 @@ class Seed {
   int get hashCode {
     return Codec.encodeHex(Hash.sha256fromByte(_getRootSeed())).hashCode;
   }
+
+  /// Securely wipes sensitive data by overwriting with zeros
+  void wipe() {
+    if (_mnemonic.isNotEmpty) {
+      _mnemonic.fillRange(0, _mnemonic.length, 0);
+    }
+
+    if (_passphrase.isNotEmpty) {
+      _passphrase.fillRange(0, _passphrase.length, 0);
+    }
+
+    // Reset to empty lists
+    _mnemonic = Uint8List.fromList([]);
+    _passphrase = Uint8List.fromList([]);
+  }
 }
