@@ -1,3 +1,6 @@
+## 1.0.2
+- Improve security
+
 ## 1.0.0
 - Fix finger printer bug
 

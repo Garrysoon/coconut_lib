@@ -23,6 +23,17 @@ void main() {
         expect(keyStore.extendedPublicKey.serialize(),
             'vpub5Y6cjg78GGuNLsaPhmYsiw4gYX3HoQiRBiSwDaBXKUafCt9bNwWQiitDk5VZ5BVxYnQdwoTyXSs2JHRPAgjAvtbBrf8ZhDYe2jWAqvZVnsc');
       });
+      test('Generate key store from seed with passphrase', () {
+        Seed seedWithPassphrase = Seed.fromMnemonic(
+            utf8.encode(
+                "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"),
+            passphrase: utf8.encode('passphrase'));
+        KeyStore keyStoreWithPassphrase =
+            KeyStore.fromSeed(seedWithPassphrase, AddressType.p2wpkh);
+        expect(keyStoreWithPassphrase.seed, seedWithPassphrase);
+        expect(keyStoreWithPassphrase.extendedPublicKey.serialize(),
+            'vpub5ZKwzd8dsRkgfWuhHHxC1gv8KqJSGks821gx5sKBVAHco8TccsdMh6X4jiWjeTGW4SpkK77dP3HPEpZjgxzpGGq1G53NU7ftHhRfbijqxvf');
+      });
     });
     group('KeyStore.fromMnemonic', () {
       test('Generate key store with mnemonic', () {
