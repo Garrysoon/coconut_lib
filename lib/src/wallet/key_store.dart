@@ -353,7 +353,22 @@ class KeyStore {
         sigHash = psbtObject.unsignedTransaction!
             .getTaprootSigHash(inputIndex, utxoList);
       }
-      String derivationPath = psbtInput.derivationPathList[inputIndex].path;
+      //get derivation path
+      late String derivationPath;
+      for (int i = 0; i < psbtInput.derivationPathList.length; i++) {
+        String path = psbtInput.derivationPathList[i].path;
+        if (psbtInput.derivationPathList[i].publicKey ==
+            getPublicKey(WalletUtility.getAccountIndexFromDerivationPath(path),
+                isChange: WalletUtility.isChangeFromDerivationPath(path))) {
+          derivationPath = psbtInput.derivationPathList[i].path;
+          break;
+        }
+        if (i == psbtInput.derivationPathList.length - 1) {
+          throw Exception('Derivation path not found');
+        }
+      }
+
+      // String derivationPath = psbtInput.derivationPathList[inputIndex].path;
       MuSig2SessionContext? sessionContext;
       if (addressType == AddressType.p2trMuSig2) {
         sessionContext = MuSig2SessionContext(
