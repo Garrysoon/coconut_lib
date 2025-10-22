@@ -359,7 +359,9 @@ class KeyStore {
         String path = psbtInput.derivationPathList[i].path;
         if (psbtInput.derivationPathList[i].publicKey ==
             getPublicKey(WalletUtility.getAccountIndexFromDerivationPath(path),
-                isChange: WalletUtility.isChangeFromDerivationPath(path))) {
+                isChange: WalletUtility.isChangeFromDerivationPath(path),
+                applyTweak: addressType.applyTweak,
+                isXOnly: addressType.isTaproot)) {
           derivationPath = psbtInput.derivationPathList[i].path;
           break;
         }

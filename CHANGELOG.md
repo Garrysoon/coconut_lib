@@ -1,3 +1,6 @@
+## 1.0.3
+- Fix key store bug
+
 ## 1.0.2
 - Improve security
 
