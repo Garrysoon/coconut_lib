@@ -23,14 +23,17 @@ class Bsms {
 
   factory Bsms.parseSigner(String bsmsText) {
     final lines = bsmsText.split('\n');
-    if (lines.length < 4) {
+    if (lines.length < 3) {
       throw FormatException('Incomplete BSMS data');
     }
 
     String version = lines[0].trim();
     String secretToken = lines[1].trim();
     String keyInfo = lines[2].trim();
-    String description = lines[3].trim();
+    String description = '';
+    if (lines.length == 4) {
+      description = lines[3].trim();
+    }
 
     if (version != 'BSMS 1.0') {
       throw FormatException('Unsupported BSMS version');

@@ -35,9 +35,22 @@ void main() {
             "BSMS 1.0\n00\n[62A936C3/48'/0'/0'/2']Zpub75QytCyD9mNTr1wyi59JAhU2uiPedspk18djeteoeC6tJ7MdpuKbBRUA33CW49y5FDkpPqLDjujDVaNAGB9XVw44q8X2Hzif5DSTQyhgTES\noutside signer";
         expect(Bsms.parseSigner(signer), isA<Bsms>());
       });
-      test('Insufficient data exception', () {
+      test('Generate signer from parsing with no description', () {
+        NetworkType.setNetworkType(NetworkType.mainnet);
         String signer =
             "BSMS 1.0\n00\n[62A936C3/48'/0'/0'/2']Zpub75QytCyD9mNTr1wyi59JAhU2uiPedspk18djeteoeC6tJ7MdpuKbBRUA33CW49y5FDkpPqLDjujDVaNAGB9XVw44q8X2Hzif5DSTQyhgTES";
+        Bsms bsms = Bsms.parseSigner(signer);
+        expect(bsms.secretToken, '00');
+        expect(bsms.signer?.masterFingerPrint, '62A936C3');
+        expect(bsms.signer?.path, '48\'/0\'/0\'/2\'');
+        expect(bsms.signer?.extendedPublicKey.serialize(),
+            'Zpub75QytCyD9mNTr1wyi59JAhU2uiPedspk18djeteoeC6tJ7MdpuKbBRUA33CW49y5FDkpPqLDjujDVaNAGB9XVw44q8X2Hzif5DSTQyhgTES');
+        expect(bsms.signer?.description, '');
+      });
+
+      test('Insufficient data exception', () {
+        NetworkType.setNetworkType(NetworkType.mainnet);
+        String signer = "BSMS 1.0\n00\n";
         expect(() => Bsms.parseSigner(signer), throwsException);
       });
 
