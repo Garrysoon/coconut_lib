@@ -45,7 +45,8 @@ class ExtendedPublicKey {
   factory ExtendedPublicKey.parse(String expub) {
     if (NetworkType.currentNetworkType.isTestnet) {
       if (!expub.toLowerCase().startsWith("tpub") &&
-          !expub.toLowerCase().startsWith("vpub")) {
+          !expub.toLowerCase().startsWith("vpub") &&
+          !expub.toLowerCase().startsWith("Vpub")) {
         throw Exception(
             "Extended public key is not compatible with the network type.");
       }
