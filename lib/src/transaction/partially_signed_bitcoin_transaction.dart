@@ -217,8 +217,14 @@ class Psbt {
       script = unsignedTransaction!.outputs[i].scriptPubKey;
 
       DerivationPath? outputDerivationPath;
+      MultisignatureScript? witnessScript;
       psbtMap["outputs"][i].keys.forEach((key) {
-        if (key.startsWith('02')) {
+        if (key.startsWith('01')) {
+          String script = psbtMap["outputs"][i][key];
+          String size =
+              Codec.encodeHex(Codec.encodeVariableInteger(script.length ~/ 2));
+          witnessScript = MultisignatureScript.parse(size + script);
+        } else if (key.startsWith('02')) {
           String publicKey = key.substring(2);
           String masterFingerprint = psbtMap["outputs"][i][key].substring(0, 8);
           String derivationPath = _parseDerivationPath(
@@ -227,7 +233,8 @@ class Psbt {
               DerivationPath(publicKey, masterFingerprint, derivationPath);
         }
       });
-      outputs.add(PsbtOutput(outputDerivationPath, amount, script));
+      outputs.add(PsbtOutput(outputDerivationPath, amount, script,
+          witnessScript: witnessScript));
     }
   }
 
@@ -515,6 +522,9 @@ class Psbt {
               Codec.encodeHex(
                   _serializeDerivationPath(tx.changeAddressDerivationPath!));
         } else if (wallet is MultisignatureWalletBase) {
+          outputData[getKeyType(outputKeyType, 'WITNESS_SCRIPT')] =
+              multisignatureWallet
+                  .getWitnessScript(tx.changeAddressDerivationPath!);
           for (KeyStore keyStore in multisignatureWallet.keyStoreList) {
             String publicKey = keyStore.getPublicKey(
                 WalletUtility.getAccountIndexFromDerivationPath(
@@ -1086,6 +1096,7 @@ class PsbtInput {
 
 /// @nodoc
 class PsbtOutput {
+  MultisignatureScript? witnessScript; //0x01
   final DerivationPath? bip32Derivation; //0x02
   final int? outAmount; //0x03
   final ScriptPublicKey? outScript; //0x04
@@ -1106,7 +1117,8 @@ class PsbtOutput {
     }
   }
 
-  PsbtOutput(this.bip32Derivation, this.outAmount, this.outScript);
+  PsbtOutput(this.bip32Derivation, this.outAmount, this.outScript,
+      {this.witnessScript});
 }
 
 /// @nodoc
