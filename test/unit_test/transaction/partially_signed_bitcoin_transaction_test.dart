@@ -65,7 +65,7 @@ void main() {
             vault);
         Psbt psbt = Psbt.fromTransaction(tx, vault);
 
-        expect(psbt.serialize().hashCode, 400493295);
+        expect(psbt.serialize().hashCode, 1046154630);
       });
     });
     group('Psbt.parse', () {

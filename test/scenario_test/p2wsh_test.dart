@@ -43,8 +43,6 @@ void main() {
 
     Psbt unsignedTx = MockFactory.createP2wshUnsignedPsbt();
 
-    print(unsignedTx.serialize());
-
     expect(unsignedTx.addressType, AddressType.p2wsh);
 
     String signed1PsbtText =

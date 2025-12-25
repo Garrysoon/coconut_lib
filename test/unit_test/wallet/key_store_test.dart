@@ -152,7 +152,7 @@ void main() {
         String signedPsbtText = vault.keyStoreList[1]
             .addSignatureToPsbt(partialSignedPsbtText, vault.addressType);
 
-        expect(signedPsbtText.hashCode, 21710574);
+        expect(signedPsbtText.hashCode, 854675538);
       });
       test('Sign to PSBT (MuSig2)', () {
         String psbt =

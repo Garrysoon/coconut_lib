@@ -522,9 +522,11 @@ class Psbt {
               Codec.encodeHex(
                   _serializeDerivationPath(tx.changeAddressDerivationPath!));
         } else if (wallet is MultisignatureWalletBase) {
-          outputData[getKeyType(outputKeyType, 'WITNESS_SCRIPT')] =
-              multisignatureWallet
-                  .getWitnessScript(tx.changeAddressDerivationPath!);
+          if (wallet.addressType == AddressType.p2wsh) {
+            outputData[getKeyType(outputKeyType, 'WITNESS_SCRIPT')] =
+                multisignatureWallet
+                    .getWitnessScript(tx.changeAddressDerivationPath!);
+          }
           for (KeyStore keyStore in multisignatureWallet.keyStoreList) {
             String publicKey = keyStore.getPublicKey(
                 WalletUtility.getAccountIndexFromDerivationPath(
