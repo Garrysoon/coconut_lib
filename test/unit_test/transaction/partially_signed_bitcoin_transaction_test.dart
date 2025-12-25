@@ -193,11 +193,20 @@ void main() {
         });
       });
     });
-    // group('estimateFee', () {
-    //   test('Get estimated fee from unsigned psbt', () {
-    //     expect(unsignedPsbt.estimateFee(3, AddressType.p2wpkh), signedPsbt.fee);
-    //   });
-    // });
+
+    group('validateSignature', () {
+      test('Validate signature for psbt (segwit)', () {
+        expect(
+            unsignedPsbt.validateSignature(
+                0,
+                '3045022100de494cd0a05a5621d8303a024130fc43550af2ec456de026174c542dfb1706e5022037f358ddba9025abc70d19693014304158eda80877e00f4b9cea86d18d4fad9801',
+                '0246c18ea7c5624b87e5f65a60842c9a22b27ae7e3630a95abeb35455259761824'),
+            true);
+      });
+      test('Validate signature for psbt (taproot)', () {
+        //TODO: Implement test
+      });
+    });
   });
   group('PsbtInput', () {
     late PsbtInput input;

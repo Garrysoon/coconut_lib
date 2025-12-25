@@ -956,6 +956,57 @@ class Psbt {
     }
     return false;
   }
+
+  bool validateSignature(int inputIndex, String signature, String publicKey) {
+    String sigHash = _getSigHash(inputIndex);
+    late bool isValid;
+    if (addressType == null) {
+      throw Exception('Address type is not set');
+    }
+    if (!addressType!.isTaproot) {
+      // ECDSA
+      isValid = Ecc.verifyEcdsa(
+          Codec.decodeHex(sigHash),
+          Codec.decodeHex(publicKey),
+          Converter.derToRawSignature(Codec.decodeHex(signature)));
+    } else {
+      isValid = Ecc.verifySchnorr(
+          Codec.decodeHex(sigHash),
+          Codec.decodeHex(publicKey),
+          Converter.derToRawSignature(Codec.decodeHex(signature)));
+    }
+    return isValid;
+  }
+
+  String _getSigHash(int inputIndex) {
+    if (addressType == null) {
+      throw Exception('Address type is not set');
+    }
+
+    late String sigHash;
+    PsbtInput psbtInput = inputs[inputIndex];
+    if (!addressType!.isTaproot) {
+      // ECDSA
+      TransactionOutput utxo = psbtInput.witnessUtxo!;
+      if (addressType == AddressType.p2wsh) {
+        String? witnessScript = psbtInput.witnessScript!.rawSerialize();
+        sigHash = unsignedTransaction!.getSigHash(
+            inputIndex, utxo, addressType!,
+            witnessScript: witnessScript);
+      } else {
+        sigHash =
+            unsignedTransaction!.getSigHash(inputIndex, utxo, addressType!);
+      }
+    } else {
+      // Taproot
+      List<TransactionOutput> utxoList = [];
+      for (int j = 0; j < unsignedTransaction!.inputs.length; j++) {
+        utxoList.add(inputs[j].witnessUtxo!);
+      }
+      sigHash = unsignedTransaction!.getTaprootSigHash(inputIndex, utxoList);
+    }
+    return sigHash;
+  }
 }
 
 /// @nodoc
@@ -1026,6 +1077,12 @@ class PsbtInput {
   }
 
   addPartialSig(String signature, String publicKey) {
+    // check if the public key is in the bip32 derivation list
+    if (bip32Derivation != null) {
+      if (!bip32Derivation!.any((element) => element.publicKey == publicKey)) {
+        throw Exception('Public key not in PSBT input');
+      }
+    }
     partialSig!.add(Signature(signature, publicKey));
   }
 
