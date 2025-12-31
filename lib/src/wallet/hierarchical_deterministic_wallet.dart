@@ -301,6 +301,25 @@ class HDWallet {
     return HDWallet(null, publicKey, chainCode);
   }
 
+  factory HDWallet.fromPublicKeyWithDerivationPath(
+      Uint8List publicKey, Uint8List chainCode, String derivationPath) {
+    if (!Ecc.isPoint(publicKey)) {
+      throw ArgumentError("Point is not on the curve");
+    }
+    HDWallet wallet = HDWallet(null, publicKey, chainCode);
+    wallet.depth = derivationPath.split("/").length - 1;
+    String lastIndexStr = derivationPath.split("/").last;
+    if (lastIndexStr.endsWith("'")) {
+      wallet._index =
+          int.parse(lastIndexStr.substring(0, lastIndexStr.length - 1)) +
+              hightstBit;
+    } else {
+      wallet._index = int.parse(lastIndexStr);
+    }
+
+    return wallet;
+  }
+
   /// @nodoc
   factory HDWallet.fromPrivateKey(Uint8List privateKey, Uint8List chainCode) {
     if (privateKey.length != 32) {

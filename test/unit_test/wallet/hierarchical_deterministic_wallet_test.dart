@@ -280,6 +280,22 @@ void main() {
             'a56d9844');
       });
     });
+    group('HDWallet.fromPublicKeyWithDerivationPath', () {
+      test('Generate HDWallet from public key with derivation path', () {
+        String publicKey =
+            '021A3BF5FBF737D0F36993FD46DC4913093BEB532D654FE0DFD98BD27585DC9F29';
+        String chainCode =
+            'BBA0C7CA160A870EFEB940AB90D0F4284FEA1B5E0D2117677E823FC37E2D5763';
+        String derivationPath =
+            WalletUtility.getDerivationPath(AddressType.p2wsh, 0);
+        HDWallet wallet2 = HDWallet.fromPublicKeyWithDerivationPath(
+            Codec.decodeHex(publicKey),
+            Codec.decodeHex(chainCode),
+            derivationPath);
+        expect(wallet2.depth, 4);
+        expect(wallet2.index, 2147483650);
+      });
+    });
     group('HDWallet.fromPrivateKey', () {
       test('Generate HDwallet from private key', () {
         Uint8List privateKey = Codec.decodeHex(
