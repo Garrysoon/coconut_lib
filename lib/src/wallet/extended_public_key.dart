@@ -41,6 +41,44 @@ class ExtendedPublicKey {
         wallet.chainCode, wallet.publicKey, version);
   }
 
+  factory ExtendedPublicKey.fromPublicKey(
+      Uint8List publicKey,
+      Uint8List chainCode,
+      int version,
+      Uint8List fingerprint,
+      String derivationPath) {
+    int depth = derivationPath.split("/").length - 1;
+    int index;
+    String lastIndexStr = derivationPath.split("/").last;
+    if (lastIndexStr.endsWith("'")) {
+      index = int.parse(lastIndexStr.substring(0, lastIndexStr.length - 1)) +
+          hightstBit;
+    } else {
+      index = int.parse(lastIndexStr);
+    }
+    return ExtendedPublicKey(
+        depth, fingerprint, index, chainCode, publicKey, version);
+  }
+
+  // factory HDWallet.fromPublicKeyWithDerivationPath(
+  //     Uint8List publicKey, Uint8List chainCode, String derivationPath) {
+  //   if (!Ecc.isPoint(publicKey)) {
+  //     throw ArgumentError("Point is not on the curve");
+  //   }
+  //   HDWallet wallet = HDWallet(null, publicKey, chainCode);
+  //   wallet.depth = derivationPath.split("/").length - 1;
+  //   String lastIndexStr = derivationPath.split("/").last;
+  //   if (lastIndexStr.endsWith("'")) {
+  //     wallet._index =
+  //         int.parse(lastIndexStr.substring(0, lastIndexStr.length - 1)) +
+  //             hightstBit;
+  //   } else {
+  //     wallet._index = int.parse(lastIndexStr);
+  //   }
+
+  //   return wallet;
+  // }
+
   /// Parse an extended public key.
   factory ExtendedPublicKey.parse(String expub) {
     if (NetworkType.currentNetworkType.isTestnet) {

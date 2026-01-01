@@ -21,6 +21,26 @@ void main() {
             vault.keyStore.extendedPublicKey.serialize());
       });
     });
+    group('ExtendedPublicKey.fromPublicKey', () {
+      test('Generate ExtendedPublicKey from public key', () {
+        String publicKey =
+            '021A3BF5FBF737D0F36993FD46DC4913093BEB532D654FE0DFD98BD27585DC9F29';
+        String chainCode =
+            'BBA0C7CA160A870EFEB940AB90D0F4284FEA1B5E0D2117677E823FC37E2D5763';
+        String pfp = '1cf29716';
+        int version = AddressType.p2wsh.versionForMainnet;
+        String derivationPath =
+            WalletUtility.getDerivationPath(AddressType.p2wsh, 0);
+        ExtendedPublicKey extendedPublicKey = ExtendedPublicKey.fromPublicKey(
+            Codec.decodeHex(publicKey),
+            Codec.decodeHex(chainCode),
+            version,
+            Codec.decodeHex(pfp),
+            derivationPath);
+        expect(extendedPublicKey.serialize(),
+            'Zpub74Jru6aftwwHxCUCWEvP6DgrfFsdA4U6ZRtQ5i8qJpMcC39yZGv3egBhQfV3MS9pZtH5z8iV5qWkJsK6ESs6mSzt4qvGhzJxPeeVS2e1zUG');
+      });
+    });
     group('ExtendedPublicKey.parse', () {
       test('Parse extended public key', () {
         NetworkType.setNetworkType(NetworkType.mainnet);
