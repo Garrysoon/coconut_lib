@@ -1,3 +1,6 @@
+## 1.0.4
+- Support HWW for multisig signing
+
 ## 1.0.3
 - Fix key store bug
 
