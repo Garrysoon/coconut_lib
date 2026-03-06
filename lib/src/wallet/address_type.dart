@@ -44,6 +44,9 @@ class AddressType {
   /// Get the multisignature address from the public keys and required signatures. (for multisig)
   final String Function(List<String>, int) getMultisignatureAddress;
 
+  /// Get the taproot address from the internal key and merkle root.
+  final String Function(String, {String? merkleRoot}) getTaprootAddress;
+
   AddressType._(
       this.name,
       this.purposeIndex,
@@ -52,15 +55,32 @@ class AddressType {
       this.versionForMainnet,
       this.versionForTestnet,
       this.getAddress,
-      this.getMultisignatureAddress);
+      this.getMultisignatureAddress,
+      this.getTaprootAddress);
 
   /// Address type for P2PKH(Legacy) address.
-  static AddressType p2pkh = AddressType._('legacy', 44, '1', 'pkh', 0x0488b21e,
-      0x043587cf, getP2pkhAddress, getWrongMultisigatureAddress);
+  static AddressType p2pkh = AddressType._(
+      'legacy',
+      44,
+      '1',
+      'pkh',
+      0x0488b21e,
+      0x043587cf,
+      getP2pkhAddress,
+      getWrongMultisigatureAddress,
+      getWrongTaprootAddress);
 
   /// Address type for P2WPKH(Native Segwit) address.
-  static AddressType p2wpkh = AddressType._('nativeSegwit', 84, 'bc1', 'wpkh',
-      0x04b24746, 0x045f1cf6, getP2wpkhAddress, getWrongMultisigatureAddress);
+  static AddressType p2wpkh = AddressType._(
+      'nativeSegwit',
+      84,
+      'bc1',
+      'wpkh',
+      0x04b24746,
+      0x045f1cf6,
+      getP2wpkhAddress,
+      getWrongMultisigatureAddress,
+      getWrongTaprootAddress);
 
   /// Address type for P2WSH-in-P2SH(Nested Segwit) address.
   static AddressType p2wpkhInP2sh = AddressType._(
@@ -71,15 +91,36 @@ class AddressType {
       0x049d7cb2,
       0x044a5262,
       getP2wpkhInP2shAddress,
-      getWrongMultisigatureAddress);
+      getWrongMultisigatureAddress,
+      getWrongTaprootAddress);
 
   /// Address type for P2SH(Legacy Multisig) address.
   static AddressType p2sh = AddressType._('p2sh', 45, '3', 'sh', 0x0488b21e,
-      0x043587cf, getWrongAddress, getP2shAddress);
+      0x043587cf, getWrongAddress, getP2shAddress, getWrongTaprootAddress);
 
   /// Address type for P2WSH(Segwit Multisig) address.
-  static AddressType p2wsh = AddressType._('p2wsh', 48, 'bc1', 'wsh',
-      0x02aa7ed3, 0x02575483, getWrongAddress, getP2wshAddress);
+  static AddressType p2wsh = AddressType._(
+      'p2wsh',
+      48,
+      'bc1',
+      'wsh',
+      0x02aa7ed3,
+      0x02575483,
+      getWrongAddress,
+      getP2wshAddress,
+      getWrongTaprootAddress);
+
+  /// Address type for P2TR(Taproot) address.
+  static AddressType p2tr = AddressType._(
+      'p2tr',
+      86,
+      'bc1',
+      'tr',
+      0x0488b21e,
+      0x043587cf,
+      getWrongAddress,
+      getWrongMultisigatureAddress,
+      getP2trTaprootAddress);
 
   /// Address type for P2TR key path (single signature) address.
   static AddressType p2trKeyPathSpending = AddressType._(
@@ -90,10 +131,19 @@ class AddressType {
       0x0488b21e,
       0x043587cf,
       getP2trKeyPathSpendingAddress,
-      getWrongMultisigatureAddress);
+      getWrongMultisigatureAddress,
+      getWrongTaprootAddress);
 
-  static AddressType p2trMuSig2 = AddressType._('p2trMuSig2', 86, 'bc1', 'tr',
-      0x0488b21e, 0x043587cf, getWrongAddress, getP2trMuSig2Address);
+  static AddressType p2trMuSig2 = AddressType._(
+      'p2trMuSig2',
+      86,
+      'bc1',
+      'tr',
+      0x0488b21e,
+      0x043587cf,
+      getWrongAddress,
+      getP2trMuSig2Address,
+      getWrongTaprootAddress);
 
   static AddressType p2trScriptPathSpending = AddressType._(
       'p2trScriptPathSpending',
@@ -103,7 +153,8 @@ class AddressType {
       0x0488b21e,
       0x043587cf,
       getWrongAddress,
-      getP2trScriptPathSpendingAddress);
+      getP2trScriptPathSpendingAddress,
+      getWrongTaprootAddress);
 
   /// List of all address types.
   static List<AddressType> get values => [
@@ -112,6 +163,7 @@ class AddressType {
         p2wpkhInP2sh,
         p2sh,
         p2wsh,
+        p2tr,
         p2trKeyPathSpending,
         p2trMuSig2,
         p2trScriptPathSpending
@@ -289,7 +341,7 @@ class AddressType {
 
   //BIP0086
   static String getP2trKeyPathSpendingAddress(String tweakedPubKey) {
-    return getTaprootAddress(tweakedPubKey);
+    return getTaprootAddressFromTweakedPublicKey(tweakedPubKey);
   }
 
   //BIP0327
@@ -309,7 +361,7 @@ class AddressType {
         Codec.encodeHex(WalletUtility.aggregatePublicKey(publicKeys));
 
     // Get the Taproot address using the internal key
-    return getTaprootAddress(internalKey);
+    return getTaprootAddressFromTweakedPublicKey(internalKey);
   }
 
   static String getP2trScriptPathSpendingAddress(
@@ -355,10 +407,10 @@ class AddressType {
 
     // Uint8List merkleRoot = _getTapleafHash(0xc0, Codec.encodeHex(tapscript));
 
-    return getTaprootAddress(internalKey);
+    return getTaprootAddressFromTweakedPublicKey(internalKey);
   }
 
-  static String getTaprootAddress(String tweakedPubKey) {
+  static String getTaprootAddressFromTweakedPublicKey(String tweakedPubKey) {
     Uint8List tweakedPubKeyBytes = Codec.decodeHex(tweakedPubKey);
 
     var data5Bits = Converter.convertBits(
@@ -369,8 +421,32 @@ class AddressType {
     return codec.encode(bech32m.Bech32m(_getSegwitHrp(), [0x01] + data5Bits));
   }
 
-  static String getWrongAddress(String publicKey) {
-    throw Exception('Use getMultisigAddress for multisig address type.');
+  static String getP2trTaprootAddress(String internalKey,
+      {String? merkleRoot}) {
+    if (internalKey.length != 64) {
+      throw Exception("Invalid internal key length");
+    }
+    Uint8List internalKeyBytes = Codec.decodeHex(internalKey);
+    Uint8List merkleRootBytes =
+        merkleRoot != null ? Codec.decodeHex(merkleRoot) : Uint8List(0);
+
+    Uint8List keyToTweak = internalKeyBytes;
+    Uint8List hashTapTweak =
+        Hash.hashTapTweak('TapTweak', keyToTweak, merkleRootBytes);
+
+    Uint8List tweakedPubKey =
+        Ecc.pointAddScalar(keyToTweak, hashTapTweak, true)!;
+
+    if (tweakedPubKey[0] == 0x03) {
+      tweakedPubKey = Ecc.pointNegate(tweakedPubKey)!;
+    }
+
+    var data5Bits = Converter.convertBits(
+        Uint8List.fromList(tweakedPubKey.sublist(1)), 8, 5,
+        pad: true);
+
+    bech32m.Bech32mCodec codec = bech32m.Bech32mCodec();
+    return codec.encode(bech32m.Bech32m(_getSegwitHrp(), [0x01] + data5Bits));
   }
 
   static Uint8List _getTapleafHash(int version, String script) {
@@ -407,9 +483,19 @@ class AddressType {
   }
 
   /// @nodoc
+  static String getWrongAddress(String publicKey) {
+    throw Exception('Use getMultisigAddress for multisig address type.');
+  }
+
+  /// @nodoc
   static String getWrongMultisigatureAddress(
       List<String> publicKey, int requiredSignature) {
     throw Exception('Use getAddress for non multisig address type.');
+  }
+
+  static String getWrongTaprootAddress(String internalKey,
+      {String? merkleRoot}) {
+    throw Exception('Use getTaprootAddress for taproot address type.');
   }
 
   /// @nodoc

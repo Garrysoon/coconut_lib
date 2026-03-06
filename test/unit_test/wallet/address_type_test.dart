@@ -141,6 +141,7 @@ void main() {
       });
       group('getTaprootAddress', () {
         test('Get Taproot address with empty merkle root', () {
+          NetworkType.setNetworkType(NetworkType.mainnet);
           HDWallet hdWallet = HDWallet(
               null,
               Codec.decodeHex(
@@ -163,7 +164,9 @@ void main() {
           Uint8List tPubKey = hdWallet.getPublicKey(true, true,
               merkleRoot: Codec.decodeHex(
                   '5b75adecf53548f3ec6ad7d78383bf84cc57b55a3127c72b9a2481752dd88b21'));
-          expect(AddressType.getTaprootAddress(Codec.encodeHex(tPubKey)),
+          expect(
+              AddressType.getTaprootAddressFromTweakedPublicKey(
+                  Codec.encodeHex(tPubKey)),
               'bc1pz37fc4cn9ah8anwm4xqqhvxygjf9rjf2resrw8h8w4tmvcs0863sa2e586');
         });
         test('Get Taproot address with script (case 2)', () {
@@ -176,8 +179,73 @@ void main() {
           Uint8List tPubKey = hdWallet.getPublicKey(true, true,
               merkleRoot: Codec.decodeHex(
                   'c525714a7f49c28aedbbba78c005931a81c234b2f6c99a73e4d06082adc8bf2b'));
-          expect(AddressType.getTaprootAddress(Codec.encodeHex(tPubKey)),
+          expect(
+              AddressType.getTaprootAddressFromTweakedPublicKey(
+                  Codec.encodeHex(tPubKey)),
               'bc1punvppl2stp38f7kwv2u2spltjuvuaayuqsthe34hd2dyy5w4g58qqfuag5');
+        });
+      });
+
+      group('getTaprootAddress', () {
+        test('Get Taproot address with empty merkle root', () {
+          NetworkType.setNetworkType(NetworkType.mainnet);
+          // Internal key (x-only, 32 bytes) - remove prefix from compressed key
+          String internalKey =
+              'd6889cb081036e0faefa3a35157ad71086b123b2b144b649798b494c300a961d';
+          String address = AddressType.getP2trTaprootAddress(internalKey);
+          expect(address,
+              'bc1p2wsldez5mud2yam29q22wgfh9439spgduvct83k3pm50fcxa5dps59h4z5');
+        });
+
+        test('Get Taproot address with merkle root (case 1)', () {
+          NetworkType.setNetworkType(NetworkType.mainnet);
+          // Internal key (x-only, 32 bytes)
+          String internalKey =
+              '187791b6f712a8ea41c8ecdd0ee77fab3e85263b37e1ec18a3651926b3a6cf27';
+          String merkleRoot =
+              '5b75adecf53548f3ec6ad7d78383bf84cc57b55a3127c72b9a2481752dd88b21';
+          String address = AddressType.getP2trTaprootAddress(internalKey,
+              merkleRoot: merkleRoot);
+          expect(address,
+              'bc1pz37fc4cn9ah8anwm4xqqhvxygjf9rjf2resrw8h8w4tmvcs0863sa2e586');
+        });
+
+        test('Get Taproot address with merkle root (case 2)', () {
+          NetworkType.setNetworkType(NetworkType.mainnet);
+          // Internal key (x-only, 32 bytes)
+          String internalKey =
+              '93478e9488f956df2396be2ce6c5cced75f900dfa18e7dabd2428aae78451820';
+          String merkleRoot =
+              'c525714a7f49c28aedbbba78c005931a81c234b2f6c99a73e4d06082adc8bf2b';
+          String address = AddressType.getP2trTaprootAddress(internalKey,
+              merkleRoot: merkleRoot);
+          expect(address,
+              'bc1punvppl2stp38f7kwv2u2spltjuvuaayuqsthe34hd2dyy5w4g58qqfuag5');
+        });
+
+        test('Get Taproot address on testnet', () {
+          NetworkType.setNetworkType(NetworkType.testnet);
+          String internalKey =
+              'd6889cb081036e0faefa3a35157ad71086b123b2b144b649798b494c300a961d';
+          String address = AddressType.getP2trTaprootAddress(internalKey);
+          expect(address, startsWith('tb1p'));
+        });
+
+        test('Get Taproot address on regtest', () {
+          NetworkType.setNetworkType(NetworkType.regtest);
+          String internalKey =
+              'd6889cb081036e0faefa3a35157ad71086b123b2b144b649798b494c300a961d';
+          String address = AddressType.getP2trTaprootAddress(internalKey);
+          expect(address, startsWith('bcrt1p'));
+        });
+
+        test('Throw exception for invalid internal key length', () {
+          NetworkType.setNetworkType(NetworkType.mainnet);
+          // Invalid key length (33 bytes instead of 32)
+          String invalidKey =
+              '02d6889cb081036e0faefa3a35157ad71086b123b2b144b649798b494c300a961d';
+          expect(() => AddressType.getP2trTaprootAddress(invalidKey),
+              throwsException);
         });
       });
 
