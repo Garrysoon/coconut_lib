@@ -20,10 +20,10 @@ void main() {
     group('TimelockScript.parse', () {
       test('Parse timelock script from hex string', () {
         // Create a script and serialize it
-        TimelockScript script =
-            TimelockScript.withCheckLockTimeVerify(1000000, testPublicKey);
+        InheritanceScript script =
+            InheritanceScript.withCheckLockTimeVerify(1000000, testPublicKey);
         String serialized = script.serialize();
-        TimelockScript parsed = TimelockScript.parse(serialized);
+        InheritanceScript parsed = InheritanceScript.parse(serialized);
         expect(parsed.getTimelockValue(), 1000000);
         expect(parsed.getTimelockType(), 'CLTV');
         expect(parsed.getBeneficiaryPublicKey(), testPublicKey);
@@ -33,8 +33,8 @@ void main() {
     group('TimelockScript.withCheckLockTimeVerify', () {
       test('Create timelock script with CLTV', () {
         int locktime = 1000000;
-        TimelockScript script =
-            TimelockScript.withCheckLockTimeVerify(locktime, testPublicKey);
+        InheritanceScript script =
+            InheritanceScript.withCheckLockTimeVerify(locktime, testPublicKey);
 
         expect(script.commands.length, 5);
         expect(script.commands[0], isA<Uint8List>());
@@ -48,8 +48,8 @@ void main() {
 
       test('Create timelock script with CLTV - verify locktime bytes', () {
         int locktime = 1000000;
-        TimelockScript script =
-            TimelockScript.withCheckLockTimeVerify(locktime, testPublicKey);
+        InheritanceScript script =
+            InheritanceScript.withCheckLockTimeVerify(locktime, testPublicKey);
 
         Uint8List locktimeBytes = script.commands[0] as Uint8List;
         int parsedLocktime = Converter.littleEndianToInt(locktimeBytes);
@@ -59,7 +59,8 @@ void main() {
       test('Throw exception for invalid public key length', () {
         Uint8List invalidKey = Uint8List.fromList([1, 2, 3]); // Too short
         expect(
-            () => TimelockScript.withCheckLockTimeVerify(1000000, invalidKey),
+            () =>
+                InheritanceScript.withCheckLockTimeVerify(1000000, invalidKey),
             throwsArgumentError);
       });
     });
@@ -67,8 +68,8 @@ void main() {
     group('TimelockScript.withCheckSequenceVerify', () {
       test('Create timelock script with CSV', () {
         int sequence = 144; // 144 blocks
-        TimelockScript script =
-            TimelockScript.withCheckSequenceVerify(sequence, testPublicKey);
+        InheritanceScript script =
+            InheritanceScript.withCheckSequenceVerify(sequence, testPublicKey);
 
         expect(script.commands.length, 5);
         expect(script.commands[0], isA<Uint8List>());
@@ -82,8 +83,8 @@ void main() {
 
       test('Create timelock script with CSV - verify sequence bytes', () {
         int sequence = 144;
-        TimelockScript script =
-            TimelockScript.withCheckSequenceVerify(sequence, testPublicKey);
+        InheritanceScript script =
+            InheritanceScript.withCheckSequenceVerify(sequence, testPublicKey);
 
         Uint8List sequenceBytes = script.commands[0] as Uint8List;
         int parsedSequence = Converter.littleEndianToInt(sequenceBytes);
@@ -92,15 +93,15 @@ void main() {
 
       test('Throw exception for invalid public key length', () {
         Uint8List invalidKey = Uint8List.fromList([1, 2, 3]); // Too short
-        expect(() => TimelockScript.withCheckSequenceVerify(144, invalidKey),
+        expect(() => InheritanceScript.withCheckSequenceVerify(144, invalidKey),
             throwsArgumentError);
       });
     });
 
     group('getBeneficiaryPublicKey', () {
       test('Get beneficiary public key from CLTV script', () {
-        TimelockScript script =
-            TimelockScript.withCheckLockTimeVerify(1000000, testPublicKey);
+        InheritanceScript script =
+            InheritanceScript.withCheckLockTimeVerify(1000000, testPublicKey);
         Uint8List? pubkey = script.getBeneficiaryPublicKey();
         expect(pubkey, isNotNull);
         expect(pubkey, testPublicKey);
@@ -108,8 +109,8 @@ void main() {
       });
 
       test('Get beneficiary public key from CSV script', () {
-        TimelockScript script =
-            TimelockScript.withCheckSequenceVerify(144, testPublicKey);
+        InheritanceScript script =
+            InheritanceScript.withCheckSequenceVerify(144, testPublicKey);
         Uint8List? pubkey = script.getBeneficiaryPublicKey();
         expect(pubkey, isNotNull);
         expect(pubkey, testPublicKey);
@@ -120,8 +121,8 @@ void main() {
     group('getTimelockValue', () {
       test('Get locktime value from CLTV script', () {
         int locktime = 1000000;
-        TimelockScript script =
-            TimelockScript.withCheckLockTimeVerify(locktime, testPublicKey);
+        InheritanceScript script =
+            InheritanceScript.withCheckLockTimeVerify(locktime, testPublicKey);
         int? value = script.getTimelockValue();
         expect(value, isNotNull);
         expect(value, locktime);
@@ -129,8 +130,8 @@ void main() {
 
       test('Get sequence value from CSV script', () {
         int sequence = 144;
-        TimelockScript script =
-            TimelockScript.withCheckSequenceVerify(sequence, testPublicKey);
+        InheritanceScript script =
+            InheritanceScript.withCheckSequenceVerify(sequence, testPublicKey);
         int? value = script.getTimelockValue();
         expect(value, isNotNull);
         expect(value, sequence);
@@ -139,15 +140,15 @@ void main() {
 
     group('getTimelockType', () {
       test('Get CLTV type from script', () {
-        TimelockScript script =
-            TimelockScript.withCheckLockTimeVerify(1000000, testPublicKey);
+        InheritanceScript script =
+            InheritanceScript.withCheckLockTimeVerify(1000000, testPublicKey);
         String? type = script.getTimelockType();
         expect(type, 'CLTV');
       });
 
       test('Get CSV type from script', () {
-        TimelockScript script =
-            TimelockScript.withCheckSequenceVerify(144, testPublicKey);
+        InheritanceScript script =
+            InheritanceScript.withCheckSequenceVerify(144, testPublicKey);
         String? type = script.getTimelockType();
         expect(type, 'CSV');
       });
@@ -155,19 +156,19 @@ void main() {
 
     group('isValidTimelockScript', () {
       test('Validate valid CLTV script', () {
-        TimelockScript script =
-            TimelockScript.withCheckLockTimeVerify(1000000, testPublicKey);
+        InheritanceScript script =
+            InheritanceScript.withCheckLockTimeVerify(1000000, testPublicKey);
         expect(script.isValidTimelockScript(), true);
       });
 
       test('Validate valid CSV script', () {
-        TimelockScript script =
-            TimelockScript.withCheckSequenceVerify(144, testPublicKey);
+        InheritanceScript script =
+            InheritanceScript.withCheckSequenceVerify(144, testPublicKey);
         expect(script.isValidTimelockScript(), true);
       });
 
       test('Invalid script - empty commands', () {
-        TimelockScript script = TimelockScript([]);
+        InheritanceScript script = InheritanceScript([]);
         expect(script.isValidTimelockScript(), false);
       });
 
@@ -179,7 +180,7 @@ void main() {
           testPublicKey,
           // Missing OP_CHECKSIG
         ];
-        TimelockScript script = TimelockScript(invalidCmds);
+        InheritanceScript script = InheritanceScript(invalidCmds);
         expect(script.isValidTimelockScript(), false);
       });
 
@@ -192,23 +193,23 @@ void main() {
           wrongKey,
           ScriptOperationCode.getHex('OP_CHECKSIG'),
         ];
-        TimelockScript script = TimelockScript(invalidCmds);
+        InheritanceScript script = InheritanceScript(invalidCmds);
         expect(script.isValidTimelockScript(), false);
       });
     });
 
     group('serialize and rawSerialize', () {
       test('Serialize CLTV script', () {
-        TimelockScript script =
-            TimelockScript.withCheckLockTimeVerify(1000000, testPublicKey);
+        InheritanceScript script =
+            InheritanceScript.withCheckLockTimeVerify(1000000, testPublicKey);
         String serialized = script.serialize();
         expect(serialized, isNotEmpty);
         expect(serialized.length % 2, 0); // Hex string should have even length
       });
 
       test('Raw serialize CLTV script', () {
-        TimelockScript script =
-            TimelockScript.withCheckLockTimeVerify(1000000, testPublicKey);
+        InheritanceScript script =
+            InheritanceScript.withCheckLockTimeVerify(1000000, testPublicKey);
         String rawSerialized = script.rawSerialize();
         expect(rawSerialized, isNotEmpty);
         expect(
@@ -216,10 +217,10 @@ void main() {
       });
 
       test('Round trip serialization', () {
-        TimelockScript original =
-            TimelockScript.withCheckLockTimeVerify(1000000, testPublicKey);
+        InheritanceScript original =
+            InheritanceScript.withCheckLockTimeVerify(1000000, testPublicKey);
         String serialized = original.serialize();
-        TimelockScript parsed = TimelockScript.parse(serialized);
+        InheritanceScript parsed = InheritanceScript.parse(serialized);
         expect(parsed.getTimelockValue(), original.getTimelockValue());
         expect(parsed.getTimelockType(), original.getTimelockType());
         expect(parsed.getBeneficiaryPublicKey(),

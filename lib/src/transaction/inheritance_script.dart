@@ -5,13 +5,13 @@ part of '../../coconut_lib.dart';
 /// Timelock script is used in Taproot to create conditional spending paths
 /// with time-based conditions. This class supports emergency recovery scripts
 /// with CLTV (CheckLockTimeVerify) or CSV (CheckSequenceVerify) timelocks.
-class TimelockScript extends Script {
-  TimelockScript(super._cmds);
+class InheritanceScript extends Script {
+  InheritanceScript(super._cmds);
 
   /// Parse the timelock script from the given script hex.
-  factory TimelockScript.parse(String script) {
+  factory InheritanceScript.parse(String script) {
     List<dynamic> cmds = Script.parseToCommand(Codec.decodeHex(script));
-    return TimelockScript(cmds);
+    return InheritanceScript(cmds);
   }
 
   /// Create a timelock script for emergency recovery with CLTV (CheckLockTimeVerify).
@@ -20,7 +20,7 @@ class TimelockScript extends Script {
   /// [beneficiaryPublicKey] The x-only public key (32 bytes) for emergency recovery.
   ///
   /// Script structure: <locktime> OP_CHECKLOCKTIMEVERIFY OP_DROP <emergency_pubkey> OP_CHECKSIG
-  factory TimelockScript.withCheckLockTimeVerify(
+  factory InheritanceScript.withCheckLockTimeVerify(
       int locktime, Uint8List beneficiaryPublicKey) {
     if (beneficiaryPublicKey.length != 32) {
       throw ArgumentError(
@@ -45,7 +45,7 @@ class TimelockScript extends Script {
     // OP_CHECKSIG
     cmds.add(ScriptOperationCode.getHex('OP_CHECKSIG'));
 
-    return TimelockScript(cmds);
+    return InheritanceScript(cmds);
   }
 
   /// Create a timelock script for emergency recovery with CSV (CheckSequenceVerify).
@@ -54,7 +54,7 @@ class TimelockScript extends Script {
   /// [beneficiaryPublicKey] The x-only public key (32 bytes) for emergency recovery.
   ///
   /// Script structure: <sequence> OP_CHECKSEQUENCEVERIFY OP_DROP <beneficiary_pubkey> OP_CHECKSIG
-  factory TimelockScript.withCheckSequenceVerify(
+  factory InheritanceScript.withCheckSequenceVerify(
       int sequence, Uint8List beneficiaryPublicKey) {
     if (beneficiaryPublicKey.length != 32) {
       throw ArgumentError(
@@ -79,7 +79,7 @@ class TimelockScript extends Script {
     // OP_CHECKSIG
     cmds.add(ScriptOperationCode.getHex('OP_CHECKSIG'));
 
-    return TimelockScript(cmds);
+    return InheritanceScript(cmds);
   }
 
   /// Get the beneficiary public key from the timelock script.

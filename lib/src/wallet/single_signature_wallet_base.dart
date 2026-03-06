@@ -34,10 +34,7 @@ abstract class SingleSignatureWalletBase extends WalletBase {
     }
 
     _descriptor = Descriptor.forSingleSignature(
-        _addressType,
-        _keyStore.extendedPublicKey.serialize(),
-        _derivationPath.replaceAll("m/", ""),
-        _keyStore.masterFingerprint);
+        _addressType, _keyStore, _derivationPath.replaceAll("m/", ""));
   }
 
   /// Get the address of the given index.

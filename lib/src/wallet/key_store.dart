@@ -170,24 +170,26 @@ class KeyStore {
       applyTweak = false,
       Uint8List? merkleRoot,
       Uint8List? aggregatedPublicKey}) {
+    return Codec.encodeHex(getPublicKeyBytes(addressIndex,
+        isChange: isChange,
+        isXOnly: isXOnly,
+        applyTweak: applyTweak,
+        merkleRoot: merkleRoot,
+        aggregatedPublicKey: aggregatedPublicKey));
+  }
+
+  Uint8List getPublicKeyBytes(int addressIndex,
+      {bool isChange = false,
+      isXOnly = false,
+      applyTweak = false,
+      Uint8List? merkleRoot,
+      Uint8List? aggregatedPublicKey}) {
     HDWallet child = getChildHdWallet(isChange).derive(addressIndex).neutered();
 
     Uint8List publicKey = child.getPublicKey(applyTweak, isXOnly,
         merkleRoot: merkleRoot, aggregatedPublicKey: aggregatedPublicKey);
 
-    return Codec.encodeHex(publicKey);
-    // if (isXOnly) {
-    // if (applyTweak) {
-    //   pubKey = child.getTweakedPublicKey(
-    //       merkleRoot: merkleRoot, aggregatedPublicKey: aggregatedPublicKey);
-    // } else {
-    //   pubKey = child.publicKey;
-    // }
-    // if (isXOnly) {
-    //   return Codec.encodeHex(pubKey.sublist(1));
-    // } else {
-    //   return Codec.encodeHex(pubKey);
-    // }
+    return publicKey;
   }
 
   ///Check if the PSBT can be signed from this vault.

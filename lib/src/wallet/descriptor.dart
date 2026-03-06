@@ -28,32 +28,53 @@ class Descriptor {
   String get scriptType => _scriptType;
 
   /// Create a descriptor for a single signature.
-  factory Descriptor.forSingleSignature(AddressType addressType,
-      String publicKey, String derivationPath, String masterFingerprint) {
+  factory Descriptor.forSingleSignature(
+      AddressType addressType, KeyStore keyStore, String derivationPath) {
     String scriptType = addressType.scriptType;
-    return Descriptor(
-        scriptType,
-        ["[$masterFingerprint/$derivationPath]$publicKey/<0;1>/*"],
-        addressType);
+    return Descriptor(scriptType,
+        [getKeyOriginExpression(keyStore, derivationPath)], addressType);
   }
 
   /// Create a descriptor for multisignature.
   factory Descriptor.forMultisignature(
       AddressType addressType,
-      List<String> publicKeyList,
+      List<KeyStore> keyStoreList,
       String derivationPath,
-      List<String> fingerprintList,
       int requiredSignatures) {
     //'wsh(sortedmulti(2,[e50bd392/48h/0h/0h/2h]xpub6FPPhpChFv7pQE7D19ZNGoFcCUzmMdwEMwqGFshE7SCfBiN5YqpejTKkshCS3sawXF98w7j5YeaYmnVdcMuX4wLr2pwiUaccvb4WsF1w5Kz/<0;1>/*,[906222f7/48h/0h/0h/2h]xpub6EgRoGnrQpGy55qdvYXqCspbx3M4zwEJqqMY4Gvf8wTd927pAoiknQBWvLpk6gh1tWJErqgW6S4QDJykGedZ7ngV2TbRG25wUEpnCox9dKA/<0;1>/*,[476ec2dc/48h/0h/0h/2h]xpub6ERySjYpfyoWiREzdy5hZFjzkPWQK5GzUiPppcqdYm1qqbi5H8tpUeX93LG1MzQLn4Dj5iMwydhnFLqWvHHJk2ZHiKD9gYZh6YbVR1VQT1V/<0;1>/*))#x9cc762c';
     String scriptType = addressType.scriptType;
     List<String> publicKeyString = [];
-    for (int i = 0; i < publicKeyList.length; i++) {
-      publicKeyString.add(
-          "[${fingerprintList[i]}/$derivationPath]${publicKeyList[i]}/<0;1>/*");
+    for (int i = 0; i < keyStoreList.length; i++) {
+      publicKeyString
+          .add(getKeyOriginExpression(keyStoreList[i], derivationPath));
     }
     return Descriptor(scriptType, publicKeyString, addressType,
         requiredSignatures: requiredSignatures);
   }
+
+  static String getKeyOriginExpression(
+      KeyStore keyStore, String derivationPath) {
+    return "[${keyStore.masterFingerprint}/$derivationPath]${keyStore.extendedPublicKey.serialize()}/<0;1>/*";
+  }
+
+  /// Create a descriptor for taproot.
+  // factory Descriptor.forTaproot(AddressType addressType,
+  //     List<KeyStore> keyStoreList, List<InheritancePlan> inheritancePlanList) {
+  //   //tr(internal_key, script_tree)
+  //   //internal_key: xpub/0/* or musig(xpub1/*,xpub2/*)
+  //   //script_tree: {and_v(v:pk(beneficiary),older(52560))}, {and_v(v:pk(heir),after(900000))}
+  //   //ex: tr(musig([aaaa/86h/0h/0h]xpub1/0/*,[bbbb/86h/0h/0h]xpub2/0/*),{and_v(v:pk([cccc/86h/0h/0h]xpub3/0/*),older(52560))})
+  //   if (keyStoreList.length == 1) {
+  //     return Descriptor(
+  //         addressType.scriptType,
+  //         ["[${keyStoreList[0].masterFingerprint}/$keyStoreList[0].derivationPath]${keyStoreList[0].extendedPublicKey.serialize()}/<0;1>/*"],
+  //         addressType);
+  //   } else {
+  //     return Descriptor(
+  //         addressType.scriptType,
+  //         ["musig(${keyStoreList.map((e) => e.extendedPublicKey.serialize()).toList().join(',')})"],
+  //         addressType);
+  // }
 
   /// Parse the descriptor.
   factory Descriptor.parse(String descriptor, {bool ignoreChecksum = false}) {
