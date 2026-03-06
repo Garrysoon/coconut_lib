@@ -20,6 +20,13 @@ class ScriptOperationCode {
     'OP_15': 0x5f,
     'OP_16': 0x60,
     'OP_CHECKMULTISIG': 0xae,
+    'OP_CHECKLOCKTIMEVERIFY': 0xb1,
+    'OP_CHECKSEQUENCEVERIFY': 0xb2,
+    'OP_DROP': 0x75,
+    'OP_CHECKSIG': 0xac,
+    'OP_CHECKSIGVERIFY': 0xad,
+    'OP_CHECKSIGADD': 0xba,
+    'OP_NUMEQUAL': 0x87,
   };
 
   static int getHex(String opCode) {
