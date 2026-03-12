@@ -449,39 +449,6 @@ class AddressType {
     return codec.encode(bech32m.Bech32m(_getSegwitHrp(), [0x01] + data5Bits));
   }
 
-  static Uint8List _getTapleafHash(int version, String script) {
-    Uint8List scriptBytes = Codec.decodeHex(script);
-    Uint8List scriptSize = _encodeCompactSize(scriptBytes.length);
-    Uint8List tapleafHash = _taggedHash(
-        "TapLeaf", Uint8List.fromList([version] + scriptSize + scriptBytes));
-    return tapleafHash;
-  }
-
-  static Uint8List _encodeCompactSize(int size) {
-    if (size < 0xfd) {
-      return Uint8List.fromList([size]);
-    } else if (size <= 0xffff) {
-      return Uint8List.fromList([0xfd, size & 0xff, (size >> 8) & 0xff]);
-    } else if (size <= 0xffffffff) {
-      return Uint8List.fromList([
-        0xfe,
-        size & 0xff,
-        (size >> 8) & 0xff,
-        (size >> 16) & 0xff,
-        (size >> 24) & 0xff
-      ]);
-    } else {
-      throw ArgumentError("CompactSize encoding supports up to 4 bytes.");
-    }
-  }
-
-  static Uint8List _taggedHash(String tag, Uint8List data) {
-    Uint8List tagHash =
-        Hash.sha256fromByte(Uint8List.fromList(utf8.encode(tag)));
-    Uint8List prefix = Uint8List.fromList(tagHash + tagHash);
-    return Hash.sha256fromByte(Uint8List.fromList(prefix + data));
-  }
-
   /// @nodoc
   static String getWrongAddress(String publicKey) {
     throw Exception('Use getMultisigAddress for multisig address type.');

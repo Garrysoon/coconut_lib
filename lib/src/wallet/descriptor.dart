@@ -4,13 +4,14 @@ part of '../../coconut_lib.dart';
 class Descriptor {
   String _scriptType;
   List<String> _publicKeyList = [];
+  List<String> _miniscriptList = [];
   late int _requiredSignatures;
   int get totalSigner => _publicKeyList.length;
   AddressType _addressType;
 
   /// @nodoc
   Descriptor(this._scriptType, this._publicKeyList, this._addressType,
-      {int? requiredSignatures}) {
+      {int? requiredSignatures, List<String>? miniscriptList}) {
     if (requiredSignatures == null) {
       if (_addressType.isSingleSignature) {
         _requiredSignatures = 1;
@@ -21,6 +22,9 @@ class Descriptor {
       }
     } else {
       _requiredSignatures = requiredSignatures;
+    }
+    if (miniscriptList != null) {
+      _miniscriptList = miniscriptList;
     }
   }
 
@@ -57,24 +61,50 @@ class Descriptor {
     return "[${keyStore.masterFingerprint}/$derivationPath]${keyStore.extendedPublicKey.serialize()}/<0;1>/*";
   }
 
+  static String getMiniscriptExpression(
+      InheritancePlan inheritancePlan, String derivationPath) {
+    if (inheritancePlan is AbsoluteInheritancePlan) {
+      return "and_v(v:pk(${getKeyOriginExpression(inheritancePlan.keyStore, derivationPath)}),older(${inheritancePlan.locktime}))";
+    } else if (inheritancePlan is RelativeInheritancePlan) {
+      return "and_v(v:pk(${getKeyOriginExpression(inheritancePlan.keyStore, derivationPath)}),after(${inheritancePlan.sequence}))";
+    } else {
+      throw Exception('Invalid inheritance plan.');
+    }
+  }
+
   /// Create a descriptor for taproot.
-  // factory Descriptor.forTaproot(AddressType addressType,
-  //     List<KeyStore> keyStoreList, List<InheritancePlan> inheritancePlanList) {
-  //   //tr(internal_key, script_tree)
-  //   //internal_key: xpub/0/* or musig(xpub1/*,xpub2/*)
-  //   //script_tree: {and_v(v:pk(beneficiary),older(52560))}, {and_v(v:pk(heir),after(900000))}
-  //   //ex: tr(musig([aaaa/86h/0h/0h]xpub1/0/*,[bbbb/86h/0h/0h]xpub2/0/*),{and_v(v:pk([cccc/86h/0h/0h]xpub3/0/*),older(52560))})
-  //   if (keyStoreList.length == 1) {
-  //     return Descriptor(
-  //         addressType.scriptType,
-  //         ["[${keyStoreList[0].masterFingerprint}/$keyStoreList[0].derivationPath]${keyStoreList[0].extendedPublicKey.serialize()}/<0;1>/*"],
-  //         addressType);
-  //   } else {
-  //     return Descriptor(
-  //         addressType.scriptType,
-  //         ["musig(${keyStoreList.map((e) => e.extendedPublicKey.serialize()).toList().join(',')})"],
-  //         addressType);
-  // }
+  factory Descriptor.forTaproot(
+      AddressType addressType,
+      List<KeyStore> keyStoreList,
+      List<InheritancePlan> inheritancePlanList,
+      String derivationPath) {
+    //tr(internal_key, script_tree)
+    //internal_key: xpub/0/* or musig(xpub1/*,xpub2/*)
+    //script_tree: {and_v(v:pk(beneficiary),older(52560))}, {and_v(v:pk(heir),after(900000))}
+    //ex: tr(musig([aaaa/86h/0h/0h]xpub1/0/*,[bbbb/86h/0h/0h]xpub2/0/*),{and_v(v:pk([cccc/86h/0h/0h]xpub3/0/*),older(52560))})
+
+    late Descriptor descriptor;
+
+    if (inheritancePlanList.isNotEmpty) {
+      descriptor = Descriptor(
+          addressType.scriptType,
+          keyStoreList
+              .map((e) => getKeyOriginExpression(e, derivationPath))
+              .toList(),
+          addressType,
+          miniscriptList: inheritancePlanList
+              .map((e) => getMiniscriptExpression(e, derivationPath))
+              .toList());
+    } else {
+      descriptor = Descriptor(
+          addressType.scriptType,
+          keyStoreList
+              .map((e) => getKeyOriginExpression(e, derivationPath))
+              .toList(),
+          addressType);
+    }
+    return descriptor;
+  }
 
   /// Parse the descriptor.
   factory Descriptor.parse(String descriptor, {bool ignoreChecksum = false}) {
