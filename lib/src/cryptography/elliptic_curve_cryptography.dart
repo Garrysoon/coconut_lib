@@ -433,11 +433,8 @@ class Ecc {
     return -1;
   }
 
-  static Uint8List signSchnorrForMuSig2(
-      Uint8List secretNonce,
-      Uint8List privateKey,
-      Uint8List publicKey,
-      MuSig2SessionContext sessionContext,
+  static Uint8List signSchnorrForMuSig2(Uint8List secretNonce,
+      Uint8List privateKey, MuSig2SessionContext sessionContext,
       {bool isFullSignature = true}) {
     if (privateKey.length != 32) {
       throw ArgumentError(
@@ -447,21 +444,11 @@ class Ecc {
       throw ArgumentError(
           "secret nonce must be 97 bytes (got ${secretNonce.length})");
     }
-    if (publicKey.length != 32 && publicKey.length != 33) {
-      throw ArgumentError(
-          "public key must be 32 or 33 bytes (got ${publicKey.length})");
-    }
 
-    late Uint8List prefixedPublicKey;
+    Uint8List publicKey = pointFromScalar(privateKey, true)!;
 
-    if (publicKey.length == 32) {
-      prefixedPublicKey = Uint8List.fromList([0x02, ...publicKey]);
-    } else {
-      prefixedPublicKey = publicKey;
-    }
-    if (Codec.encodeHex(prefixedPublicKey) !=
-        Codec.encodeHex(pointFromScalar(privateKey, true)!)) {
-      throw Exception("Invalid public key");
+    if (publicKey[0] != 0x02) {
+      throw Exception("Invalid private key (not x-only)");
     }
 
     Uint8List Q = getEncoded(sessionContext.Q, true);
@@ -495,11 +482,11 @@ class Ecc {
     }
 
     if (secondKey != null &&
-        Codec.encodeHex(prefixedPublicKey) == Codec.encodeHex(secondKey)) {
+        Codec.encodeHex(publicKey) == Codec.encodeHex(secondKey)) {
       a = BigInt.one;
     } else {
       a = fromBuffer(Codec.decodeHex(
-              Hash.taggedHash('KeyAgg coefficient', L + prefixedPublicKey))) %
+              Hash.taggedHash('KeyAgg coefficient', L + publicKey))) %
           n;
     }
 
@@ -543,7 +530,7 @@ class Ecc {
     Uint8List fullSignature = Uint8List.fromList([...R_x, ...sBytes]);
 
     if (!verifyMuSig2PartialSignature(
-        fullSignature, publicNonce, prefixedPublicKey, sessionContext)) {
+        fullSignature, publicNonce, publicKey, sessionContext)) {
       throw Exception("Invalid signature generated");
     }
 
@@ -657,13 +644,18 @@ class Ecc {
     }
 
     s = (s + e * g * tacc) % n;
-    Uint8List result =
+    Uint8List signature =
         Uint8List.fromList(R_x + Converter.bigIntToBytes(s, byteLength: 32));
+    Uint8List publicKey = Ecc.getEncoded(sessionContext.Q, true);
 
-    if (!Ecc.verifySchnorr(sessionContext.message,
-        Ecc.getEncoded(sessionContext.Q, true).sublist(1), result)) {
+    //db
+    print("signature: ${Codec.encodeHex(signature)}");
+    print("publicKey: ${Codec.encodeHex(publicKey)}");
+    print("message: ${Codec.encodeHex(sessionContext.message)}");
+
+    if (!Ecc.verifySchnorr(sessionContext.message, publicKey, signature)) {
       throw Exception('Invalid aggregated signature generated.');
     }
-    return result;
+    return signature;
   }
 }

@@ -78,6 +78,11 @@ abstract class SingleSignatureWalletBase extends WalletBase {
   }
 
   @override
+  String getKeyOriginExpression() {
+    return Descriptor.getKeyOriginExpression(keyStore, derivationPath);
+  }
+
+  @override
   bool hasPublicKeyInPsbt(String psbt) {
     return keyStore.hasPublicKeyInPsbt(psbt);
   }

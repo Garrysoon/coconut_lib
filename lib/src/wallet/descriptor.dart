@@ -3,20 +3,23 @@ part of '../../coconut_lib.dart';
 /// Represents a descriptor of Bitcoin. (BIP-0380)
 class Descriptor {
   String _scriptType;
-  List<String> _publicKeyList = [];
+  List<String> _keyOriginExpressionList = [];
   List<String> _miniscriptList = [];
   late int _requiredSignatures;
-  int get totalSigner => _publicKeyList.length;
+  int get totalSigner => _keyOriginExpressionList.length;
   AddressType _addressType;
 
+  get miniscriptList => _miniscriptList;
+
   /// @nodoc
-  Descriptor(this._scriptType, this._publicKeyList, this._addressType,
-      {int? requiredSignatures, List<String>? miniscriptList}) {
+  Descriptor(this._scriptType, this._keyOriginExpressionList, this._addressType,
+      {List<String>? miniscriptList, int? requiredSignatures}) {
     if (requiredSignatures == null) {
       if (_addressType.isSingleSignature) {
         _requiredSignatures = 1;
-      } else if (_addressType == AddressType.p2trMuSig2) {
-        _requiredSignatures = _publicKeyList.length;
+      } else if (_addressType == AddressType.p2trMuSig2 ||
+          _addressType == AddressType.p2tr) {
+        _requiredSignatures = _keyOriginExpressionList.length;
       } else {
         throw Exception('Required signatures not specified.');
       }
@@ -47,62 +50,50 @@ class Descriptor {
       int requiredSignatures) {
     //'wsh(sortedmulti(2,[e50bd392/48h/0h/0h/2h]xpub6FPPhpChFv7pQE7D19ZNGoFcCUzmMdwEMwqGFshE7SCfBiN5YqpejTKkshCS3sawXF98w7j5YeaYmnVdcMuX4wLr2pwiUaccvb4WsF1w5Kz/<0;1>/*,[906222f7/48h/0h/0h/2h]xpub6EgRoGnrQpGy55qdvYXqCspbx3M4zwEJqqMY4Gvf8wTd927pAoiknQBWvLpk6gh1tWJErqgW6S4QDJykGedZ7ngV2TbRG25wUEpnCox9dKA/<0;1>/*,[476ec2dc/48h/0h/0h/2h]xpub6ERySjYpfyoWiREzdy5hZFjzkPWQK5GzUiPppcqdYm1qqbi5H8tpUeX93LG1MzQLn4Dj5iMwydhnFLqWvHHJk2ZHiKD9gYZh6YbVR1VQT1V/<0;1>/*))#x9cc762c';
     String scriptType = addressType.scriptType;
-    List<String> publicKeyString = [];
+    List<String> keyOriginExpressionList = [];
     for (int i = 0; i < keyStoreList.length; i++) {
-      publicKeyString
+      keyOriginExpressionList
           .add(getKeyOriginExpression(keyStoreList[i], derivationPath));
     }
-    return Descriptor(scriptType, publicKeyString, addressType,
+    return Descriptor(scriptType, keyOriginExpressionList, addressType,
         requiredSignatures: requiredSignatures);
   }
 
+  /// Get the key origin expression.
   static String getKeyOriginExpression(
       KeyStore keyStore, String derivationPath) {
-    return "[${keyStore.masterFingerprint}/$derivationPath]${keyStore.extendedPublicKey.serialize()}/<0;1>/*";
-  }
-
-  static String getMiniscriptExpression(
-      InheritancePlan inheritancePlan, String derivationPath) {
-    if (inheritancePlan is AbsoluteInheritancePlan) {
-      return "and_v(v:pk(${getKeyOriginExpression(inheritancePlan.keyStore, derivationPath)}),older(${inheritancePlan.locktime}))";
-    } else if (inheritancePlan is RelativeInheritancePlan) {
-      return "and_v(v:pk(${getKeyOriginExpression(inheritancePlan.keyStore, derivationPath)}),after(${inheritancePlan.sequence}))";
-    } else {
-      throw Exception('Invalid inheritance plan.');
-    }
+    return "[${keyStore.masterFingerprint}/${derivationPath.replaceAll("m/", "")}]${keyStore.extendedPublicKey.serialize()}/<0;1>/*";
   }
 
   /// Create a descriptor for taproot.
   factory Descriptor.forTaproot(
       AddressType addressType,
       List<KeyStore> keyStoreList,
-      List<InheritancePlan> inheritancePlanList,
+      List<Policy> policyList,
       String derivationPath) {
     //tr(internal_key, script_tree)
     //internal_key: xpub/0/* or musig(xpub1/*,xpub2/*)
     //script_tree: {and_v(v:pk(beneficiary),older(52560))}, {and_v(v:pk(heir),after(900000))}
     //ex: tr(musig([aaaa/86h/0h/0h]xpub1/0/*,[bbbb/86h/0h/0h]xpub2/0/*),{and_v(v:pk([cccc/86h/0h/0h]xpub3/0/*),older(52560))})
+    List<String> keyOriginList = [];
+    for (KeyStore keyStore in keyStoreList) {
+      keyOriginList.add(getKeyOriginExpression(keyStore, derivationPath));
+    }
+    List<String> miniscriptList = [];
+    for (Policy policy in policyList) {
+      miniscriptList.add(policy.toMiniscript());
+    }
 
     late Descriptor descriptor;
 
-    if (inheritancePlanList.isNotEmpty) {
-      descriptor = Descriptor(
-          addressType.scriptType,
-          keyStoreList
-              .map((e) => getKeyOriginExpression(e, derivationPath))
-              .toList(),
-          addressType,
-          miniscriptList: inheritancePlanList
-              .map((e) => getMiniscriptExpression(e, derivationPath))
-              .toList());
-    } else {
-      descriptor = Descriptor(
-          addressType.scriptType,
-          keyStoreList
-              .map((e) => getKeyOriginExpression(e, derivationPath))
-              .toList(),
-          addressType);
-    }
+    descriptor = Descriptor(
+        addressType.scriptType,
+        keyStoreList
+            .map((e) => getKeyOriginExpression(e, derivationPath))
+            .toList(),
+        addressType,
+        miniscriptList: policyList.map((e) => e.toMiniscript()).toList());
+
     return descriptor;
   }
 
@@ -147,6 +138,81 @@ class Descriptor {
           .group(2)!;
       pubKeyContent = multisigContent.split(',');
       require = pubKeyContent.length;
+    } else if (addressType == AddressType.p2tr) {
+      // Parse tr(internal_key, {miniscript1}, {miniscript2}, ...)
+      // or tr(musig(key1, key2, ...), {miniscript1}, {miniscript2}, ...)
+      String inner = scriptContent;
+      int parenDepth = 0;
+      int braceDepth = 0;
+      List<String> topLevelParts = [];
+      StringBuffer current = StringBuffer();
+
+      for (int i = 0; i < inner.length; i++) {
+        String char = inner[i];
+
+        if (char == '(') {
+          parenDepth++;
+        } else if (char == ')') {
+          parenDepth--;
+        } else if (char == '{') {
+          braceDepth++;
+        } else if (char == '}') {
+          braceDepth--;
+        }
+
+        if (char == ',' && parenDepth == 0 && braceDepth == 0) {
+          topLevelParts.add(current.toString().trim());
+          current.clear();
+        } else {
+          current.write(char);
+        }
+      }
+      if (current.isNotEmpty) {
+        topLevelParts.add(current.toString().trim());
+      }
+
+      if (topLevelParts.isEmpty) {
+        throw Exception('Invalid taproot descriptor format.');
+      }
+
+      // First part is internal key
+      String internalKeyPart = topLevelParts[0];
+      List<String> miniscriptList = [];
+
+      // Parse internal key (single key or musig)
+      if (internalKeyPart.startsWith('musig(')) {
+        // Extract keys from musig(sorted(key1, key2, ...))
+        RegExpMatch? musigMatch =
+            RegExp(r'musig\(sorted\((.+)\)\)').firstMatch(internalKeyPart);
+        if (musigMatch == null) {
+          throw Exception('Only sorted musig is supported.');
+        }
+        pubKeyContent =
+            musigMatch.group(1)!.split(',').map((e) => e.trim()).toList();
+        require = pubKeyContent.length;
+      } else {
+        // Single key origin expression
+        pubKeyContent = [internalKeyPart];
+        require = 1;
+      }
+
+      // Parse miniscript list from remaining parts
+      for (int i = 1; i < topLevelParts.length; i++) {
+        String miniscriptPart = topLevelParts[i];
+        if (miniscriptPart == "{}") {
+          continue;
+        }
+        // Remove surrounding braces { }
+        if (miniscriptPart.startsWith('{') && miniscriptPart.endsWith('}')) {
+          miniscriptList
+              .add(miniscriptPart.substring(1, miniscriptPart.length - 1));
+        } else {
+          throw Exception('Invalid miniscript format: $miniscriptPart');
+        }
+      }
+
+      return Descriptor(scriptType, pubKeyContent, addressType,
+          miniscriptList: miniscriptList, requiredSignatures: require);
     } else {
       throw Exception('Unsupported script type.');
     }
@@ -157,9 +223,9 @@ class Descriptor {
 
   /// Get the derivation path.
   String getDerivationPath(int index) {
-    String pub = _publicKeyList[index];
-    RegExpMatch derivationPathMatch = RegExp(r'\[(.+)\](.+)').firstMatch(pub)!;
-    List<String> list = derivationPathMatch.group(1)!.split('/').sublist(1);
+    String pub = _keyOriginExpressionList[index];
+    RegExpMatch match = RegExp(r'\[(.+)\](.+)').firstMatch(pub)!;
+    List<String> list = match.group(1)!.split('/').sublist(1);
     String derivationPath = 'm/${list.join('/')}';
 
     return derivationPath.replaceAll('h', "'");
@@ -167,17 +233,17 @@ class Descriptor {
 
   /// Get the fingerprint.
   String getFingerprint(int index) {
-    String pub = _publicKeyList[index];
-    RegExpMatch derivationPathMatch = RegExp(r'\[(.+)\](.+)').firstMatch(pub)!;
-    String? fingerprint = derivationPathMatch.group(1)!.split('/')[0];
+    String pub = _keyOriginExpressionList[index];
+    RegExpMatch match = RegExp(r'\[(.+)\](.+)').firstMatch(pub)!;
+    String? fingerprint = match.group(1)!.split('/')[0];
     return fingerprint;
   }
 
   /// Get the public key.
   String getPublicKey(int index) {
-    String pub = _publicKeyList[index];
-    RegExpMatch derivationPathMatch = RegExp(r'\[(.+)\](.+)').firstMatch(pub)!;
-    String? pubkey = derivationPathMatch.group(2)!.split('/')[0];
+    String pub = _keyOriginExpressionList[index];
+    RegExpMatch match = RegExp(r'\[(.+)\](.+)').firstMatch(pub)!;
+    String? pubkey = match.group(2)!.split('/')[0];
 
     return pubkey;
   }
@@ -186,17 +252,30 @@ class Descriptor {
   String serialize() {
     String body = '';
 
-    if (_addressType.isSingleSignature) {
-      body = "$_scriptType(${_publicKeyList[0]})";
+    if (_addressType.isTaproot) {
+      String keyOriginExpression;
+      if (_keyOriginExpressionList.length == 1) {
+        keyOriginExpression = _keyOriginExpressionList[0];
+      } else {
+        keyOriginExpression =
+            "musig(sorted(${_keyOriginExpressionList.join(',')}))";
+      }
+      if (_miniscriptList.isEmpty) {
+        body = "tr($keyOriginExpression)";
+      } else {
+        body = "tr($keyOriginExpression,{${_miniscriptList.join('},{')}})";
+      }
+    } else if (_addressType.isSingleSignature) {
+      body = "$_scriptType(${_keyOriginExpressionList[0]})";
     } else if (_addressType == AddressType.p2wsh) {
       body = "$_scriptType(sortedmulti($_requiredSignatures";
-      for (String pub in _publicKeyList) {
+      for (String pub in _keyOriginExpressionList) {
         body += ",$pub";
       }
       body += "))";
     } else if (_addressType == AddressType.p2trMuSig2) {
       body = "$_scriptType(musig(sorted(";
-      body += _publicKeyList.map((e) => e).join(',');
+      body += _keyOriginExpressionList.map((e) => e).join(',');
       body += ")))";
     } else {
       throw Exception('Unsupported script type.');
@@ -211,44 +290,45 @@ class Descriptor {
     } else if (descriptor.startsWith('wsh')) {
       return AddressType.p2wsh;
     } else if (descriptor.startsWith('tr')) {
-      if (!descriptor.contains('musig(') && !descriptor.contains('pk(')) {
-        return AddressType.p2trKeyPathSpending;
-      } else {
-        String inner = descriptor.substring(3, descriptor.length - 1);
-        int parenDepth = 0;
-        int braceDepth = 0;
-        List<String> topLevelParts = [];
-        StringBuffer current = StringBuffer();
-        for (int i = 0; i < inner.length; i++) {
-          String char = inner[i];
+      return AddressType.p2tr;
+      // if (!descriptor.contains('musig(') && !descriptor.contains('pk(')) {
+      //   return AddressType.p2trKeyPathSpending;
+      // } else {
+      //   String inner = descriptor.substring(3, descriptor.length - 1);
+      //   int parenDepth = 0;
+      //   int braceDepth = 0;
+      //   List<String> topLevelParts = [];
+      //   StringBuffer current = StringBuffer();
+      //   for (int i = 0; i < inner.length; i++) {
+      //     String char = inner[i];
 
-          if (char == '(') {
-            parenDepth++;
-          } else if (char == ')') {
-            parenDepth--;
-          } else if (char == '{') {
-            braceDepth++;
-          } else if (char == '}') {
-            braceDepth--;
-          }
+      //     if (char == '(') {
+      //       parenDepth++;
+      //     } else if (char == ')') {
+      //       parenDepth--;
+      //     } else if (char == '{') {
+      //       braceDepth++;
+      //     } else if (char == '}') {
+      //       braceDepth--;
+      //     }
 
-          if (char == ',' && parenDepth == 0 && braceDepth == 0) {
-            topLevelParts.add(current.toString().trim());
-            current.clear();
-          } else {
-            current.write(char);
-          }
-        }
-        if (current.isNotEmpty) {
-          topLevelParts.add(current.toString().trim());
-        }
+      //     if (char == ',' && parenDepth == 0 && braceDepth == 0) {
+      //       topLevelParts.add(current.toString().trim());
+      //       current.clear();
+      //     } else {
+      //       current.write(char);
+      //     }
+      //   }
+      //   if (current.isNotEmpty) {
+      //     topLevelParts.add(current.toString().trim());
+      //   }
 
-        if (topLevelParts.length == 1) {
-          return AddressType.p2trMuSig2;
-        } else {
-          return AddressType.p2trScriptPathSpending;
-        }
-      }
+      //   if (topLevelParts.length == 1) {
+      //     return AddressType.p2trMuSig2;
+      //   } else {
+      //     return AddressType.p2trScriptPathSpending;
+      //   }
+      // }
     } else {
       throw Exception('Unsupported script type.');
     }

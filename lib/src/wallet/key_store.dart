@@ -116,52 +116,7 @@ class KeyStore {
     Uint8List privKey = child.getPrivateKey(applyTweak, isXOnly,
         merkleRoot: merkleRoot, aggregatedPublicKey: aggregatedPublicKey);
     return Codec.encodeHex(privKey);
-
-    // if (applyTweak) {
-    //   privKey = child.getTweakedPrivateKey(
-    //       merkleRoot: merkleRoot, aggregatedPublicKey: aggregatedPublicKey);
-    // } else {
-    //   privKey = child.privateKey!;
-    // }
   }
-
-//sign.
-  // String sign(String message, int addressIndex,
-  //     {bool isChange = false, isSchnorr = false}) {
-  //   if (!hasSeed) throw Exception('No private key in this key store');
-  //   HDWallet child = getChildHdWallet(isChange).derive(addressIndex);
-  //   Uint8List signature = child.sign(Uint8List.fromList(HEX.decode(message)),
-  //       isShnorr: isSchnorr);
-  //   String sig;
-  //   if (!isSchnorr) {
-  //     // String r = Codec.encodeHex(signature.sublist(0, 32));
-  //     // if (int.parse(r.substring(0, 2), radix: 16) & 0x80 != 0) {
-  //     //   r = '00$r';
-  //     // }
-  //     // String rLength = Converter.decToHex(r.length ~/ 2);
-  //     // String s = Codec.encodeHex(signature.sublist(32, 64));
-  //     // String sLength = Converter.decToHex(s.length ~/ 2);
-  //     // String rs = '02$rLength${r}02$sLength$s';
-  //     // sig = '30${Converter.decToHex(rs.length ~/ 2)}${rs}01';
-  //     sig = Codec.encodeHex(Converter.rawToDerSignature(signature));
-  //   } else {
-  //     sig = Codec.encodeHex(signature);
-  //   }
-  //   return sig;
-  // }
-
-//sign with derivation path.
-  // String signWithDerivationPath(String message, String derivationPath,
-  //     {bool isSchnorr = false}) {
-  //   if (!WalletUtility.validateDerivationPath(derivationPath)) {
-  //     throw Exception('Invalid derivation path');
-  //   }
-  //   List<String> pathList = derivationPath.split('/');
-  //   int index = int.parse(pathList.last);
-  //   int changeIndex = int.parse(pathList[pathList.length - 2]);
-  //   return sign(message, index,
-  //       isChange: changeIndex == 1, isSchnorr: isSchnorr);
-  // }
 
   /// Get the public key of the key store using index.
   String getPublicKey(int addressIndex,
@@ -225,20 +180,11 @@ class KeyStore {
           String publicKey = getPublicKey(
               thisInput.tapBip32Derivation![j].accountIndex,
               isChange: thisInput.tapBip32Derivation![j].isChange,
-              isXOnly: true);
+              isXOnly: false);
 
-          //getPublicKey(tx.utxoList[i].accountIndex,
-          //isChange: tx.utxoList[i].isChange, isXOnly: true)
           if (publicKeyInPsbt.length != publicKey.length) {
             publicKey = publicKey.substring(2);
           }
-
-          // print(
-          //     'thisInput.tapBip32Derivation![j].masterFingerprint: ${thisInput.tapBip32Derivation![j].masterFingerprint}');
-          // print('masterFingerprint: $masterFingerprint');
-
-          // print('publicKeyInPsbt: $publicKeyInPsbt');
-          // print('publicKey: $publicKey');
 
           if (thisInput.derivationPathList[j].masterFingerprint ==
               masterFingerprint) {
@@ -256,13 +202,13 @@ class KeyStore {
     }
   }
 
-  String addMuSig2PublicNonceToPsbt(String psbt) {
+  String addPublicNonceToPsbt(String psbt) {
     if (!hasSeed) {
       throw Exception('This key store does not have seed');
     }
     Psbt psbtObject = Psbt.parse(psbt);
-    if (psbtObject.addressType != AddressType.p2trMuSig2) {
-      throw Exception('Only musig2 needs public nonce.');
+    if (psbtObject.addressType != AddressType.p2tr) {
+      throw Exception('Only p2tr needs public nonce.');
     }
     if (psbtObject.inputs.length !=
         psbtObject.unsignedTransaction!.inputs.length) {
@@ -283,15 +229,14 @@ class KeyStore {
           .getTaprootSigHash(inputIndex, utxoList);
       for (DerivationPath derivationPath in psbtInput.tapBip32Derivation!) {
         if (masterFingerprint == derivationPath.masterFingerprint) {
-          addMuSig2PublicNonceToPsbtInput(
-              psbtInput, derivationPath.path, sigHash);
+          addPublicNonceToPsbtInput(psbtInput, derivationPath.path, sigHash);
         }
       }
     }
     return psbtObject.serialize();
   }
 
-  void addMuSig2PublicNonceToPsbtInput(
+  void addPublicNonceToPsbtInput(
       PsbtInput psbtInput, String derivationPath, String sigHash) {
     if (!hasSeed) {
       throw Exception('This vault does not have seed');
@@ -302,7 +247,7 @@ class KeyStore {
     bool isChange = WalletUtility.isChangeFromDerivationPath(derivationPath);
     String publicKey =
         getPublicKey(accountIndex, isChange: isChange, isXOnly: true);
-    String publicNonce = getMuSig2PublicNonce(
+    String publicNonce = getPublicNonce(
         sigHash, psbtInput.muSig2AggregatedPublicKey!, accountIndex, isChange);
     psbtInput.addMuSig2PubNonce(publicKey, publicNonce);
   }
@@ -374,85 +319,18 @@ class KeyStore {
 
       // String derivationPath = psbtInput.derivationPathList[inputIndex].path;
       MuSig2SessionContext? sessionContext;
-      if (addressType == AddressType.p2trMuSig2) {
+      if (addressType == AddressType.p2tr) {
         sessionContext = MuSig2SessionContext(
-            Codec.decodeHex(psbtInput.getAggregatedPublicNonce()),
             psbtInput.muSig2ParticipantPubkeys!
-                .map((e) => Codec.decodeHex('02$e'))
+                .map((e) => Codec.decodeHex(e))
                 .toList(),
+            Codec.decodeHex(psbtInput.getAggregatedPublicNonce()),
+            Codec.decodeHex(psbtInput.muSig2AggregatedPublicKey!),
             Codec.decodeHex(sigHash));
       }
 
       addSignatureToPsbtInput(psbtInput, addressType, derivationPath, sigHash,
           sessionContext: sessionContext);
-
-      // 2. Calculate signatures and get public keys
-      // List<String> signatureList = [];
-      // List<String> publicKeyList = [];
-      // for (int pathIndex = 0;
-      //     pathIndex < psbtInput.derivationPathList.length;
-      //     pathIndex++) {
-      //   if (psbtInput.derivationPathList[pathIndex].masterFingerprint !=
-      //       masterFingerprint) {
-      //     continue;
-      //   }
-      //   String derivationPath = psbtInput.derivationPathList[pathIndex].path;
-      //   HDWallet hdWallet = getChildHdWallet(
-      //           WalletUtility.isChangeFromDerivationPath(derivationPath))
-      //       .derive(WalletUtility.getAccountIndexFromDerivationPath(
-      //           derivationPath));
-      //   publicKeyList.add(getPublicKey(
-      //       psbtInput.derivationPathList[pathIndex].accountIndex,
-      //       isChange: psbtInput.derivationPathList[pathIndex].isChange,
-      //       applyTweak: addressType.applyTweak));
-
-      //   if (!addressType.isTaproot) {
-      //     // ECDSA
-      //     signatureList.add(
-      //         Codec.encodeHex(hdWallet.signEcdsa(Codec.decodeHex(sigHash))));
-      //   } else {
-      //     //Schnorr
-      //     signatureList.add(Codec.encodeHex(hdWallet.signSchnorr(
-      //         Codec.decodeHex(sigHash), addressType.applyTweak)));
-      //   }
-      // }
-
-      // // 3. Validate signature
-      // for (int j = 0; j < signatureList.length; j++) {
-      //   Uint8List signature = Codec.decodeHex(signatureList[j]);
-      //   Uint8List publicKey = Codec.decodeHex(publicKeyList[j]);
-      //   if (!addressType.isTaproot) {
-      //     // ECDSA
-      //     if (!Ecc.verifyEcdsa(Codec.decodeHex(sigHash), publicKey,
-      //         Converter.derToRawSignature(signature))) {
-      //       throw Exception('Invalid signature');
-      //     }
-      //   } else {
-      //     // Schnorr
-      //     if (!Ecc.verifySchnorr(
-      //         Codec.decodeHex(sigHash), publicKey, signature)) {
-      //       throw Exception('Invalid signature');
-      //     }
-      //   }
-      // }
-
-      // // 4. Attach signature to PSBT
-      // for (int j = 0; j < signatureList.length; j++) {
-      //   if (!addressType.isTaproot) {
-      //     // ECDSA
-      //     psbtObject.addPartialSig(
-      //         inputIndex, signatureList[j], publicKeyList[j]);
-      //   } else {
-      //     // Taproot
-      //     if (addressType.applyTweak) {
-      //       // Key path
-      //       psbtObject.addTapKeySig(j, signatureList[j]);
-      //     } else {
-      //       // Script path
-      //       psbtObject.addTapScriptSig(j, signatureList[j], publicKeyList[j]);
-      //     }
-      //   }
-      // }
     }
     return psbtObject.serialize();
   }
@@ -483,14 +361,14 @@ class KeyStore {
       if (addressType == AddressType.p2trKeyPathSpending) {
         signature = Codec.encodeHex(hdWallet.signSchnorr(
             Codec.decodeHex(sigHash), addressType.applyTweak));
-      } else if (addressType == AddressType.p2trMuSig2) {
+      } else if (addressType == AddressType.p2tr) {
         //MuSig2
         if (psbtInput.tapBip32Derivation!.length !=
             psbtInput.muSig2PubNonces!.length) {
           throw Exception("Not enough public nonce.");
         }
-        Uint8List secretNonce = Codec.decodeHex(getMuSig2SecretNonce(sigHash,
-            psbtInput.muSig2AggregatedPublicKey!, accountIndex, isChange));
+        Uint8List secretNonce = getSecretNonce(sigHash,
+            psbtInput.muSig2AggregatedPublicKey!, accountIndex, isChange);
 
         signature = Codec.encodeHex(
             hdWallet.signSchnorrForMuSig2(secretNonce, sessionContext!));
@@ -514,7 +392,7 @@ class KeyStore {
             Codec.decodeHex(sigHash), publicKeyByte, signatureByte)) {
           throw Exception('Invalid signature');
         }
-      } else if (addressType == AddressType.p2trMuSig2) {
+      } else if (addressType == AddressType.p2tr) {
         Uint8List publicNonce = Codec.decodeHex(
             psbtInput.muSig2PubNonces![Codec.encodeHex(publicKeyByte)]!);
         if (!Ecc.verifyMuSig2PartialSignature(
@@ -537,7 +415,7 @@ class KeyStore {
         // Key path
         // psbtObject.addTapKeySig(inputIndex, signatureMap[pub]!);
         psbtInput.addTapKeySig(signature);
-      } else if (addressType == AddressType.p2trMuSig2) {
+      } else if (addressType == AddressType.p2tr) {
         // psbtObject.addMuSig2PartialSig(inputIndex, signatureMap[pub]!, pub);
         psbtInput.addMuSig2PartialSig(signature, publicKey);
       } else if (addressType == AddressType.p2trScriptPathSpending) {
@@ -550,30 +428,21 @@ class KeyStore {
     }
   }
 
-  String getMuSig2SecretNonce(String sigHash, String aggregatedPublicKey,
+  Uint8List getSecretNonce(String sigHash, String aggregatedPublicKey,
       int accountIndex, bool isChange,
       {Uint8List? extraInput}) {
     Uint8List secretKey = Codec.decodeHex(
-        getPrivateKey(accountIndex, isChange: isChange, isXOnly: true));
+        getPrivateKey(accountIndex, isChange: isChange, isXOnly: false));
     Uint8List publicKey = Codec.decodeHex(
-        "02${getPublicKey(accountIndex, isChange: isChange, isXOnly: true)}");
+        getPublicKey(accountIndex, isChange: isChange, isXOnly: false));
     Uint8List aggPubkey = Codec.decodeHex(aggregatedPublicKey);
     Uint8List message = Codec.decodeHex(sigHash);
     Uint8List rand = Hash.sha160fromByte(
         Uint8List.fromList([...secretKey, ...aggPubkey, ...message]));
-    // print("==> Get Secret Nonce");
-    // print('rand: ${Codec.encodeHex(rand)}');
-    // print('secretKey: ${Codec.encodeHex(secretKey)}');
-    // print('publicKey: ${Codec.encodeHex(publicKey)}');
-    // print('aggPubkey: ${Codec.encodeHex(aggPubkey)}');
-    // print('message: ${Codec.encodeHex(message)}');
-    // print('extraInput: ${Codec.encodeHex(extraInput ?? Uint8List(0))}');
     Uint8List secretNonce = calculateSecretNonce(
         rand, secretKey, publicKey, aggPubkey, message, extraInput,
         isDeterministic: false);
-    // print('secretNonce: ${Codec.encodeHex(secretNonce)}');
-    // print("==> Finished Get Secret Nonce");
-    return Codec.encodeHex(secretNonce);
+    return secretNonce;
   }
 
   static Uint8List calculateSecretNonce(
@@ -592,6 +461,7 @@ class KeyStore {
       }
       rand = result;
     }
+
     Uint8List mPrefixed;
     final len = message.length;
     final lenBytes = Uint8List(8)..buffer.asByteData().setUint64(0, len);
@@ -623,15 +493,16 @@ class KeyStore {
     }
     k1 = scalars[0];
     k2 = scalars[1];
-    return Uint8List.fromList([...k1, ...k2, ...publicKey]);
+    Uint8List secretNonce = Uint8List.fromList([...k1, ...k2, ...publicKey]);
+    return secretNonce;
   }
 
-  String getMuSig2PublicNonce(String sigHash, String aggregatedPublicKey,
+  String getPublicNonce(String sigHash, String aggregatedPublicKey,
       int accountIndex, bool isChange,
       {Uint8List? extraInput}) {
-    Uint8List secretNonce = Codec.decodeHex(getMuSig2SecretNonce(
+    Uint8List secretNonce = getSecretNonce(
         sigHash, aggregatedPublicKey, accountIndex, isChange,
-        extraInput: extraInput));
+        extraInput: extraInput);
     Uint8List publicNonce = calculatePublicNonce(secretNonce);
     return Codec.encodeHex(publicNonce);
   }
@@ -698,8 +569,9 @@ class KeyStore {
 }
 
 class MuSig2SessionContext {
-  final Uint8List aggregatedPubNonce;
   final List<Uint8List> participantPublicKeys;
+  final Uint8List aggregatedPubNonce;
+  final Uint8List aggregatedPublicKey;
   final Uint8List message;
 
   late ECPoint Q;
@@ -707,8 +579,8 @@ class MuSig2SessionContext {
   late ECPoint R;
   late BigInt e;
 
-  MuSig2SessionContext(
-      this.aggregatedPubNonce, this.participantPublicKeys, this.message) {
+  MuSig2SessionContext(this.participantPublicKeys, this.aggregatedPubNonce,
+      this.aggregatedPublicKey, this.message) {
     // print('aggregatedPubNonce: ${Codec.encodeHex(aggregatedPubNonce)}');
     // print(
     //     'participantPublicKeys: ${Codec.encodeHex(participantPublicKeys[0])}');
@@ -722,6 +594,10 @@ class MuSig2SessionContext {
       throw ArgumentError(
           "aggregatedPubNonce must be 66 bytes (got ${aggregatedPubNonce.length})");
     }
+    if (aggregatedPublicKey.length != 33) {
+      throw ArgumentError(
+          "aggregatedPublicKey must be 33 bytes (got ${aggregatedPublicKey.length})");
+    }
 
     for (var key in participantPublicKeys) {
       if (key.length != 33) {
@@ -730,9 +606,11 @@ class MuSig2SessionContext {
       }
     }
 
-    Q = Ecc.decodeFrom(WalletUtility.aggregatePublicKey(
-        participantPublicKeys.map((e) => Codec.encodeHex(e)).toList(),
-        isXOnly: false))!;
+    Q = Ecc.decodeFrom(aggregatedPublicKey)!;
+
+    // Q = Ecc.decodeFrom(WalletUtility.aggregatePublicKey(
+    //     participantPublicKeys.map((e) => e).toList(),
+    //     isXOnly: false))!;
 
     b = Ecc.fromBuffer(Codec.decodeHex(Hash.taggedHash(
         "MuSig/noncecoef",

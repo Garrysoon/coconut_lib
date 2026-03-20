@@ -1,32 +1,8 @@
 part of '../../coconut_lib.dart';
 
-abstract class InheritancePlan {
-  final KeyStore keyStore;
-  InheritancePlan(this.keyStore);
-  Script get script;
-}
-
-class AbsoluteInheritancePlan extends InheritancePlan {
-  final int locktime;
-  AbsoluteInheritancePlan(this.locktime, super.keyStore);
-
-  @override
-  Script get script => InheritanceScript.withCheckLockTimeVerify(
-      locktime, keyStore.getPublicKeyBytes(0, isChange: false, isXOnly: true));
-}
-
-class RelativeInheritancePlan extends InheritancePlan {
-  final int sequence;
-  RelativeInheritancePlan(this.sequence, super.keyStore);
-
-  @override
-  Script get script => InheritanceScript.withCheckSequenceVerify(
-      sequence, keyStore.getPublicKeyBytes(0, isChange: false, isXOnly: true));
-}
-
 abstract class TaprootWalletBase extends WalletBase {
   final List<KeyStore> _keyStoreList;
-  final List<InheritancePlan> _inheritancePlanList;
+  final List<Policy> _policyList;
   final bool _isVault;
 
   /// Get the list of keyStores.
@@ -35,16 +11,19 @@ abstract class TaprootWalletBase extends WalletBase {
   /// Check if this is a vault.
   bool get isVault => _isVault;
 
-  /// Get the list of inheritance plans.
-  List<InheritancePlan>? get inheritancePlanList => _inheritancePlanList;
+  /// Get the list of miniscripts.
+  List<Policy> get policyList => _policyList;
 
   /// @nodoc
-  TaprootWalletBase(this._keyStoreList, this._inheritancePlanList,
-      AddressType _addressType, String _derivationPath, this._isVault)
-      : super(_addressType, _derivationPath) {
+  TaprootWalletBase(this._keyStoreList, this._policyList,
+      String _derivationPath, this._isVault)
+      : super(AddressType.p2tr, _derivationPath) {
     if (!_addressType.isTaproot) {
       throw Exception('Address type must be Taproot.');
     }
+
+    _keyStoreList
+        .sort((a, b) => a.masterFingerprint.compareTo(b.masterFingerprint));
 
     for (KeyStore keyStore in _keyStoreList) {
       if (NetworkType.currentNetworkType.isTestnet !=
@@ -70,18 +49,18 @@ abstract class TaprootWalletBase extends WalletBase {
     }
 
     _descriptor = Descriptor.forTaproot(_addressType, _keyStoreList,
-        _inheritancePlanList, _derivationPath.replaceAll("m/", ""));
+        _policyList, _derivationPath.replaceAll("m/", ""));
   }
 
   /// Get the address of the given index.
   @override
   String getAddress(int addressIndex, {bool isChange = false}) {
     Uint8List internalKey =
-        getAggregatedPublicKey(addressIndex, isChange: isChange);
+        getAggregatedPublicKey(addressIndex, isChange: isChange, isXOnly: true);
     Uint8List merkleRoot = Uint8List(0);
 
-    if (_inheritancePlanList.isNotEmpty) {
-      merkleRoot = getMerkleRoot();
+    if (_policyList.isNotEmpty) {
+      merkleRoot = getMerkleRoot(addressIndex, isChange: isChange);
     }
     return _addressType.getTaprootAddress(Codec.encodeHex(internalKey),
         merkleRoot: Codec.encodeHex(merkleRoot));
@@ -100,6 +79,16 @@ abstract class TaprootWalletBase extends WalletBase {
         WalletUtility.getAccountIndexFromDerivationPath(derivationPath);
     bool isChange = WalletUtility.isChangeFromDerivationPath(derivationPath);
     return getAddress(addressIndex, isChange: isChange);
+  }
+
+  @override
+  String getKeyOriginExpression() {
+    List<String> keyOriginExpressionList = [];
+    for (KeyStore keyStore in keyStoreList) {
+      keyOriginExpressionList
+          .add(Descriptor.getKeyOriginExpression(keyStore, derivationPath));
+    }
+    return keyOriginExpressionList.join(',');
   }
 
   @override
@@ -142,7 +131,7 @@ abstract class TaprootWalletBase extends WalletBase {
             witnessScript: witnessScript);
       } else {
         //Taproot
-        if (addressType != AddressType.p2trMuSig2) {
+        if (addressType != AddressType.p2tr) {
           throw Exception('Not support witness script for this address type.');
         }
         List<TransactionOutput> utxoList = [];
@@ -155,10 +144,11 @@ abstract class TaprootWalletBase extends WalletBase {
             .getTaprootSigHash(inputIndex, utxoList);
 
         sessionContext = MuSig2SessionContext(
-            Codec.decodeHex(psbtInput.getAggregatedPublicNonce()),
             psbtInput.muSig2ParticipantPubkeys!
-                .map((e) => Codec.decodeHex('02$e'))
+                .map((e) => Codec.decodeHex(e))
                 .toList(),
+            Codec.decodeHex(psbtInput.getAggregatedPublicNonce()),
+            Codec.decodeHex(psbtInput.muSig2AggregatedPublicKey!),
             Codec.decodeHex(sigHash));
       }
 
@@ -189,85 +179,30 @@ abstract class TaprootWalletBase extends WalletBase {
     return psbtObject.serialize();
   }
 
-  Uint8List getAggregatedPublicKey(int addressIndex, {bool isChange = false}) {
-    List<String> publicKeyList = _keyStoreList
-        .map((keyStore) => keyStore.getPublicKey(addressIndex,
-            isChange: isChange, isXOnly: true))
-        .toList();
-    List<Uint8List> publicKeysBytes =
-        publicKeyList.map((e) => Codec.decodeHex(e)).toList();
-
-    List<Uint8List> prefixedPublicKeyList = [];
-    for (Uint8List publicKey in publicKeysBytes) {
-      if (publicKey.length == 32) {
-        prefixedPublicKeyList.add(Uint8List.fromList([0x02, ...publicKey]));
-      } else if (publicKey.length == 33) {
-        prefixedPublicKeyList.add(publicKey);
-      } else {
-        throw ArgumentError(
-            "publicKey must be 32 or 33 bytes (got ${publicKey.length})");
-      }
-    }
-
-    late Uint8List secondKey = Uint8List(0);
-    for (Uint8List key in prefixedPublicKeyList) {
-      if (Codec.encodeHex(prefixedPublicKeyList[0]) != Codec.encodeHex(key)) {
-        secondKey = key;
-        break;
-      }
-    }
-
-    String concatenatedPublicKey =
-        prefixedPublicKeyList.map((e) => Codec.encodeHex(e)).join();
-
-    Uint8List Q = prefixedPublicKeyList[0];
-
-    for (int i = 0; i < prefixedPublicKeyList.length; i++) {
-      Uint8List coefficient = Uint8List(0);
-      if (Codec.encodeHex(prefixedPublicKeyList[i]) ==
-          Codec.encodeHex(secondKey)) {
-        coefficient = Uint8List.fromList(List<int>.generate(
-            32,
-            (i) => int.parse(
-                BigInt.one
-                    .toRadixString(16)
-                    .padLeft(64, '0')
-                    .substring(i * 2, i * 2 + 2),
-                radix: 16)));
-      } else {
-        String data = Hash.taggedHash(
-                'KeyAgg list', Codec.decodeHex(concatenatedPublicKey)) +
-            Codec.encodeHex(prefixedPublicKeyList[i]);
-        coefficient = Codec.decodeHex(
-            Hash.taggedHash('KeyAgg coefficient', Codec.decodeHex(data)));
-      }
-
-      if (i == 0) {
-        Q = Ecc.pointMultiplyScalar(
-            prefixedPublicKeyList[i], coefficient, true)!;
-      } else {
-        Q = Ecc.pointCombine(
-            Q,
-            Ecc.pointMultiplyScalar(
-                prefixedPublicKeyList[i], coefficient, true)!,
-            true)!;
-      }
-    }
-
-    return Q.sublist(1);
+  String getCoordinatorBsms() {
+    Bsms bsms = Bsms(
+        coordinator: Coordinator(getAddress(0), Descriptor.parse(descriptor)));
+    return bsms.serializeCoordinator();
   }
 
-  Uint8List getMerkleRoot() {
-    if (_inheritancePlanList.isEmpty) {
+  Uint8List getAggregatedPublicKey(int addressIndex,
+      {bool isChange = false, isXOnly = false}) {
+    List<Uint8List> publicKeyList = _keyStoreList
+        .map((keyStore) => keyStore.getPublicKeyBytes(addressIndex,
+            isChange: isChange, isXOnly: false))
+        .toList();
+    return WalletUtility.aggregatePublicKey(publicKeyList,
+        isSort: true, isXOnly: isXOnly);
+  }
+
+  Uint8List getMerkleRoot(int addressIndex, {bool isChange = false}) {
+    if (_policyList.isEmpty) {
       return Uint8List(0);
     }
     List<Uint8List> leafHashes = [];
-    for (InheritancePlan inheritancePlan in _inheritancePlanList) {
-      Uint8List leafHash =
-          _getTapleafHash(0xc0, inheritancePlan.script.rawSerialize());
-      if (leafHash.length != 32) {
-        throw ArgumentError('Each tapleaf hash must be 32 bytes.');
-      }
+    for (Policy policy in _policyList) {
+      Uint8List leafHash = _getTapleafHash(
+          0xc0, policy.toScript(addressIndex, isChange: isChange).serialize());
       leafHashes.add(leafHash);
     }
     return _calculateMerkleRoot(leafHashes);

@@ -74,8 +74,9 @@ class SingleSignatureVault extends SingleSignatureWalletBase {
     if (keyStore.hasSeed == false) {
       throw Exception('Use seed to create signer.');
     }
-    if (!targetAddressType.isMultisignature) {
-      throw Exception('Use multisignature address type.');
+    if (!(targetAddressType.isMultisignature ||
+        targetAddressType == AddressType.p2tr)) {
+      throw Exception('Use multisignature or p2tr address type.');
     }
 
     KeyStore multisigKeyStore =

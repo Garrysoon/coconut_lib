@@ -60,7 +60,7 @@ abstract class MultisignatureWalletBase extends WalletBase {
       }
     }
 
-    _descriptor = Descriptor.forMultisignature(_addressType, keyStoreList,
+    _descriptor = Descriptor.forMultisignature(_addressType, _keyStoreList,
         _derivationPath.replaceAll("m/", ""), _requiredSignature);
   }
 
@@ -99,6 +99,16 @@ abstract class MultisignatureWalletBase extends WalletBase {
             isChange: WalletUtility.isChangeFromDerivationPath(derivationPath)))
         .toList();
     return _addressType.getMultisignatureAddress(pubkeys, _requiredSignature);
+  }
+
+  @override
+  String getKeyOriginExpression() {
+    List<String> keyOriginExpressionList = [];
+    for (KeyStore keyStore in keyStoreList) {
+      keyOriginExpressionList
+          .add(Descriptor.getKeyOriginExpression(keyStore, derivationPath));
+    }
+    return keyOriginExpressionList.join(',');
   }
 
   String getCoordinatorBsms() {
@@ -201,10 +211,11 @@ abstract class MultisignatureWalletBase extends WalletBase {
             .getTaprootSigHash(inputIndex, utxoList);
 
         sessionContext = MuSig2SessionContext(
-            Codec.decodeHex(psbtInput.getAggregatedPublicNonce()),
             psbtInput.muSig2ParticipantPubkeys!
-                .map((e) => Codec.decodeHex('02$e'))
+                .map((e) => Codec.decodeHex(e))
                 .toList(),
+            Codec.decodeHex(psbtInput.getAggregatedPublicNonce()),
+            Codec.decodeHex(psbtInput.muSig2AggregatedPublicKey!),
             Codec.decodeHex(sigHash));
       }
 
@@ -237,8 +248,8 @@ abstract class MultisignatureWalletBase extends WalletBase {
 
   String getAddregatedPublilcKey(int addressIndex, bool isChange,
       {bool isSort = true}) {
-    List<String> publicKeysHex = keyStoreList
-        .map((keyStore) => keyStore.getPublicKey(addressIndex,
+    List<Uint8List> publicKeysBytes = keyStoreList
+        .map((keyStore) => keyStore.getPublicKeyBytes(addressIndex,
             isChange: isChange, isXOnly: true))
         .toList();
 
@@ -249,10 +260,10 @@ abstract class MultisignatureWalletBase extends WalletBase {
     // ];
 
     if (isSort) {
-      publicKeysHex.sort();
+      publicKeysBytes.sort();
     }
 
-    return Codec.encodeHex(WalletUtility.aggregatePublicKey(publicKeysHex));
+    return Codec.encodeHex(WalletUtility.aggregatePublicKey(publicKeysBytes));
 
     // List<Uint8List> publicKeysBytes =
     //     publicKeysHex.map((e) => Codec.decodeHex(e)).toList();

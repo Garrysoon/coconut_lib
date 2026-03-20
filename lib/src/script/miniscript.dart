@@ -1,12 +1,12 @@
 part of '../../coconut_lib.dart';
 
 // ignore_for_file: constant_identifier_names
-enum MiniscriptOp { pk, v, and_v, after, older }
+enum MiniscriptOperation { pk, v, and_v, after, older }
 
 enum MiniscriptType { boolean, verify, key, wrapped }
 
 class Miniscript {
-  final MiniscriptOp op;
+  final MiniscriptOperation op;
   final MiniscriptType type;
   final List<Miniscript> children;
 
@@ -25,7 +25,7 @@ class Miniscript {
       throw FormatException('pk requires pubkey');
     }
     return Miniscript._(
-      op: MiniscriptOp.pk,
+      op: MiniscriptOperation.pk,
       type: MiniscriptType.key,
       children: const [],
       pubkeyHex: pubkeyHex,
@@ -37,7 +37,7 @@ class Miniscript {
       throw FormatException('after requires a positive integer');
     }
     return Miniscript._(
-      op: MiniscriptOp.after,
+      op: MiniscriptOperation.after,
       type: MiniscriptType.boolean,
       children: const [],
       value: value,
@@ -49,7 +49,7 @@ class Miniscript {
       throw FormatException('older requires a positive integer');
     }
     return Miniscript._(
-      op: MiniscriptOp.older,
+      op: MiniscriptOperation.older,
       type: MiniscriptType.boolean,
       children: const [],
       value: value,
@@ -57,51 +57,61 @@ class Miniscript {
   }
 
   factory Miniscript.v(Miniscript child) {
-    validate(MiniscriptOp.v, [child]);
+    validate(MiniscriptOperation.v, [child]);
     return Miniscript._(
-      op: MiniscriptOp.v,
+      op: MiniscriptOperation.v,
       type: MiniscriptType.verify,
       children: [child],
     );
   }
 
   factory Miniscript.andV(Miniscript left, Miniscript right) {
-    validate(MiniscriptOp.and_v, [left, right]);
+    validate(MiniscriptOperation.and_v, [left, right]);
     return Miniscript._(
-      op: MiniscriptOp.and_v,
+      op: MiniscriptOperation.and_v,
       type: MiniscriptType.boolean,
       children: [left, right],
     );
   }
+
+  factory Miniscript.forInheritance(int locktime, String pubkeyHex) {
+    return Miniscript.andV(
+        Miniscript.v(Miniscript.pk(pubkeyHex)), Miniscript.older(locktime));
+  }
+
+  factory Miniscript.forBackup(String pubkeyHex) {
+    return Miniscript.pk(pubkeyHex);
+  }
+
   String serializeForDescriptor() {
     switch (op) {
-      case MiniscriptOp.pk:
+      case MiniscriptOperation.pk:
         final key = pubkeyHex;
         if (key == null || key.isEmpty) {
           throw StateError('pk node missing pubkeyHex');
         }
         return 'pk($key)';
 
-      case MiniscriptOp.v:
+      case MiniscriptOperation.v:
         if (children.length != 1) {
           throw StateError('v node must have exactly 1 child');
         }
         return 'v:${children[0].serializeForDescriptor()}';
 
-      case MiniscriptOp.and_v:
+      case MiniscriptOperation.and_v:
         if (children.length != 2) {
           throw StateError('and_v node must have exactly 2 children');
         }
         return 'and_v(${children[0].serializeForDescriptor()},${children[1].serializeForDescriptor()})';
 
-      case MiniscriptOp.after:
+      case MiniscriptOperation.after:
         final n = value;
         if (n == null) {
           throw StateError('after node missing value');
         }
         return 'after($n)';
 
-      case MiniscriptOp.older:
+      case MiniscriptOperation.older:
         final n = value;
         if (n == null) {
           throw StateError('older node missing value');
@@ -120,7 +130,7 @@ class Miniscript {
 
   List<dynamic> _compileToCommands() {
     switch (op) {
-      case MiniscriptOp.pk:
+      case MiniscriptOperation.pk:
         final keyHex = pubkeyHex;
         if (keyHex == null || keyHex.isEmpty) {
           throw StateError('pk node missing pubkeyHex');
@@ -131,12 +141,12 @@ class Miniscript {
           ScriptOperationCode.getHex('OP_CHECKSIG'),
         ];
 
-      case MiniscriptOp.v:
+      case MiniscriptOperation.v:
         if (children.length != 1) {
           throw StateError('v node must have exactly 1 child');
         }
         final child = children[0];
-        if (child.op != MiniscriptOp.pk) {
+        if (child.op != MiniscriptOperation.pk) {
           throw UnsupportedError(
               'v only supports pk child for script compilation');
         }
@@ -150,7 +160,7 @@ class Miniscript {
           ScriptOperationCode.getHex('OP_CHECKSIGVERIFY'),
         ];
 
-      case MiniscriptOp.after:
+      case MiniscriptOperation.after:
         // 디스크립터(Relative)에서 after(sequence) → CSV 경로 (InheritanceScript.withCheckSequenceVerify와 동일)
         final n = value;
         if (n == null) {
@@ -163,7 +173,7 @@ class Miniscript {
           ScriptOperationCode.getHex('OP_DROP'),
         ];
 
-      case MiniscriptOp.older:
+      case MiniscriptOperation.older:
         // 디스크립터(Absolute)에서 older(locktime) → CLTV 경로 (InheritanceScript.withCheckLockTimeVerify와 동일)
         final n = value;
         if (n == null) {
@@ -176,7 +186,7 @@ class Miniscript {
           ScriptOperationCode.getHex('OP_DROP'),
         ];
 
-      case MiniscriptOp.and_v:
+      case MiniscriptOperation.and_v:
         if (children.length != 2) {
           throw StateError('and_v node must have exactly 2 children');
         }
@@ -184,11 +194,11 @@ class Miniscript {
         final right = children[1];
 
         // inheritance 패턴: and_v(v:pk, older|after) → timelock + DROP + pubkey + CHECKSIG
-        if (left.op == MiniscriptOp.v &&
+        if (left.op == MiniscriptOperation.v &&
             left.children.length == 1 &&
-            left.children[0].op == MiniscriptOp.pk &&
-            (right.op == MiniscriptOp.older ||
-                right.op == MiniscriptOp.after)) {
+            left.children[0].op == MiniscriptOperation.pk &&
+            (right.op == MiniscriptOperation.older ||
+                right.op == MiniscriptOperation.after)) {
           final pkHex = left.children[0].pubkeyHex;
           if (pkHex == null || pkHex.isEmpty) {
             throw StateError('and_v left v:pk missing pubkeyHex');
@@ -203,7 +213,7 @@ class Miniscript {
             throw StateError('and_v timelock node missing value');
           }
           final nBytes = Converter.intToLittleEndianBytes(timelock, 4);
-          if (right.op == MiniscriptOp.older) {
+          if (right.op == MiniscriptOperation.older) {
             return <dynamic>[
               nBytes,
               ScriptOperationCode.getHex('OP_CHECKLOCKTIMEVERIFY'),
@@ -231,26 +241,26 @@ class Miniscript {
     }
   }
 
-  static void validate(MiniscriptOp op, List<Miniscript> children) {
+  static void validate(MiniscriptOperation op, List<Miniscript> children) {
     switch (op) {
-      case MiniscriptOp.pk:
+      case MiniscriptOperation.pk:
         if (children.isNotEmpty) {
           throw ArgumentError('pk must not have children');
         }
 
-      case MiniscriptOp.after:
+      case MiniscriptOperation.after:
         if (children.isNotEmpty) {
           throw ArgumentError('after must not have children');
         }
         return;
 
-      case MiniscriptOp.older:
+      case MiniscriptOperation.older:
         if (children.isNotEmpty) {
           throw ArgumentError('older must not have children');
         }
         return;
 
-      case MiniscriptOp.v:
+      case MiniscriptOperation.v:
         if (children.length != 1) {
           throw ArgumentError('v must have exactly 1 child');
         }
@@ -264,7 +274,7 @@ class Miniscript {
         }
         return;
 
-      case MiniscriptOp.and_v:
+      case MiniscriptOperation.and_v:
         if (children.length != 2) {
           throw ArgumentError('and_v must have exactly 2 children');
         }

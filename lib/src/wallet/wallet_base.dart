@@ -28,6 +28,9 @@ abstract class WalletBase {
   /// Get the address from derivation path
   String getAddressWithDerivationPath(String derivationPath);
 
+  // Get the key origin expression of the wallet.
+  String getKeyOriginExpression();
+
   bool hasPublicKeyInPsbt(String psbt);
 
   String addSignatureToPsbt(String psbt);

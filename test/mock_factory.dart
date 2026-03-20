@@ -12,6 +12,7 @@ enum TestWalletType {
 }
 
 abstract class MockFactory {
+  static String reveiveAddress = 'bcrt1qxdyjf6h5d6qxap4n2dap97q4j5ps6ua8jkxz0z';
   static SingleSignatureVault createP2wpkhVault(
       {TestWalletType testWalletType = TestWalletType.forNormal,
       String passphrase = ''}) {
@@ -39,6 +40,57 @@ abstract class MockFactory {
           passphrase: utf8.encode(passphrase));
     } else if (testWalletType == TestWalletType.random) {
       vault = SingleSignatureVault.random();
+    }
+    return vault!;
+  }
+
+  static TaprootVault createP2trVaultOnlyKeys(
+      {TestWalletType testWalletType = TestWalletType.forNormal,
+      String passphrase = ''}) {
+    SingleSignatureVault vault1 =
+        createP2wpkhVault(testWalletType: testWalletType, passphrase: 'A');
+    SingleSignatureVault vault2 =
+        createP2wpkhVault(testWalletType: testWalletType, passphrase: 'B');
+    return TaprootVault.fromKeyStoreList(
+        [vault1.keyStore, vault2.keyStore], []);
+  }
+
+  static TaprootVault createP2trVaultWithPolicies(
+      {TestWalletType testWalletType = TestWalletType.forNormal,
+      String passphrase = ''}) {
+    KeyStore keyStore1 = KeyStore.fromSeed(
+        Seed.fromMnemonic(
+            utf8.encode(
+                'machine crack daughter fish credit glare raven fever tunnel delay fish record'),
+            passphrase: utf8.encode('A')),
+        AddressType.p2tr);
+    KeyStore keyStore2 = KeyStore.fromSeed(
+        Seed.fromMnemonic(
+            utf8.encode(
+                'machine crack daughter fish credit glare raven fever tunnel delay fish record'),
+            passphrase: utf8.encode('B')),
+        AddressType.p2tr);
+    Policy policy1 = InheritancePolicy.fromDescriptor(
+        createBeneficiaryVault(passphrase: 'C').descriptor, 1000000000);
+    Policy policy2 = InheritancePolicy.fromDescriptor(
+        createBeneficiaryVault(passphrase: 'C').descriptor, 2000000000);
+    Policy policy3 = InheritancePolicy.fromDescriptor(
+        createBeneficiaryVault(passphrase: 'C').descriptor, 1500000000);
+    return TaprootVault.fromKeyStoreList(
+        [keyStore1, keyStore2], [policy1, policy2, policy3]);
+  }
+
+  static TaprootVault createBeneficiaryVault(
+      {TestWalletType testWalletType = TestWalletType.forNormal,
+      String passphrase = ''}) {
+    TaprootVault? vault;
+    if (testWalletType == TestWalletType.forNormal) {
+      vault = TaprootVault.fromSeedList([
+        Seed.fromMnemonic(
+            utf8.encode(
+                'machine crack daughter fish credit glare raven fever tunnel delay fish record'),
+            passphrase: utf8.encode(passphrase))
+      ], []);
     }
     return vault!;
   }

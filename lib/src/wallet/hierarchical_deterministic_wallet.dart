@@ -176,8 +176,8 @@ class HDWallet {
       throw ArgumentError("Secret nonce too short: ${secretNonce.length}");
     }
 
-    return Ecc.signSchnorrForMuSig2(secretNonce, getPrivateKey(false, true),
-        getPublicKey(false, true), sessionContext);
+    return Ecc.signSchnorrForMuSig2(
+        secretNonce, getPrivateKey(false, true), sessionContext);
   }
 
   // Returns the tweaked private key for Taproot/MuSig2.

@@ -25,7 +25,11 @@ class AddressType {
       name == 'p2trScriptPathSpending';
 
   /// Check if the address type is for single signature.
-  bool get isSingleSignature => !isMultisignature;
+  bool get isSingleSignature =>
+      name == 'p2pkh' ||
+      name == 'p2wpkh' ||
+      name == 'p2wpkhInP2sh' ||
+      name == 'p2trKeyPathSpending';
 
   // Check if the address type is for taproot.
   bool get isTaproot => name.startsWith('p2tr');
@@ -60,7 +64,7 @@ class AddressType {
 
   /// Address type for P2PKH(Legacy) address.
   static AddressType p2pkh = AddressType._(
-      'legacy',
+      'p2pkh',
       44,
       '1',
       'pkh',
@@ -72,7 +76,7 @@ class AddressType {
 
   /// Address type for P2WPKH(Native Segwit) address.
   static AddressType p2wpkh = AddressType._(
-      'nativeSegwit',
+      'p2wpkh',
       84,
       'bc1',
       'wpkh',
@@ -84,7 +88,7 @@ class AddressType {
 
   /// Address type for P2WSH-in-P2SH(Nested Segwit) address.
   static AddressType p2wpkhInP2sh = AddressType._(
-      'nestedSegwit',
+      'p2wpkhInP2sh',
       49,
       '3',
       'sh-wpkh',
@@ -295,12 +299,10 @@ class AddressType {
     }
     redeemScript.add(0x50 + publicKeys.length); // <n>
     redeemScript.add(0xAE); // OP_CHECKMULTISIG
-    // print("Redeem:" + Converter.bytesToHex(redeemScript));
     Uint8List redeemScriptHash =
         Hash.sha160fromByte(Uint8List.fromList(redeemScript));
     var networkPrefix = isTestnet ? 0xC4 : 0x05;
     var addressBytes = [networkPrefix, ...redeemScriptHash];
-    // print(Converter.bytesToHex(addressBytes));
     var base58Address =
         Codec.encodeBase58Checksum(Uint8List.fromList(addressBytes));
 
@@ -357,8 +359,8 @@ class AddressType {
     }
 
     // Calculate the internal key (tweak) using SHA256
-    String internalKey =
-        Codec.encodeHex(WalletUtility.aggregatePublicKey(publicKeys));
+    String internalKey = Codec.encodeHex(WalletUtility.aggregatePublicKey(
+        publicKeys.map((e) => Codec.decodeHex(e)).toList()));
 
     // Get the Taproot address using the internal key
     return getTaprootAddressFromTweakedPublicKey(internalKey);

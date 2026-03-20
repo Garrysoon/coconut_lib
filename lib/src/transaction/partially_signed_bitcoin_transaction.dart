@@ -50,7 +50,7 @@ class Psbt {
           }
         } else if (inputs[0].tapBip32Derivation != null) {
           if (inputs[0].muSig2AggregatedPublicKey != null) {
-            return AddressType.p2trMuSig2;
+            return AddressType.p2tr;
           } else if (inputs[0].tapLeafScript != null) {
             return AddressType.p2trScriptPathSpending;
           } else {
@@ -150,13 +150,13 @@ class Psbt {
           muSig2AggregatedPublicKey = key.substring(2);
           String concatenatedPubKeys = psbtMap["inputs"][i][key];
           muSig2participantPubKeyList ??= [];
-          if (concatenatedPubKeys.length % 64 != 0) {
+          if (concatenatedPubKeys.length % 66 != 0) {
             throw Exception(
                 "Invalid participant public key list: length is not multiple of 66 (got ${concatenatedPubKeys.length})");
           }
-          int numberOfKeys = concatenatedPubKeys.length ~/ 64;
+          int numberOfKeys = concatenatedPubKeys.length ~/ 66;
           for (int i = 0; i < numberOfKeys; i++) {
-            final hexPart = concatenatedPubKeys.substring(i * 64, (i + 1) * 64);
+            final hexPart = concatenatedPubKeys.substring(i * 66, (i + 1) * 66);
             muSig2participantPubKeyList!.add(hexPart);
           }
           // muSig2participantPubKeyList!.sort();
@@ -341,6 +341,11 @@ class Psbt {
       multisignatureWallet = wallet;
     }
 
+    late TaprootWalletBase taprootWallet;
+    if (wallet is TaprootWalletBase) {
+      taprootWallet = wallet;
+    }
+
     Map<String, dynamic> psbtData = {"global": {}, "inputs": [], "outputs": []};
 
     //Global
@@ -359,6 +364,16 @@ class Psbt {
 
     if (wallet.addressType.isMultisignature) {
       for (KeyStore keyStore in multisignatureWallet.keyStoreList) {
+        String key =
+            "${getKeyType(globalKeyType, 'XPUB')}${keyStore.extendedPublicKey.serializeForPsbt(toXpub: true)}";
+        String value =
+            "${keyStore.masterFingerprint}${Codec.encodeHex(_serializeDerivationPath(wallet.derivationPath))}";
+        globalData[key] = value;
+      }
+    }
+
+    if (wallet.addressType.isTaproot) {
+      for (KeyStore keyStore in taprootWallet.keyStoreList) {
         String key =
             "${getKeyType(globalKeyType, 'XPUB')}${keyStore.extendedPublicKey.serializeForPsbt(toXpub: true)}";
         String value =
@@ -450,15 +465,15 @@ class Psbt {
               getKeyType(inputKeyType, 'PSBT_IN_TAP_KEY_SIG');
           inputData[taprootKeySpendSignature] = tx.inputs[i].witnessList[0];
         }
-      } else if (wallet.addressType == AddressType.p2trMuSig2) {
+      } else if (wallet.addressType == AddressType.p2tr) {
         List<String> publicKeys = [];
 
-        for (KeyStore keyStore in multisignatureWallet.keyStoreList) {
+        for (KeyStore keyStore in taprootWallet.keyStoreList) {
           // TAP_BIP32_DERIVATION
           String tapBip32DerivationKeyType =
               getKeyType(inputKeyType, 'TAP_BIP32_DERIVATION');
           String publicKey = keyStore.getPublicKey(tx.utxoList[i].accountIndex,
-              isChange: tx.utxoList[i].isChange, isXOnly: true);
+              isChange: tx.utxoList[i].isChange, isXOnly: false);
           publicKeys.add(publicKey);
 
           String fingerPrint = keyStore.masterFingerprint;
@@ -469,16 +484,16 @@ class Psbt {
         // MUSIG2_PARTICIPANT_PUBKEY
         String musig2ParticipantPubKeyType =
             getKeyType(inputKeyType, 'MUSIG2_PARTICIPANT_PUBKEY');
-        String aggregatePubKey = multisignatureWallet.getAddregatedPublilcKey(
-            tx.utxoList[i].accountIndex, tx.utxoList[i].isChange,
-            isSort: false);
+        String aggregatePubKey = Codec.encodeHex(
+            taprootWallet.getAggregatedPublicKey(tx.utxoList[i].accountIndex,
+                isChange: tx.utxoList[i].isChange));
         inputData[musig2ParticipantPubKeyType + aggregatePubKey] =
             publicKeys.join();
 
         // String musig2PubNonceType =
         //     getKeyType(inputKeyType, 'MUSIG2_PUB_NONCE');
         for (int keyStoreIndex = 0;
-            keyStoreIndex < multisignatureWallet.keyStoreList.length;
+            keyStoreIndex < taprootWallet.keyStoreList.length;
             keyStoreIndex++) {
           // MUSIG2_PUB_NONCE
           // if (multisignatureWallet.keyStoreList[keyStoreIndex].hasSeed) {
@@ -528,6 +543,19 @@ class Psbt {
                     .getWitnessScript(tx.changeAddressDerivationPath!);
           }
           for (KeyStore keyStore in multisignatureWallet.keyStoreList) {
+            String publicKey = keyStore.getPublicKey(
+                WalletUtility.getAccountIndexFromDerivationPath(
+                    tx.changeAddressDerivationPath!),
+                isChange: WalletUtility.isChangeFromDerivationPath(
+                    tx.changeAddressDerivationPath!));
+
+            String fingerPrint = keyStore.masterFingerprint;
+            outputData[bip32DerivationKeyType + publicKey] = fingerPrint +
+                Codec.encodeHex(
+                    _serializeDerivationPath(tx.changeAddressDerivationPath!));
+          }
+        } else if (wallet is TaprootWalletBase) {
+          for (KeyStore keyStore in taprootWallet.keyStoreList) {
             String publicKey = keyStore.getPublicKey(
                 WalletUtility.getAccountIndexFromDerivationPath(
                     tx.changeAddressDerivationPath!),
@@ -652,32 +680,6 @@ class Psbt {
 
     return Psbt(psbtData);
   }
-
-  /// Add a signature to the PSBT.
-  // void addPartialSig(int inputIndex, String signature, String publicKey) {
-  //   inputs[inputIndex].addPartialSig(signature, publicKey);
-  //   psbtMap["inputs"][inputIndex]["02$publicKey"] = signature;
-  // }
-
-  // void addTapKeySig(int inputIndex, String signature) {
-  //   inputs[inputIndex].addTapKeySig(signature);
-  //   psbtMap["inputs"][inputIndex]["13"] = signature;
-  // }
-
-  // void addTapScriptSig(int inputIndex, String signature, String publicKey) {
-  //   inputs[inputIndex].addTapScriptSig(signature, publicKey);
-  //   psbtMap["inputs"][inputIndex]["14$publicKey"] = signature;
-  // }
-
-  // void addMuSig2PubNonce(int inputIndex, String publicKey, String nonce) {
-  //   inputs[inputIndex].addMuSig2PubNonce(publicKey, nonce);
-  //   psbtMap["inputs"][inputIndex]["1b$publicKey"] = nonce;
-  // }
-
-  // void addMuSig2PartialSig(int inputIndex, String signature, String publicKey) {
-  //   inputs[inputIndex].addMuSig2PartialSig(signature, publicKey);
-  //   psbtMap["inputs"][inputIndex]["1c$publicKey"] = signature;
-  // }
 
   String getAggregatedPublicNonce(int inputIndex) {
     return inputs[inputIndex].getAggregatedPublicNonce();
@@ -870,7 +872,7 @@ class Psbt {
           }
         }
       }
-    } else if (addressType == AddressType.p2trMuSig2) {
+    } else if (addressType == AddressType.p2tr) {
       List<TransactionOutput> utxoList = [];
       for (int i = 0; i < inputs.length; i++) {
         utxoList.add(inputs[i].witnessUtxo!);
@@ -892,17 +894,17 @@ class Psbt {
         }
 
         MuSig2SessionContext sessionContext = MuSig2SessionContext(
-          aggregatedPubNonce,
           inputs[i]
               .muSig2ParticipantPubkeys!
-              .map((e) => Codec.decodeHex('02$e'))
+              .map((e) => Codec.decodeHex(e))
               .toList(),
+          aggregatedPubNonce,
+          aggregatedPubKey,
           message,
         );
 
         Uint8List aggregatedSignature =
             Ecc.getAggregatedSignatureForMuSig2(sessionContext, signatureList);
-
         if (Ecc.verifySchnorr(message, aggregatedPubKey, aggregatedSignature)) {
           signedTransaction.inputs[i].setTaprootKeyPathSpendingSignature(
               Codec.encodeHex(aggregatedSignature));
@@ -941,7 +943,7 @@ class Psbt {
                 }
               }
               return false;
-            } else if (addressType == AddressType.p2trMuSig2) {
+            } else if (addressType == AddressType.p2tr) {
               if (input.muSig2PartialSigs == null) {
                 return false;
               }

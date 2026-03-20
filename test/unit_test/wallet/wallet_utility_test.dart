@@ -1,5 +1,6 @@
 @Tags(['unit'])
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
@@ -293,10 +294,10 @@ void main() {
         "03935F972DA013F80AE011890FA89B67A27B7BE6CCB24D3274D18B2D4067F261A9"
       ];
       test('Get aggregated public key (case 1)', () {
-        List<String> pubs = [
-          publicKeyList[0],
-          publicKeyList[1],
-          publicKeyList[2]
+        List<Uint8List> pubs = [
+          Codec.decodeHex(publicKeyList[0]),
+          Codec.decodeHex(publicKeyList[1]),
+          Codec.decodeHex(publicKeyList[2])
         ];
         expect(
             Codec.encodeHex(WalletUtility.aggregatePublicKey(pubs))
@@ -305,10 +306,10 @@ void main() {
       });
 
       test('Get aggregated public key (case 2)', () {
-        List<String> pubs = [
-          publicKeyList[2],
-          publicKeyList[1],
-          publicKeyList[0]
+        List<Uint8List> pubs = [
+          Codec.decodeHex(publicKeyList[2]),
+          Codec.decodeHex(publicKeyList[1]),
+          Codec.decodeHex(publicKeyList[0])
         ];
         expect(
             Codec.encodeHex(WalletUtility.aggregatePublicKey(pubs))
@@ -317,10 +318,10 @@ void main() {
       });
 
       test('Get aggregated public key (case 3)', () {
-        List<String> pubs = [
-          publicKeyList[0],
-          publicKeyList[0],
-          publicKeyList[0]
+        List<Uint8List> pubs = [
+          Codec.decodeHex(publicKeyList[0]),
+          Codec.decodeHex(publicKeyList[0]),
+          Codec.decodeHex(publicKeyList[0])
         ];
         expect(
             Codec.encodeHex(WalletUtility.aggregatePublicKey(pubs))
@@ -329,11 +330,11 @@ void main() {
       });
 
       test('Get aggregated public key (case 4)', () {
-        List<String> pubs = [
-          publicKeyList[0],
-          publicKeyList[0],
-          publicKeyList[1],
-          publicKeyList[1]
+        List<Uint8List> pubs = [
+          Codec.decodeHex(publicKeyList[0]),
+          Codec.decodeHex(publicKeyList[0]),
+          Codec.decodeHex(publicKeyList[1]),
+          Codec.decodeHex(publicKeyList[1])
         ];
         expect(
             Codec.encodeHex(WalletUtility.aggregatePublicKey(pubs))
