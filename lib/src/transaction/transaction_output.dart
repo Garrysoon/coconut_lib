@@ -4,7 +4,7 @@ part of '../../coconut_lib.dart';
 class TransactionOutput {
   Uint8List _amount;
   ScriptPublicKey _scriptPubKey;
-  bool? isChangeOutput;
+  String? derivationPath;
 
   /// Get the amount of the output.
   int get amount =>
@@ -17,7 +17,7 @@ class TransactionOutput {
   int get length => _amount.length + _scriptPubKey.length;
 
   /// @nodoc
-  TransactionOutput(this._amount, this._scriptPubKey, {this.isChangeOutput});
+  TransactionOutput(this._amount, this._scriptPubKey, {this.derivationPath});
 
   /// Get the Bitcoin amount of the output.
   void setAmount(int amount) {
@@ -25,26 +25,26 @@ class TransactionOutput {
   }
 
   factory TransactionOutput.forPayment(int amount, String address,
-      {bool isChangeOutput = false}) {
+      {String? derivationPath}) {
     Uint8List amountBytes = Converter.intToLittleEndianBytes(amount, 8);
     if (address.startsWith('1') ||
         address.startsWith('m') ||
         address.startsWith('n')) {
       return TransactionOutput(amountBytes, ScriptPublicKey.p2pkh(address),
-          isChangeOutput: isChangeOutput);
+          derivationPath: derivationPath);
     } else if (address.startsWith('3') || address.startsWith('2')) {
       return TransactionOutput(amountBytes, ScriptPublicKey.p2sh(address),
-          isChangeOutput: isChangeOutput);
+          derivationPath: derivationPath);
     } else if (address.startsWith('bc1q') ||
         address.startsWith('tb1q') ||
         address.startsWith('bcrt1q')) {
       return TransactionOutput(amountBytes, ScriptPublicKey.p2wpkh(address),
-          isChangeOutput: isChangeOutput);
+          derivationPath: derivationPath);
     } else if (address.startsWith('bc1p') ||
         address.startsWith('tb1p') ||
         address.startsWith('bcrt1p')) {
       return TransactionOutput(amountBytes, ScriptPublicKey.p2tr(address),
-          isChangeOutput: isChangeOutput);
+          derivationPath: derivationPath);
     }
     throw Exception('AddressType not supported');
   }
