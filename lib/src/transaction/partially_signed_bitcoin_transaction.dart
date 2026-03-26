@@ -135,6 +135,9 @@ class Psbt {
           Uint8List valueBytes = Codec.decodeHex(psbtMap["inputs"][i][key]);
           int offset = 0;
 
+          String numberOfHash =
+              Codec.encodeHex(valueBytes.sublist(offset, offset + 1));
+          offset += 1;
           String masterFingerprint =
               Codec.encodeHex(valueBytes.sublist(offset, offset + 4));
           offset += 4;
@@ -477,16 +480,20 @@ class Psbt {
           publicKeys.add(publicKey);
 
           String fingerPrint = keyStore.masterFingerprint;
-          inputData[tapBip32DerivationKeyType + publicKey] = fingerPrint +
-              Codec.encodeHex(
-                  _serializeDerivationPath(tx.utxoList[i].derivationPath));
+          //TODO: get the number of hash
+          String numberOfHash = "00";
+          inputData[tapBip32DerivationKeyType + publicKey.substring(2)] =
+              numberOfHash +
+                  fingerPrint +
+                  Codec.encodeHex(
+                      _serializeDerivationPath(tx.utxoList[i].derivationPath));
         }
         // MUSIG2_PARTICIPANT_PUBKEY
         String musig2ParticipantPubKeyType =
             getKeyType(inputKeyType, 'MUSIG2_PARTICIPANT_PUBKEY');
         String aggregatePubKey = Codec.encodeHex(
             taprootWallet.getAggregatedPublicKey(tx.utxoList[i].accountIndex,
-                isChange: tx.utxoList[i].isChange));
+                isChange: tx.utxoList[i].isChange, isXOnly: false));
         inputData[musig2ParticipantPubKeyType + aggregatePubKey] =
             publicKeys.join();
 
@@ -888,10 +895,6 @@ class Psbt {
             Codec.decodeHex(inputs[i].getAggregatedPublicNonce());
         Uint8List message =
             Codec.decodeHex(signedTransaction.getTaprootSigHash(i, utxoList));
-        List<Uint8List> signatureList = [];
-        for (Signature sig in inputs[i].muSig2PartialSigs!) {
-          signatureList.add(Codec.decodeHex(sig.signature));
-        }
 
         MuSig2SessionContext sessionContext = MuSig2SessionContext(
           inputs[i]
@@ -901,11 +904,15 @@ class Psbt {
           aggregatedPubNonce,
           aggregatedPubKey,
           message,
+          applyTaprootTweak: true,
         );
 
-        Uint8List aggregatedSignature =
-            Ecc.getAggregatedSignatureForMuSig2(sessionContext, signatureList);
-        if (Ecc.verifySchnorr(message, aggregatedPubKey, aggregatedSignature)) {
+        Uint8List aggregatedSignature = Ecc.getAggregatedSignatureForMuSig2(
+            sessionContext, inputs[i].muSig2PartialSigs!);
+        if (Ecc.verifySchnorr(
+            message,
+            Ecc.getEncoded(sessionContext.aggregateQ, true).sublist(1),
+            aggregatedSignature)) {
           signedTransaction.inputs[i].setTaprootKeyPathSpendingSignature(
               Codec.encodeHex(aggregatedSignature));
         } else {
@@ -1098,14 +1105,21 @@ class PsbtInput {
     tapScriptSig!.add(Signature(signature, publicKey));
   }
 
-  addMuSig2PubNonce(String publicKey, String publicNonce) {
+  addMuSig2PubNonce(String publicKey, String aggregatedPublicKey,
+      String sigHash, String publicNonce) {
     muSig2PubNonces ??= {};
-    muSig2PubNonces![publicKey] = publicNonce;
+    muSig2PubNonces!["$publicKey$aggregatedPublicKey$sigHash"] = publicNonce;
   }
 
-  addMuSig2PartialSig(String signature, String publicKey) {
+  addMuSig2PartialSig(
+    String signature,
+    String publicKey,
+    String aggregatedPublicKey,
+    String sigHash,
+  ) {
     muSig2PartialSigs ??= [];
-    muSig2PartialSigs!.add(Signature(signature, publicKey));
+    muSig2PartialSigs!
+        .add(Signature(signature, "$publicKey$aggregatedPublicKey$sigHash"));
   }
 
   String getAggregatedPublicNonce() {

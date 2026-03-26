@@ -196,7 +196,7 @@ abstract class WalletUtility {
   }
 
   static Uint8List aggregatePublicKey(List<Uint8List> publicKeyList,
-      {bool isSort = false, bool isXOnly = true}) {
+      {bool isSort = true, bool isXOnly = true}) {
     if (isSort) {
       publicKeyList.sort((a, b) {
         int len = a.length < b.length ? a.length : b.length;

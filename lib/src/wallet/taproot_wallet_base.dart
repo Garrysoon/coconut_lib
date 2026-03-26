@@ -149,7 +149,8 @@ abstract class TaprootWalletBase extends WalletBase {
                 .toList(),
             Codec.decodeHex(psbtInput.getAggregatedPublicNonce()),
             Codec.decodeHex(psbtInput.muSig2AggregatedPublicKey!),
-            Codec.decodeHex(sigHash));
+            Codec.decodeHex(sigHash),
+            applyTaprootTweak: true);
       }
 
       List<DerivationPath>? derivationPathList;
@@ -170,6 +171,7 @@ abstract class TaprootWalletBase extends WalletBase {
             // print("add signature to psbt ${keyStore.seed.passphrase}");
             keyStore.addSignatureToPsbtInput(
                 psbtInput, addressType, derivationPath.path, sigHash,
+                aggregatedPublicKey: psbtInput.muSig2AggregatedPublicKey!,
                 sessionContext: sessionContext);
             break;
           }
@@ -191,8 +193,11 @@ abstract class TaprootWalletBase extends WalletBase {
         .map((keyStore) => keyStore.getPublicKeyBytes(addressIndex,
             isChange: isChange, isXOnly: false))
         .toList();
-    return WalletUtility.aggregatePublicKey(publicKeyList,
-        isSort: true, isXOnly: isXOnly);
+    Uint8List aggregatedPublicKey = WalletUtility.aggregatePublicKey(
+        publicKeyList,
+        isSort: true,
+        isXOnly: isXOnly);
+    return aggregatedPublicKey;
   }
 
   Uint8List getMerkleRoot(int addressIndex, {bool isChange = false}) {

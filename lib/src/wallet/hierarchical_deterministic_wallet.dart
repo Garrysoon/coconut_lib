@@ -177,7 +177,8 @@ class HDWallet {
     }
 
     return Ecc.signSchnorrForMuSig2(
-        secretNonce, getPrivateKey(false, true), sessionContext);
+        secretNonce, getPrivateKey(false, true), sessionContext,
+        isFullSignature: false);
   }
 
   // Returns the tweaked private key for Taproot/MuSig2.

@@ -349,7 +349,7 @@ void main() {
             aggregatedPubNonce,
             aggregatedPublicKey,
             message);
-        expect(Codec.encodeHex(Ecc.getEncoded(sessionContext.Q, true)),
+        expect(Codec.encodeHex(Ecc.getEncoded(sessionContext.aggregateQ, true)),
             '0244c18be84322bd051743e9dac38d8a9472fc1e39d66ea3951da419747a4f96eb');
         expect(sessionContext.b.toString(),
             '42452304263695163620196203845095753431190306116738962141428713186034786858279');

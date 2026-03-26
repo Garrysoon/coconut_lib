@@ -126,7 +126,11 @@ abstract class SingleSignatureWalletBase extends WalletBase {
       for (DerivationPath derivationPath in derivationPathList!) {
         if (derivationPath.masterFingerprint == keyStore.masterFingerprint) {
           keyStore.addSignatureToPsbtInput(
-              input, addressType, derivationPath.path, sigHash);
+            input,
+            addressType,
+            derivationPath.path,
+            sigHash,
+          );
           break;
         }
       }

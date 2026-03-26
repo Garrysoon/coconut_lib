@@ -124,6 +124,7 @@ class Transaction {
     // print("Input : ${tx.inputs.length}, Output : ${tx.outputs.length}");
 
     double vByte = 0.0;
+    //todo: add taproot virtual byte calculation
     if (!wallet.addressType.isMultisignature) {
       vByte = tx.estimateVirtualByte(wallet.addressType);
     } else {

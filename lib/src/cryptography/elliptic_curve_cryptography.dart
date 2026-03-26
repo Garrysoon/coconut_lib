@@ -447,11 +447,11 @@ class Ecc {
 
     Uint8List publicKey = pointFromScalar(privateKey, true)!;
 
-    if (publicKey[0] != 0x02) {
-      throw Exception("Invalid private key (not x-only)");
+    if (publicKey[0] != 0x02 && publicKey[0] != 0x03) {
+      throw Exception("Invalid compressed public key from private key");
     }
 
-    Uint8List Q = getEncoded(sessionContext.Q, true);
+    Uint8List Q = getEncoded(sessionContext.aggregateQ, true);
     BigInt b = sessionContext.b;
     ECPoint R = sessionContext.R;
     BigInt e = sessionContext.e;
@@ -464,8 +464,6 @@ class Ecc {
             [...R_x, ...Q.sublist(1), ...sessionContext.message]))));
 
     late BigInt a;
-    Uint8List.fromList(
-        sessionContext.participantPublicKeys.expand((x) => x).toList());
     Uint8List L = Codec.decodeHex(Hash.taggedHash(
         'KeyAgg list',
         Uint8List.fromList(
@@ -495,7 +493,9 @@ class Ecc {
       g = n - BigInt.one;
     }
 
-    BigInt d = g * fromBuffer(privateKey) % n;
+    final BigInt d = sessionContext.applyTaprootTweak
+        ? ((g * sessionContext.musigGacc * fromBuffer(privateKey)) % n)
+        : (g * fromBuffer(privateKey) % n);
 
     BigInt k1_ =
         Converter.hexToBigDec(Codec.encodeHex(secretNonce.sublist(0, 32)));
@@ -550,12 +550,13 @@ class Ecc {
         ? Uint8List.fromList([0x02, ...publicKey])
         : publicKey;
 
-    ECPoint Q = sessionContext.Q;
+    ECPoint Q = sessionContext.aggregateQ;
     ECPoint R = sessionContext.R;
     BigInt b = sessionContext.b;
     BigInt e = sessionContext.e;
-    // BigInt tacc = BigInt.from(0);
-    BigInt gacc = BigInt.from(1);
+    final BigInt gacc = sessionContext.applyTaprootTweak
+        ? sessionContext.musigGacc
+        : BigInt.one;
     late BigInt s;
 
     if (signature.length == 64) {
@@ -618,17 +619,19 @@ class Ecc {
 
   static Uint8List getAggregatedSignatureForMuSig2(
     MuSig2SessionContext sessionContext,
-    List<Uint8List> signatureList,
+    List<Signature> signatureList,
   ) {
+    signatureList.sort((a, b) => a.publicKey.compareTo(b.publicKey));
+
     ECPoint r = sessionContext.R;
     BigInt e = sessionContext.e;
-    final BigInt tacc = BigInt.from(0);
 
     Uint8List R_x = getEncoded(r, false).sublist(1, 33);
 
     BigInt s = BigInt.zero;
     for (int i = 0; i < signatureList.length; i++) {
-      Uint8List signature = signatureList[i];
+      Signature partialSig = signatureList[i];
+      Uint8List signature = Codec.decodeHex(partialSig.signature);
       BigInt si;
       if (signature.length == 64) {
         si = fromBuffer(signature.sublist(32, 64));
@@ -639,19 +642,21 @@ class Ecc {
     }
 
     BigInt g = BigInt.one;
-    if (sessionContext.Q.y!.toBigInteger()!.isOdd) {
+    if (sessionContext.aggregateQ.y!.toBigInteger()!.isOdd) {
       g = n - BigInt.one;
     }
 
-    s = (s + e * g * tacc) % n;
+    if (sessionContext.applyTaprootTweak) {
+      s = (s + e * g * sessionContext.musigTacc) % n;
+      if (s < BigInt.zero) {
+        s += n;
+      }
+    }
     Uint8List signature =
         Uint8List.fromList(R_x + Converter.bigIntToBytes(s, byteLength: 32));
-    Uint8List publicKey = Ecc.getEncoded(sessionContext.Q, true);
-
-    //db
-    print("signature: ${Codec.encodeHex(signature)}");
-    print("publicKey: ${Codec.encodeHex(publicKey)}");
-    print("message: ${Codec.encodeHex(sessionContext.message)}");
+    // BIP340 uses 32-byte x-only public keys; verifySchnorr normalizes with 0x02.
+    Uint8List publicKey =
+        Ecc.getEncoded(sessionContext.aggregateQ, true).sublist(1);
 
     if (!Ecc.verifySchnorr(sessionContext.message, publicKey, signature)) {
       throw Exception('Invalid aggregated signature generated.');

@@ -246,10 +246,11 @@ class KeyStore {
         WalletUtility.getAccountIndexFromDerivationPath(derivationPath);
     bool isChange = WalletUtility.isChangeFromDerivationPath(derivationPath);
     String publicKey =
-        getPublicKey(accountIndex, isChange: isChange, isXOnly: true);
+        getPublicKey(accountIndex, isChange: isChange, isXOnly: false);
     String publicNonce = getPublicNonce(
         sigHash, psbtInput.muSig2AggregatedPublicKey!, accountIndex, isChange);
-    psbtInput.addMuSig2PubNonce(publicKey, publicNonce);
+    psbtInput.addMuSig2PubNonce(
+        publicKey, psbtInput.muSig2AggregatedPublicKey!, sigHash, publicNonce);
   }
 
   String addSignatureToPsbt(String psbt, AddressType addressType) {
@@ -326,10 +327,12 @@ class KeyStore {
                 .toList(),
             Codec.decodeHex(psbtInput.getAggregatedPublicNonce()),
             Codec.decodeHex(psbtInput.muSig2AggregatedPublicKey!),
-            Codec.decodeHex(sigHash));
+            Codec.decodeHex(sigHash),
+            applyTaprootTweak: true);
       }
 
       addSignatureToPsbtInput(psbtInput, addressType, derivationPath, sigHash,
+          aggregatedPublicKey: psbtInput.muSig2AggregatedPublicKey,
           sessionContext: sessionContext);
     }
     return psbtObject.serialize();
@@ -338,7 +341,7 @@ class KeyStore {
   ///add signature to PSBT if it's possible.
   void addSignatureToPsbtInput(PsbtInput psbtInput, AddressType addressType,
       String derivationPath, String sigHash,
-      {MuSig2SessionContext? sessionContext}) {
+      {String? aggregatedPublicKey, MuSig2SessionContext? sessionContext}) {
     if (!hasSeed) {
       throw Exception('This vault does not have seed.');
     }
@@ -348,9 +351,7 @@ class KeyStore {
     HDWallet hdWallet = getChildHdWallet(isChange).derive(accountIndex);
 
     String publicKey = getPublicKey(accountIndex,
-        isChange: isChange,
-        applyTweak: addressType.applyTweak,
-        isXOnly: addressType.isTaproot);
+        isChange: isChange, applyTweak: addressType.applyTweak, isXOnly: false);
     late String signature;
 
     if (!addressType.isTaproot) {
@@ -379,6 +380,7 @@ class KeyStore {
 
     Uint8List signatureByte = Codec.decodeHex(signature);
     Uint8List publicKeyByte = Codec.decodeHex(publicKey);
+
     if (!addressType.isTaproot) {
       // ECDSA
       if (!Ecc.verifyEcdsa(Codec.decodeHex(sigHash), publicKeyByte,
@@ -393,8 +395,8 @@ class KeyStore {
           throw Exception('Invalid signature');
         }
       } else if (addressType == AddressType.p2tr) {
-        Uint8List publicNonce = Codec.decodeHex(
-            psbtInput.muSig2PubNonces![Codec.encodeHex(publicKeyByte)]!);
+        Uint8List publicNonce = Codec.decodeHex(psbtInput.muSig2PubNonces![
+            "${Codec.encodeHex(publicKeyByte)}$aggregatedPublicKey$sigHash"]!);
         if (!Ecc.verifyMuSig2PartialSignature(
             signatureByte, publicNonce, publicKeyByte, sessionContext!)) {
           throw Exception('Invalid signature');
@@ -417,7 +419,8 @@ class KeyStore {
         psbtInput.addTapKeySig(signature);
       } else if (addressType == AddressType.p2tr) {
         // psbtObject.addMuSig2PartialSig(inputIndex, signatureMap[pub]!, pub);
-        psbtInput.addMuSig2PartialSig(signature, publicKey);
+        psbtInput.addMuSig2PartialSig(signature, publicKey,
+            psbtInput.muSig2AggregatedPublicKey!, sigHash);
       } else if (addressType == AddressType.p2trScriptPathSpending) {
         // Script path
         // psbtObject.addTapScriptSig(inputIndex, signatureMap[pub]!, pub);
@@ -568,25 +571,64 @@ class KeyStore {
       _seed.hashCode;
 }
 
+/// BIP327 `ApplyTweak` on [KeyAgg Context] (see [KeyAgg Context] in BIP-0327).
+(ECPoint Qp, BigInt gaccP, BigInt taccP) _musigApplyTweakKeyAgg(
+  ECPoint Q,
+  BigInt gacc,
+  BigInt tacc,
+  Uint8List tweak,
+  bool isXonlyT,
+) {
+  final oddY = Q.y!.toBigInteger()!.isOdd;
+  final BigInt gPoint = (isXonlyT && oddY) ? (Ecc.n - BigInt.one) : BigInt.one;
+
+  final t = Ecc.fromBuffer(tweak);
+  ECPoint qWork = Q;
+  if (gPoint == Ecc.n - BigInt.one) {
+    qWork = Ecc.decodeFrom(Ecc.pointNegate(Ecc.getEncoded(Q, true))!)!;
+  }
+  final tG = (Ecc.G * t)!;
+  final Qp = (qWork + tG)!;
+  if (Qp.isInfinity) {
+    throw Exception('MuSig2 ApplyTweak: invalid aggregate point');
+  }
+  final gaccP = (gPoint * gacc) % Ecc.n;
+  final taccP = (t + gPoint * tacc) % Ecc.n;
+  return (Qp, gaccP, taccP);
+}
+
 class MuSig2SessionContext {
   final List<Uint8List> participantPublicKeys;
   final Uint8List aggregatedPubNonce;
   final Uint8List aggregatedPublicKey;
+  Uint8List? merkleRoot;
   final Uint8List message;
 
-  late ECPoint Q;
+  /// If true, apply BIP341 TapTweak to the internal aggregate key (Taproot key path).
+  /// BIP327 unit tests use `false` (no tweaks, v == 0).
+  final bool applyTaprootTweak;
+
+  /// Final aggregate public key [Q] after optional tweaks (BIP327 GetSessionValues).
+  late ECPoint aggregateQ;
+
+  /// Accumulated [gacc] after [ApplyTweak] (BIP327).
+  late BigInt musigGacc;
+
+  /// Accumulated [tacc] after [ApplyTweak] (BIP327).
+  late BigInt musigTacc;
+
   late BigInt b;
   late ECPoint R;
   late BigInt e;
 
-  MuSig2SessionContext(this.participantPublicKeys, this.aggregatedPubNonce,
-      this.aggregatedPublicKey, this.message) {
-    // print('aggregatedPubNonce: ${Codec.encodeHex(aggregatedPubNonce)}');
-    // print(
-    //     'participantPublicKeys: ${Codec.encodeHex(participantPublicKeys[0])}');
-    // print(
-    //     'participantPublicKeys: ${Codec.encodeHex(participantPublicKeys[1])}');
-    // print('message: ${Codec.encodeHex(message)}');
+  MuSig2SessionContext(
+    this.participantPublicKeys,
+    this.aggregatedPubNonce,
+    this.aggregatedPublicKey,
+    this.message, {
+    this.merkleRoot,
+    this.applyTaprootTweak = false,
+  }) {
     if (message.length != 32) {
       throw ArgumentError("sighash must be 32 bytes (got ${message.length})");
     }
@@ -598,6 +640,11 @@ class MuSig2SessionContext {
       throw ArgumentError(
           "aggregatedPublicKey must be 33 bytes (got ${aggregatedPublicKey.length})");
     }
+    if (merkleRoot != null && merkleRoot!.length != 32) {
+      throw ArgumentError(
+          "merkleRoot must be 32 bytes (got ${merkleRoot!.length})");
+    }
+    merkleRoot ??= Uint8List(0);
 
     for (var key in participantPublicKeys) {
       if (key.length != 33) {
@@ -606,17 +653,43 @@ class MuSig2SessionContext {
       }
     }
 
-    Q = Ecc.decodeFrom(aggregatedPublicKey)!;
+    // BIP327 requires KeySort (lexicographic) before KeyAgg (thus before L,
+    // secondKey selection, and KeyAgg coefficients are computed).
+    participantPublicKeys.sort((a, b) {
+      int len = a.length < b.length ? a.length : b.length;
+      for (int i = 0; i < len; i++) {
+        if (a[i] != b[i]) return a[i].compareTo(b[i]);
+      }
+      return a.length.compareTo(b.length);
+    });
 
-    // Q = Ecc.decodeFrom(WalletUtility.aggregatePublicKey(
-    //     participantPublicKeys.map((e) => e).toList(),
-    //     isXOnly: false))!;
+    final ECPoint Q0 = Ecc.decodeFrom(aggregatedPublicKey)!;
+
+    if (applyTaprootTweak) {
+      final Uint8List internalXOnly = aggregatedPublicKey.sublist(1);
+      final Uint8List tapTweakBytes =
+          Hash.hashTapTweak('TapTweak', internalXOnly, merkleRoot);
+      final tweaked = _musigApplyTweakKeyAgg(
+        Q0,
+        BigInt.one,
+        BigInt.zero,
+        tapTweakBytes,
+        true,
+      );
+      aggregateQ = tweaked.$1;
+      musigGacc = tweaked.$2;
+      musigTacc = tweaked.$3;
+    } else {
+      aggregateQ = Q0;
+      musigGacc = BigInt.one;
+      musigTacc = BigInt.zero;
+    }
 
     b = Ecc.fromBuffer(Codec.decodeHex(Hash.taggedHash(
         "MuSig/noncecoef",
         Uint8List.fromList([
           ...aggregatedPubNonce,
-          ...Ecc.getEncoded(Q, true).sublist(1),
+          ...Ecc.getEncoded(aggregateQ, true).sublist(1),
           ...message
         ]))));
 
@@ -630,6 +703,6 @@ class MuSig2SessionContext {
     e = Ecc.fromBuffer(Codec.decodeHex(Hash.taggedHash(
         "BIP0340/challenge",
         Uint8List.fromList(
-            [...rX, ...Ecc.getEncoded(Q, true).sublist(1), ...message]))));
+            [...rX, ...Ecc.getEncoded(aggregateQ, true).sublist(1), ...message]))));
   }
 }

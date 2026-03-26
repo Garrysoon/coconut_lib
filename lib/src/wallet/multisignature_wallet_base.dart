@@ -216,7 +216,8 @@ abstract class MultisignatureWalletBase extends WalletBase {
                 .toList(),
             Codec.decodeHex(psbtInput.getAggregatedPublicNonce()),
             Codec.decodeHex(psbtInput.muSig2AggregatedPublicKey!),
-            Codec.decodeHex(sigHash));
+            Codec.decodeHex(sigHash),
+            applyTaprootTweak: true);
       }
 
       List<DerivationPath>? derivationPathList;
