@@ -219,7 +219,7 @@ abstract class MockFactory {
     }
 
     List<TransactionOutput> outputs = [
-      TransactionOutput.forPayment(amount, address, isChangeOutput: false),
+      TransactionOutput.forPayment(amount, address),
     ];
 
     return Transaction.withInputsAndOutputs(inputs, outputs, addressType);

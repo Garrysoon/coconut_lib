@@ -391,9 +391,8 @@ class Psbt {
     for (int i = 0; i < tx.inputs.length; i++) {
       String receivedAddress =
           wallet.getAddressWithDerivationPath(tx.utxoList[i].derivationPath);
-      TransactionOutput output = TransactionOutput.forPayment(
-          tx.utxoList[i].amount, receivedAddress,
-          isChangeOutput: false);
+      TransactionOutput output =
+          TransactionOutput.forPayment(tx.utxoList[i].amount, receivedAddress);
       witnessUtxoList.add(output);
     }
     for (int i = 0; i < tx.inputs.length; i++) {
@@ -527,8 +526,7 @@ class Psbt {
       // String scriptKey = getKeyType(outputKeyType, 'SCRIPT');
       // outputData[scriptKey] = tx.outputs[i].scriptPubKey.serialize();
 
-      if (tx.outputs[i].isChangeOutput != null &&
-          tx.outputs[i].isChangeOutput!) {
+      if (tx.outputs[i].derivationPath != null) {
         String bip32DerivationKeyType =
             getKeyType(outputKeyType, 'BIP32_DERIVATION');
 

@@ -110,11 +110,11 @@ class Transaction {
       String recipientAddress = entry.key;
       int amount = entry.value;
 
-      outputs.add(TransactionOutput.forPayment(amount, recipientAddress,
-          isChangeOutput: false));
+      outputs.add(TransactionOutput.forPayment(amount, recipientAddress));
     }
-    TransactionOutput changeOutput =
-        TransactionOutput.forPayment(0, changeAddress, isChangeOutput: true);
+    TransactionOutput changeOutput = TransactionOutput.forPayment(
+        0, changeAddress,
+        derivationPath: changeAddressDerivationPath);
     outputs.add(changeOutput);
 
     Transaction tx = Transaction.withInputsAndOutputs(
@@ -194,8 +194,7 @@ class Transaction {
       throw Exception('Sending amount is under dust threshold.');
     }
 
-    TransactionOutput sendingOutput =
-        TransactionOutput.forPayment(0, address, isChangeOutput: false);
+    TransactionOutput sendingOutput = TransactionOutput.forPayment(0, address);
     outputs.add(sendingOutput);
 
     Transaction transaction = Transaction.withInputsAndOutputs(
@@ -256,12 +255,10 @@ class Transaction {
       String recipientAddress = entry.key;
       int amount = entry.value;
 
-      outputs.add(TransactionOutput.forPayment(amount, recipientAddress,
-          isChangeOutput: false));
+      outputs.add(TransactionOutput.forPayment(amount, recipientAddress));
     }
-    TransactionOutput changeOutput = TransactionOutput.forPayment(
-        0, remainderAddress,
-        isChangeOutput: false);
+    TransactionOutput changeOutput =
+        TransactionOutput.forPayment(0, remainderAddress);
     outputs.add(changeOutput);
 
     Transaction tx = Transaction.withInputsAndOutputs(
@@ -314,6 +311,16 @@ class Transaction {
       return Transaction._parseSegwit(txBytes);
     } else {
       return Transaction._parseLegacy(txBytes, isEmptySignature);
+    }
+  }
+
+  /// Set the derivation path for the output.
+  void setOutputDerivationPath(String address, String derivationPath) {
+    for (TransactionOutput output in outputs) {
+      if (output.getAddress() == address) {
+        output.derivationPath = derivationPath;
+        break;
+      }
     }
   }
 
@@ -967,8 +974,8 @@ class Transaction {
     }
 
     if (changeOutput == null) {
-      changeOutput =
-          TransactionOutput.forPayment(0, changeAddress, isChangeOutput: true);
+      changeOutput = TransactionOutput.forPayment(0, changeAddress,
+          derivationPath: changeAddressDerivationPath);
       outputs.add(changeOutput);
     }
 
@@ -1013,8 +1020,9 @@ class Transaction {
     String changeAddress =
         wallet.getAddressWithDerivationPath(changeAddressDerivationPath!);
 
-    TransactionOutput changeOutput =
-        TransactionOutput.forPayment(0, changeAddress, isChangeOutput: true);
+    TransactionOutput changeOutput = TransactionOutput.forPayment(
+        0, changeAddress,
+        derivationPath: changeAddressDerivationPath);
     for (TransactionOutput output in outputs) {
       if (output.scriptPubKey.getAddress() == changeAddress) {
         changeOutput = output;
@@ -1060,8 +1068,9 @@ class Transaction {
     } else {
       String changeAddress =
           wallet.getAddressWithDerivationPath(changeAddressDerivationPath!);
-      TransactionOutput changeOutput =
-          TransactionOutput.forPayment(0, changeAddress, isChangeOutput: true);
+      TransactionOutput changeOutput = TransactionOutput.forPayment(
+          0, changeAddress,
+          derivationPath: changeAddressDerivationPath);
 
       for (TransactionOutput output in outputs) {
         if (output.scriptPubKey.getAddress() == changeAddress) {
