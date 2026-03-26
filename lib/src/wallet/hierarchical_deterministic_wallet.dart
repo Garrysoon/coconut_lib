@@ -177,7 +177,11 @@ class HDWallet {
     }
 
     return Ecc.signSchnorrForMuSig2(
-        secretNonce, getPrivateKey(false, true), sessionContext,
+        // MuSig2(BIP327) signer identity/coefficient uses compressed pubkeys
+        // including y-parity, so do not x-only-normalize the private key here.
+        secretNonce,
+        getPrivateKey(false, false),
+        sessionContext,
         isFullSignature: false);
   }
 

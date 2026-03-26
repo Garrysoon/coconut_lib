@@ -43,7 +43,7 @@ void main() {
       return Ecc.verifySchnorr(message, outputKeyXOnly, signature);
     }
 
-    test('P2TR MuSig2 Test', () {
+    test('P2TR MuSig2 Test (case 1)', () {
       late KeyStore keyStore1;
       late KeyStore keyStore2;
       late TaprootVault vault;
@@ -58,28 +58,65 @@ void main() {
       keyStore1 = KeyStore.fromSeed(vault1.keyStore.seed, AddressType.p2tr);
       keyStore2 = KeyStore.fromSeed(vault2.keyStore.seed, AddressType.p2tr);
 
-      // print("keyStore1.getPrivateKey(0) : ${keyStore1.getPrivateKey(0)}");
-      // print(
-      //     "keyStore1.getPublicKey(1) : ${keyStore1.getPublicKey(addressIndex)}");
-      // print("keyStore2.getPrivateKey(0) : ${keyStore2.getPrivateKey(0)}");
-      // print(
-      //     "keyStore2.getPublicKey(1) : ${keyStore2.getPublicKey(addressIndex)}");
-      // print("keyStore3.getPrivateKey(0) : ${keyStore3.getPrivateKey(0)}");
+      int addressIndex = 1;
+
+      print(
+          "keyStore1.getPrivateKey($addressIndex) : ${keyStore1.getPublicKey(addressIndex)}");
+      print(
+          "keyStore2.getPrivateKey($addressIndex) : ${keyStore2.getPublicKey(addressIndex)}");
 
       vault = TaprootVault.fromKeyStoreList([keyStore1, keyStore2], []);
 
-      print("vault.getAddress(0) : ${vault.getAddress(0)}");
+      print(
+          "vault.getAddress($addressIndex) : ${vault.getAddress(addressIndex)}");
 
-      // print(
-      //     "vault.getAggregatedPublicKey(0) : ${Codec.encodeHex(vault.getAggregatedPublicKey(0))}");
+      Utxo utxo = Utxo(
+          '5786f8eda5a9b882d35b5116d1fae71256f4f0d8b799bc45bb1b4fdbf86c79df',
+          0,
+          21000,
+          "m/86'/1'/0'/0/$addressIndex");
+      Transaction tx = Transaction.forSinglePayment([utxo],
+          MockFactory.reveiveAddress, "m/86'/1'/0'/1/0", 1000, 3, vault);
+      String unsignedPsbt = Psbt.fromTransaction(tx, vault).serialize();
+      String noncePsbt = vault.addPublicNonce(unsignedPsbt);
+      String signedPsbt = vault.addSignatureToPsbt(noncePsbt);
+      Transaction signedTx =
+          Psbt.parse(signedPsbt).getSignedTransaction(AddressType.p2tr);
+      print(signedTx.serialize());
+    });
 
-      // print(
-      //     "vault.getAddress(0) : ${vault.getAddress(0)}"); //bcrt1p3gu94a4n2hukh0zqpqglu5j2dnkl8sxwzezytle27vvwqxwy55ls957cxs
+    test('P2TR MuSig2 Test (case 2)', () {
+      late KeyStore keyStore1;
+      late KeyStore keyStore2;
+      late TaprootVault vault;
+
+      NetworkType.setNetworkType(NetworkType.regtest);
+
+      SingleSignatureVault vault1 =
+          MockFactory.createP2wpkhVault(passphrase: 'A');
+      SingleSignatureVault vault2 =
+          MockFactory.createP2wpkhVault(passphrase: 'B');
+
+      keyStore1 = KeyStore.fromSeed(vault1.keyStore.seed, AddressType.p2tr);
+      keyStore2 = KeyStore.fromSeed(vault2.keyStore.seed, AddressType.p2tr);
+
+      int addressIndex = 0;
+
+      print(
+          "keyStore1.getPrivateKey($addressIndex) : ${keyStore1.getPublicKey(addressIndex)}");
+      print(
+          "keyStore2.getPrivateKey($addressIndex) : ${keyStore2.getPublicKey(addressIndex)}");
+
+      vault = TaprootVault.fromKeyStoreList([keyStore1, keyStore2], []);
+
+      print(
+          "vault.getAddress($addressIndex) : ${vault.getAddress(addressIndex)}");
+
       Utxo utxo = Utxo(
           '9953d794bd9d939b96ad7b7d17df7524c41078d6517514fe6349fcdfbd8d78cb',
           1,
           21000,
-          "m/86'/1'/0'/0/1");
+          "m/86'/1'/0'/0/$addressIndex");
       Transaction tx = Transaction.forSinglePayment([utxo],
           MockFactory.reveiveAddress, "m/86'/1'/0'/1/0", 1000, 3, vault);
       String unsignedPsbt = Psbt.fromTransaction(tx, vault).serialize();
