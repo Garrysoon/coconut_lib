@@ -67,35 +67,13 @@ class MultisignatureVault extends MultisignatureWalletBase {
     }
   }
 
-  // String addMuSig2PublicNonce(String psbt) {
-  //   if (addressType != AddressType.p2trMuSig2) {
-  //     throw Exception("Only MuSig2 needs public nonce.");
-  //   }
-  //   if (!canSignToPsbt(psbt)) {
-  //     throw Exception('No keyStore can sign to the PSBT.');
-  //   }
-
-  //   String nonceAddedPsbt = psbt;
-
-  //   for (KeyStore keyStore in keyStoreList) {
-  //     if (!keyStore.hasSeed) continue;
-  //     if (keyStore.canSignToPsbt(psbt)) {
-  //       nonceAddedPsbt = keyStore.addMuSig2PublicNonceToPsbt(nonceAddedPsbt);
-  //     }
-  //   }
-
-  //   return nonceAddedPsbt;
-  // }
-  String addMuSig2PublicNonce(String psbt) {
-    if (addressType != AddressType.p2trMuSig2) {
-      throw Exception("Only MuSig2 needs public nonce.");
-    }
+  String addPublicNonce(String psbt) {
     if (!hasPublicKeyInPsbt(psbt)) {
       throw Exception('No keyStore can sign to the PSBT.');
     }
     Psbt psbtObject = Psbt.parse(psbt);
-    if (psbtObject.addressType != AddressType.p2trMuSig2) {
-      throw Exception('Only musig2 needs public nonce.');
+    if (psbtObject.addressType != AddressType.p2tr) {
+      throw Exception('Only p2tr needs public nonce.');
     }
     if (psbtObject.inputs.length !=
         psbtObject.unsignedTransaction!.inputs.length) {

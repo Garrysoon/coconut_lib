@@ -26,24 +26,6 @@ void main() async {
         }
       });
 
-      test('Generated musig2 wallet from descriptor', () {
-        NetworkType.setNetworkType(NetworkType.mainnet);
-        String descriptor =
-            "tr(musig(sorted([e50bd392/48h/0h/0h/2h]xpub6FPPhpChFv7pQE7D19ZNGoFcCUzmMdwEMwqGFshE7SCfBiN5YqpejTKkshCS3sawXF98w7j5YeaYmnVdcMuX4wLr2pwiUaccvb4WsF1w5Kz/<0;1>/*,[906222f7/48h/0h/0h/2h]xpub6EgRoGnrQpGy55qdvYXqCspbx3M4zwEJqqMY4Gvf8wTd927pAoiknQBWvLpk6gh1tWJErqgW6S4QDJykGedZ7ngV2TbRG25wUEpnCox9dKA/<0;1>/*,[476ec2dc/48h/0h/0h/2h]xpub6ERySjYpfyoWiREzdy5hZFjzkPWQK5GzUiPppcqdYm1qqbi5H8tpUeX93LG1MzQLn4Dj5iMwydhnFLqWvHHJk2ZHiKD9gYZh6YbVR1VQT1V/<0;1>/*)))#nqypzxsf";
-        MultisignatureWallet wallet =
-            MultisignatureWallet.fromDescriptor(descriptor);
-        expect(wallet.addressType, AddressType.p2trMuSig2);
-        expect(wallet.requiredSignature, 3);
-        expect(wallet.keyStoreList.length, 3);
-        expect(wallet.derivationPath, "m/48'/0'/0'/2'");
-        expect(wallet.keyStoreList[0].extendedPublicKey.serialize(),
-            "xpub6ERySjYpfyoWiREzdy5hZFjzkPWQK5GzUiPppcqdYm1qqbi5H8tpUeX93LG1MzQLn4Dj5iMwydhnFLqWvHHJk2ZHiKD9gYZh6YbVR1VQT1V");
-        expect(wallet.keyStoreList[1].extendedPublicKey.serialize(),
-            "xpub6EgRoGnrQpGy55qdvYXqCspbx3M4zwEJqqMY4Gvf8wTd927pAoiknQBWvLpk6gh1tWJErqgW6S4QDJykGedZ7ngV2TbRG25wUEpnCox9dKA");
-        expect(wallet.getAddress(0),
-            "bc1p67zljea03dsxeutnaf0uupetxwhfxuks9sw3wqe9s8jqfty5gqhs5pde8g");
-      });
-
       test('Single signature address type exception', () {
         SingleSignatureVault singleSignatureVault =
             MockFactory.createP2wpkhVault();

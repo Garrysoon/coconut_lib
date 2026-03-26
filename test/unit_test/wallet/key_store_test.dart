@@ -157,9 +157,9 @@ void main() {
         String psbt =
             'cHNidP8BAIkCAAAAAe6MtxPAYSTxkQOQmRhczfCliWawRnEFLehdr+PMFTwVAAAAAAD/////AqCGAQAAAAAAIlEgDy036tJxPD6GiZvifcUpzL40adHBgOY4eyrwGwk7TwTWWfQFAAAAACJRIAMz3fdx21W1Qb1RXvGXvdTANUPPSPaDxxLZ5K55/Q17AAAAAE8BBDWHzwN0QKodgAAAAGSDetZp3KbsbOtiv7YRtD6HPVvk5bovKcMbkHJIWsKZA+Kr7P96Wz1xNDt2JeuvWywUCCquQV/xkPui3Hz313DvEBS3eQpWAACAAQAAgAAAAIBPAQQ1h88DAwXxBoAAAACQQH3tvyPzkLBzZQeBbW9osGa+dqHlRZOoeM0ok59/qQMocdeF8lzP1U+72HlL7FlwriXTmlwschGLye/KyK7NARA7YUJIVgAAgAEAAIAAAACATwEENYfPAxrzLCiAAAAAN1y5BnspfGLnG6LztYWO4/tMOc7M9op5FwhaafoIAnID93rLidjVZ3lta8YIbuzlWb9P/GjZ9SLw1OEMy3ObjNIQhAeQWVYAAIABAACAAAAAgAABASsA4fUFAAAAACJRIHyT+XJSTLrVaCEbaASn5MjVqnVC61RKzU+/iiiO+GUcAQMEAQAAACEWpJYFf53a8RWIlvqVDOakw/8fS96ON85wCC2acRsc5/sYFLd5ClYAAIABAACAAAAAgAAAAAAAAAAAIRYjsAvgs/sFvnqeKpFQTGvFh9ikYTainS7SoX44CWxoexg7YUJIVgAAgAEAAIAAAACAAAAAAAAAAAAhFjxxvrXu6a5nCdMdtmWZVqdXT4ldk06pIoBgyY/+qRoiGIQHkFlWAACAAQAAgAAAAIAAAAAAAAAAACEafJP5clJMutVoIRtoBKfkyNWqdULrVErNT7+KKI74ZRxgpJYFf53a8RWIlvqVDOakw/8fS96ON85wCC2acRsc5/sjsAvgs/sFvnqeKpFQTGvFh9ikYTainS7SoX44CWxoezxxvrXu6a5nCdMdtmWZVqdXT4ldk06pIoBgyY/+qRoiIRuklgV/ndrxFYiW+pUM5qTD/x9L3o43znAILZpxGxzn+0IDIXFcyRJHJnJwskEUxbA6ljUMXYDNcPJM1NePJKKxxtMD4VEhGYBJj7VyIxCS6PPXxngS7WMCKX7maZJ5JEObvy4hGyOwC+Cz+wW+ep4qkVBMa8WH2KRhNqKdLtKhfjgJbGh7QgLcg2852K2/525p/+iNi3wdVn13uM7FteftIU8ZuXLRBgM4Td0uBNE4OL/yDWE5K55VJ+wIRqo0W7BsrDHEf7GA6yEbPHG+te7prmcJ0x22ZZlWp1dPiV2TTqkigGDJj/6pGiJCAtxUK5Vtb5WdCqmVdSFpJL1pa5mybSkABYg6Y/mmvv0SAmlkplWrIxanjLjliOv2bEBwK5CyF0Vd1NFrZecSpwx0AAAiAgNfzZAGT7L554APmYWb7ldKsCVEMKC4mB0JoGm6RWS72RgUt3kKVgAAgAEAAIAAAACAAQAAAAAAAAAiAgKHOaCTQbZnKQlxga5nnfAEy7PSFpGUODCsNGuTRuEw7hg7YUJIVgAAgAEAAIAAAACAAQAAAAAAAAAiAgMPeM4eBC0IkxqSvm/AMtJBv1An+looIH/oCIxL4tYl7BiEB5BZVgAAgAEAAIAAAACAAQAAAAAAAAAA';
         KeyStore keyStore = KeyStore.fromSeed(
-            Seed.fromEntropy(Hash.sha256('도이')), AddressType.p2trMuSig2);
+            Seed.fromEntropy(Hash.sha256('도이')), AddressType.p2tr);
         String signedPsbtText =
-            keyStore.addSignatureToPsbt(psbt, AddressType.p2trMuSig2);
+            keyStore.addSignatureToPsbt(psbt, AddressType.p2tr);
         Psbt signedPsbt = Psbt.parse(signedPsbtText);
         expect(signedPsbt.isSigned(keyStore), true);
       });
@@ -344,11 +344,8 @@ void main() {
             isXOnly: false);
         Uint8List aggregatedPubNonce = Codec.decodeHex(
             '03ddffdfd8f613ca697f313579e80adbf34564fac6ce5808b6d0dde9d09327c1b002cfa39d381c6366ebdd7019641dba6dd453f9d38f56d38b0d7e33b51cfbfe95ef');
-        MuSig2SessionContext sessionContext = MuSig2SessionContext(
-            participantPublicKeys,
-            aggregatedPubNonce,
-            aggregatedPublicKey,
-            message);
+        SessionContext sessionContext = SessionContext(participantPublicKeys,
+            aggregatedPubNonce, aggregatedPublicKey, message);
         expect(Codec.encodeHex(Ecc.getEncoded(sessionContext.aggregateQ, true)),
             '0244c18be84322bd051743e9dac38d8a9472fc1e39d66ea3951da419747a4f96eb');
         expect(sessionContext.b.toString(),
@@ -366,7 +363,7 @@ void main() {
       SingleSignatureVault vault =
           MockFactory.createP2wpkhVault(passphrase: 'A');
       KeyStore keyStore =
-          KeyStore.fromSeed(vault.keyStore.seed, AddressType.p2trMuSig2);
+          KeyStore.fromSeed(vault.keyStore.seed, AddressType.p2tr);
       String psbtText =
           'cHNidP8BAIkCAAAAAfNQVSxA8DG4n4i3H1s1j2RJpIkpZ3X5bZoBEPlWLTo5AAAAAAD/////Apg6AAAAAAAAIlEgM6IxC1MyiIZ565iVprcpfW/ZRiBpXzirmL6xfIsXDRRqSgEAAAAAACJRIH8GqA0WxCZYjRtIb96vbTPQ02u79Shp5eMyw+OTL4HUAAAAAE8BBDWHzwNKf/0HgAAAAHQBq4/P5Lh6nth2zROUOhndNh8EzdvBdOz4Eb/nWLA2Ag0iw70nAucn8utVVikF4OVQ3EcLdxUezM+27Pw69mOPEJYUnjRWAACAAQAAgAAAAIBPAQQ1h88DluhlQIAAAAApQBEvlRdrJSrQlEQ5iMO4aTEhyzP+MWtPmUCwAYAv1AKipfmGJaMK++faV8gq1TnvoB5nqoScvv5kNikJqQHwpBA2CSPJVgAAgAEAAIAAAACATwEENYfPAyc4Kl+AAAAAJf4kPmAdg5vi1/dyXhLX5RThtuQd5T78uPOZU2UOlTYDBhSO9/+VK1RZuuNQEKFUwKRlcet3a5MJoCnLurUQp14Qm8nmW1YAAIABAACAAAAAgAABASughgEAAAAAACJRIETBi+hDIr0FF0Pp2sONipRy/B451m6jlR2kGXR6T5brAQMEAQAAACEWMc1TFpOsb4ReBAr7rQH8E4FoaUNtW7qgNnq8OAm4hI8YlhSeNFYAAIABAACAAAAAgAAAAAAAAAAAIRY23196wTkAvvP6l8ZhEDlzRK9SJQFjCnSQzYjpH/8eJBg2CSPJVgAAgAEAAIAAAACAAAAAAAAAAAAhFunuJnpL1dDfIcxkm92jdbtVENFz7UEnsV2pPwcXsfmdGJvJ5ltWAACAAQAAgAAAAIAAAAAAAAAAACEaRMGL6EMivQUXQ+naw42KlHL8HjnWbqOVHaQZdHpPlutgMc1TFpOsb4ReBAr7rQH8E4FoaUNtW7qgNnq8OAm4hI823196wTkAvvP6l8ZhEDlzRK9SJQFjCnSQzYjpH/8eJOnuJnpL1dDfIcxkm92jdbtVENFz7UEnsV2pPwcXsfmdAAAiAgM6ylrfcTDkOFTXsBCh+3J4BxAl++8cgHzKjcNU+y3jWBiWFJ40VgAAgAEAAIAAAACAAQAAAAEAAAAiAgJOno6t9nHmMxQ/iiZeJLzZVZOF5omBwtGpw5Y9kPxIdhg2CSPJVgAAgAEAAIAAAACAAQAAAAEAAAAiAgOncekf6Zdp960okZPS+O8Vn2HW6Zg6pR5dCrkeAFjdshibyeZbVgAAgAEAAIAAAACAAQAAAAEAAAAA';
       String targetPsbtText =
@@ -381,7 +378,7 @@ void main() {
       SingleSignatureVault vault =
           MockFactory.createP2wpkhVault(passphrase: 'A');
       KeyStore keyStore =
-          KeyStore.fromSeed(vault.keyStore.seed, AddressType.p2trMuSig2);
+          KeyStore.fromSeed(vault.keyStore.seed, AddressType.p2tr);
       String psbtText =
           'cHNidP8BAIkCAAAAAfNQVSxA8DG4n4i3H1s1j2RJpIkpZ3X5bZoBEPlWLTo5AAAAAAD/////Apg6AAAAAAAAIlEgM6IxC1MyiIZ565iVprcpfW/ZRiBpXzirmL6xfIsXDRRqSgEAAAAAACJRIH8GqA0WxCZYjRtIb96vbTPQ02u79Shp5eMyw+OTL4HUAAAAAE8BBDWHzwNKf/0HgAAAAHQBq4/P5Lh6nth2zROUOhndNh8EzdvBdOz4Eb/nWLA2Ag0iw70nAucn8utVVikF4OVQ3EcLdxUezM+27Pw69mOPEJYUnjRWAACAAQAAgAAAAIBPAQQ1h88DluhlQIAAAAApQBEvlRdrJSrQlEQ5iMO4aTEhyzP+MWtPmUCwAYAv1AKipfmGJaMK++faV8gq1TnvoB5nqoScvv5kNikJqQHwpBA2CSPJVgAAgAEAAIAAAACATwEENYfPAyc4Kl+AAAAAJf4kPmAdg5vi1/dyXhLX5RThtuQd5T78uPOZU2UOlTYDBhSO9/+VK1RZuuNQEKFUwKRlcet3a5MJoCnLurUQp14Qm8nmW1YAAIABAACAAAAAgAABASughgEAAAAAACJRIETBi+hDIr0FF0Pp2sONipRy/B451m6jlR2kGXR6T5brAQMEAQAAACEWMc1TFpOsb4ReBAr7rQH8E4FoaUNtW7qgNnq8OAm4hI8YlhSeNFYAAIABAACAAAAAgAAAAAAAAAAAIRY23196wTkAvvP6l8ZhEDlzRK9SJQFjCnSQzYjpH/8eJBg2CSPJVgAAgAEAAIAAAACAAAAAAAAAAAAhFunuJnpL1dDfIcxkm92jdbtVENFz7UEnsV2pPwcXsfmdGJvJ5ltWAACAAQAAgAAAAIAAAAAAAAAAACEaRMGL6EMivQUXQ+naw42KlHL8HjnWbqOVHaQZdHpPlutgMc1TFpOsb4ReBAr7rQH8E4FoaUNtW7qgNnq8OAm4hI823196wTkAvvP6l8ZhEDlzRK9SJQFjCnSQzYjpH/8eJOnuJnpL1dDfIcxkm92jdbtVENFz7UEnsV2pPwcXsfmdAAAiAgM6ylrfcTDkOFTXsBCh+3J4BxAl++8cgHzKjcNU+y3jWBiWFJ40VgAAgAEAAIAAAACAAQAAAAEAAAAiAgJOno6t9nHmMxQ/iiZeJLzZVZOF5omBwtGpw5Y9kPxIdhg2CSPJVgAAgAEAAIAAAACAAQAAAAEAAAAiAgOncekf6Zdp960okZPS+O8Vn2HW6Zg6pR5dCrkeAFjdshibyeZbVgAAgAEAAIAAAACAAQAAAAEAAAAA';
       String targetPsbtText =

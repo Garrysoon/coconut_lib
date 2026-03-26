@@ -443,11 +443,8 @@ void main() {
             participantPublicKeys,
             isXOnly: false);
 
-        MuSig2SessionContext sessionContext = MuSig2SessionContext(
-            participantPublicKeys,
-            aggregatedPubNonce,
-            aggregatedPublicKey,
-            message);
+        SessionContext sessionContext = SessionContext(participantPublicKeys,
+            aggregatedPubNonce, aggregatedPublicKey, message);
         expect(
             Codec.encodeHex(Ecc.signSchnorrForMuSig2(
                 secretNonce, privateKey, sessionContext,
@@ -480,11 +477,8 @@ void main() {
             '0341432722c5cd0268d829c702cf0d1cbce57033eed201fd335191385227c3210c03d377f2d258b64aadc0e16f26462323d701d286046a2ea93365656afd9875982b');
         Uint8List publicKey = Codec.decodeHex(
             '02d2dc6f5df7c56acf38c7fa0ae7a759ae30e19b37359dfde015872324c7ef6e05');
-        MuSig2SessionContext sessionContext = MuSig2SessionContext(
-            participantPublicKeys,
-            aggregatedPubNonce,
-            aggregatedPublicKey,
-            message);
+        SessionContext sessionContext = SessionContext(participantPublicKeys,
+            aggregatedPubNonce, aggregatedPublicKey, message);
         expect(
             Codec.encodeHex(Ecc.signSchnorrForMuSig2(
                 secretNonce, privateKey, sessionContext,
@@ -512,11 +506,8 @@ void main() {
             '0224afd36c902084058b51b5d36676bba4dc97c775873768e58822f87fe437d792028cb15929099eee2f5dae404cd39357591ba32e9af4e162b8d3e7cb5efe31cb20');
         Uint8List publicKey = Codec.decodeHex(
             '03935f972da013f80ae011890fa89b67a27b7be6ccb24d3274d18b2d4067f261a9');
-        MuSig2SessionContext sessionContext = MuSig2SessionContext(
-            participantPublicKeys,
-            aggregatedPubNonce,
-            aggregatedPublicKey,
-            message);
+        SessionContext sessionContext = SessionContext(participantPublicKeys,
+            aggregatedPubNonce, aggregatedPublicKey, message);
 
         expect(
             Codec.encodeHex(Ecc.signSchnorrForMuSig2(
@@ -547,11 +538,8 @@ void main() {
             '0219dfa86afd1b05c06febd69a7c70f15fc0178488438c8c408d7c6f92060cb20003a2b10edff9bc98996031ca8d7a45f1626228a7df8e691c8a72ba45aab9911aaa');
         Uint8List publicKey = Codec.decodeHex(
             '36df5f7ac13900bef3fa97c66110397344af522501630a7490cd88e91fff1e24');
-        MuSig2SessionContext sessionContext = MuSig2SessionContext(
-            participantPublicKeys,
-            aggregatedPubNonce,
-            aggregatedPublicKey,
-            message);
+        SessionContext sessionContext = SessionContext(participantPublicKeys,
+            aggregatedPubNonce, aggregatedPublicKey, message);
 
         expect(
             Codec.encodeHex(Ecc.signSchnorrForMuSig2(
@@ -818,11 +806,8 @@ void main() {
         Uint8List partialSignature = Codec.decodeHex(
             '30bb2cd1f1f6318b224a9c75190ab4b1812b9fde76f9c7f654ec38797e41c886');
 
-        MuSig2SessionContext sessionContext = MuSig2SessionContext(
-            participantPublicKeys,
-            aggregatedPubNonce,
-            aggregatedPublicKey,
-            message);
+        SessionContext sessionContext = SessionContext(participantPublicKeys,
+            aggregatedPubNonce, aggregatedPublicKey, message);
         expect(
             Ecc.verifyMuSig2PartialSignature(
                 partialSignature, publicNonce, publicKey, sessionContext),
@@ -845,11 +830,8 @@ void main() {
             '0341432722c5cd0268d829c702cf0d1cbce57033eed201fd335191385227c3210c03d377f2d258b64aadc0e16f26462323d701d286046a2ea93365656afd9875982b');
         Uint8List publicKey = Codec.decodeHex(
             '02d2dc6f5df7c56acf38c7fa0ae7a759ae30e19b37359dfde015872324c7ef6e05');
-        MuSig2SessionContext sessionContext = MuSig2SessionContext(
-            participantPublicKeys,
-            aggregatedPubNonce,
-            aggregatedPublicKey,
-            message);
+        SessionContext sessionContext = SessionContext(participantPublicKeys,
+            aggregatedPubNonce, aggregatedPublicKey, message);
         Uint8List partialSignature = Codec.decodeHex(
             'f98b92405a1e1f9402ac9436f92a625233d819dd133f4e63b9f090f40806f373');
         Uint8List publicNonce = Codec.decodeHex(
@@ -881,11 +863,8 @@ void main() {
 
         Uint8List partialSignature = Codec.decodeHex(
             '9a87d3b79ec67228cb97878b76049b15dbd05b8158d17b5b9114d3c226887505');
-        MuSig2SessionContext sessionContext = MuSig2SessionContext(
-            participantPublicKeys,
-            aggregatedPubNonce,
-            aggregatedPublicKey,
-            message);
+        SessionContext sessionContext = SessionContext(participantPublicKeys,
+            aggregatedPubNonce, aggregatedPublicKey, message);
 
         expect(
             Ecc.verifyMuSig2PartialSignature(
@@ -917,11 +896,8 @@ void main() {
         Uint8List partialSignature = Codec.decodeHex(
             '49a6470d8b0e9baa1c53b9e1dbc90b8955c008af1b6aceae10388ba75a58e7e6eddde61523435a2c5560a837b3a21eb46f24e7286bb778f970f55a075badb1ec');
 
-        MuSig2SessionContext sessionContext = MuSig2SessionContext(
-            participantPublicKeys,
-            aggregatedPubNonce,
-            aggregatedPublicKey,
-            message);
+        SessionContext sessionContext = SessionContext(participantPublicKeys,
+            aggregatedPubNonce, aggregatedPublicKey, message);
         expect(
             Ecc.verifyMuSig2PartialSignature(
                 partialSignature, publicNonce, publicKey, sessionContext),
@@ -957,17 +933,14 @@ void main() {
               '02d2dc6f5df7c56acf38c7fa0ae7a759ae30e19b37359dfde015872324c7ef6e05')
         ];
 
-        MuSig2SessionContext sessionContext = MuSig2SessionContext(
-            participantPublicKeys,
-            aggregatedPubNonce,
-            aggregatedPublicKey,
-            message);
+        SessionContext sessionContext = SessionContext(participantPublicKeys,
+            aggregatedPubNonce, aggregatedPublicKey, message);
 
         Uint8List aggregatedSignature =
             Ecc.getAggregatedSignatureForMuSig2(sessionContext, signatureList);
         expect(
-            Codec.encodeHex(aggregatedSignature),
-            'ed610739d1379989497b1361bf1c1b1d451966971c2f45043671417c4fcbde202a46bf124c14511f24f730ac12351704fa54dcd4daf0761e4f0a6ae0b6127ab8',
+          Codec.encodeHex(aggregatedSignature),
+          'ed610739d1379989497b1361bf1c1b1d451966971c2f45043671417c4fcbde202a46bf124c14511f24f730ac12351704fa54dcd4daf0761e4f0a6ae0b6127ab8',
         );
       });
       test('Get aggregated signature for musig2 (case 2)', () {
@@ -995,11 +968,8 @@ void main() {
               '03C7FB101D97FF930ACD0C6760852EF64E69083DE0B06AC6335724754BB4B0522C')
         ];
 
-        MuSig2SessionContext sessionContext = MuSig2SessionContext(
-            participantPublicKeys,
-            aggregatedPubNonce,
-            aggregatedPublicKey,
-            message);
+        SessionContext sessionContext = SessionContext(participantPublicKeys,
+            aggregatedPubNonce, aggregatedPublicKey, message);
 
         Uint8List aggregatedSignature =
             Ecc.getAggregatedSignatureForMuSig2(sessionContext, signatureList);

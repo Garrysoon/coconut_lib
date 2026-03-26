@@ -19,10 +19,7 @@ class AddressType {
 
   /// Check if the address type is for multisig.
   bool get isMultisignature =>
-      name == 'p2sh' ||
-      name == 'p2wsh' ||
-      name == 'p2trMuSig2' ||
-      name == 'p2trScriptPathSpending';
+      name == 'p2sh' || name == 'p2wsh' || name == 'p2trScriptPathSpending';
 
   /// Check if the address type is for single signature.
   bool get isSingleSignature =>
@@ -138,17 +135,6 @@ class AddressType {
       getWrongMultisigatureAddress,
       getWrongTaprootAddress);
 
-  static AddressType p2trMuSig2 = AddressType._(
-      'p2trMuSig2',
-      86,
-      'bc1',
-      'tr',
-      0x0488b21e,
-      0x043587cf,
-      getWrongAddress,
-      getP2trMuSig2Address,
-      getWrongTaprootAddress);
-
   static AddressType p2trScriptPathSpending = AddressType._(
       'p2trScriptPathSpending',
       86,
@@ -169,7 +155,6 @@ class AddressType {
         p2wsh,
         p2tr,
         p2trKeyPathSpending,
-        p2trMuSig2,
         p2trScriptPathSpending
       ];
 

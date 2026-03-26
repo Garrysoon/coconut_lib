@@ -27,12 +27,6 @@ abstract class MultisignatureWalletBase extends WalletBase {
           'Required signature is greater than the number of keyStores.');
     }
 
-    if (_addressType == AddressType.p2trMuSig2 &&
-        _keyStoreList.length != _requiredSignature) {
-      throw Exception(
-          'The number of keyStores must be equal to the required signature in MuSig2.');
-    }
-
     final segments = derivationPath.split('/');
     if (segments.length < 3 || segments[0] != 'm') {
       throw Exception('Invalid derivation path.');
@@ -46,11 +40,6 @@ abstract class MultisignatureWalletBase extends WalletBase {
       throw Exception('Invalid derivation path.');
     } else if (coinType == 0 && NetworkType.currentNetworkType.isTestnet) {
       throw Exception('Invalid derivation path.');
-    }
-
-    if (_addressType == AddressType.p2trMuSig2) {
-      _keyStoreList
-          .sort((a, b) => a.masterFingerprint.compareTo(b.masterFingerprint));
     }
 
     for (KeyStore keyStore in _keyStoreList) {
@@ -185,40 +174,15 @@ abstract class MultisignatureWalletBase extends WalletBase {
       }
       //get sigHash
       late String sigHash;
-      MuSig2SessionContext? sessionContext;
-      if (!addressType.isTaproot) {
-        //ECDSA
-        if (addressType != AddressType.p2wsh) {
-          throw Exception('Not support witness script for this address type.');
-        }
-        TransactionOutput utxo = psbtInput.witnessUtxo!;
-        String? witnessScript = psbtInput.witnessScript!.rawSerialize();
-        sigHash = psbtObject.unsignedTransaction!.getSigHash(
-            inputIndex, utxo, addressType,
-            witnessScript: witnessScript);
-      } else {
-        //Taproot
-        if (addressType != AddressType.p2trMuSig2) {
-          throw Exception('Not support witness script for this address type.');
-        }
-        List<TransactionOutput> utxoList = [];
-        for (int j = 0;
-            j < psbtObject.unsignedTransaction!.inputs.length;
-            j++) {
-          utxoList.add(psbtObject.inputs[j].witnessUtxo!);
-        }
-        sigHash = psbtObject.unsignedTransaction!
-            .getTaprootSigHash(inputIndex, utxoList);
 
-        sessionContext = MuSig2SessionContext(
-            psbtInput.muSig2ParticipantPubkeys!
-                .map((e) => Codec.decodeHex(e))
-                .toList(),
-            Codec.decodeHex(psbtInput.getAggregatedPublicNonce()),
-            Codec.decodeHex(psbtInput.muSig2AggregatedPublicKey!),
-            Codec.decodeHex(sigHash),
-            applyTaprootTweak: true);
+      if (addressType != AddressType.p2wsh) {
+        throw Exception('Not support witness script for this address type.');
       }
+      TransactionOutput utxo = psbtInput.witnessUtxo!;
+      String? witnessScript = psbtInput.witnessScript!.rawSerialize();
+      sigHash = psbtObject.unsignedTransaction!.getSigHash(
+          inputIndex, utxo, addressType,
+          witnessScript: witnessScript);
 
       List<DerivationPath>? derivationPathList;
       if (!addressType.isTaproot) {
@@ -237,8 +201,7 @@ abstract class MultisignatureWalletBase extends WalletBase {
           if (derivationPath.masterFingerprint == keyStore.masterFingerprint) {
             // print("add signature to psbt ${keyStore.seed.passphrase}");
             keyStore.addSignatureToPsbtInput(
-                psbtInput, addressType, derivationPath.path, sigHash,
-                sessionContext: sessionContext);
+                psbtInput, addressType, derivationPath.path, sigHash);
             break;
           }
         }

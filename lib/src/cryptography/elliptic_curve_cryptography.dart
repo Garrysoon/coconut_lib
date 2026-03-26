@@ -434,7 +434,7 @@ class Ecc {
   }
 
   static Uint8List signSchnorrForMuSig2(Uint8List secretNonce,
-      Uint8List privateKey, MuSig2SessionContext sessionContext,
+      Uint8List privateKey, SessionContext sessionContext,
       {bool isFullSignature = true}) {
     if (privateKey.length != 32) {
       throw ArgumentError(
@@ -545,7 +545,7 @@ class Ecc {
       Uint8List signature,
       Uint8List publicNonce,
       Uint8List publicKey,
-      MuSig2SessionContext sessionContext) {
+      SessionContext sessionContext) {
     Uint8List prefixedPublicKey = publicKey.length == 32
         ? Uint8List.fromList([0x02, ...publicKey])
         : publicKey;
@@ -618,7 +618,7 @@ class Ecc {
   }
 
   static Uint8List getAggregatedSignatureForMuSig2(
-    MuSig2SessionContext sessionContext,
+    SessionContext sessionContext,
     List<Signature> signatureList,
   ) {
     signatureList.sort((a, b) => a.publicKey.compareTo(b.publicKey));

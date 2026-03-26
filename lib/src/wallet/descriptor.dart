@@ -17,8 +17,7 @@ class Descriptor {
     if (requiredSignatures == null) {
       if (_addressType.isSingleSignature) {
         _requiredSignatures = 1;
-      } else if (_addressType == AddressType.p2trMuSig2 ||
-          _addressType == AddressType.p2tr) {
+      } else if (_addressType == AddressType.p2tr) {
         _requiredSignatures = _keyOriginExpressionList.length;
       } else {
         throw Exception('Required signatures not specified.');
@@ -127,17 +126,6 @@ class Descriptor {
       } else {
         throw Exception('No multisig descriptor found.');
       }
-    } else if (addressType == AddressType.p2trMuSig2) {
-      RegExpMatch isNestedMatch =
-          RegExp(r'(\w+)\((.+)\)').firstMatch(scriptContent)!;
-      if (!isNestedMatch.group(2)!.startsWith('sorted')) {
-        throw Exception('Only sorted multisig descriptor is supported.');
-      }
-      String multisigContent = RegExp(r'(\w+)\((.+)\)')
-          .firstMatch(isNestedMatch.group(2)!)!
-          .group(2)!;
-      pubKeyContent = multisigContent.split(',');
-      require = pubKeyContent.length;
     } else if (addressType == AddressType.p2tr) {
       // Parse tr(internal_key, {miniscript1}, {miniscript2}, ...)
       // or tr(musig(key1, key2, ...), {miniscript1}, {miniscript2}, ...)
@@ -273,10 +261,6 @@ class Descriptor {
         body += ",$pub";
       }
       body += "))";
-    } else if (_addressType == AddressType.p2trMuSig2) {
-      body = "$_scriptType(musig(sorted(";
-      body += _keyOriginExpressionList.map((e) => e).join(',');
-      body += ")))";
     } else {
       throw Exception('Unsupported script type.');
     }

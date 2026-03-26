@@ -117,25 +117,6 @@ abstract class MockFactory {
     return vault;
   }
 
-  static MultisignatureVault createP2trMusig2Vault(
-      {TestWalletType testWalletType = TestWalletType.forNormal}) {
-    final vault1 =
-        createP2wpkhVault(testWalletType: testWalletType, passphrase: 'A');
-    final vault2 =
-        createP2wpkhVault(testWalletType: testWalletType, passphrase: 'B');
-
-    KeyStore keyStore1 =
-        KeyStore.fromSeed(vault1.keyStore.seed, AddressType.p2trMuSig2);
-    KeyStore keyStore2 =
-        KeyStore.fromSeed(vault2.keyStore.seed, AddressType.p2trMuSig2);
-
-    MultisignatureVault vault = MultisignatureVault.fromKeyStoreList(
-        [keyStore1, keyStore2], 2,
-        addressType: AddressType.p2trMuSig2);
-
-    return vault;
-  }
-
   static Utxo createUtxo(
       {int amount = 100000,
       String derivationPath = "m/84'/1'/0'/0/0",
@@ -213,13 +194,6 @@ abstract class MockFactory {
     Psbt unsignedPsbt = Psbt.fromTransaction(tx, vault);
 
     return Psbt.parse(vault.addSignatureToPsbt(unsignedPsbt.serialize()));
-  }
-
-  static Psbt createP2trMuSigUnsignedPsbt() {
-    MultisignatureVault vault = createP2trMusig2Vault();
-    Transaction tx = Transaction.forSinglePayment(createUtxoList(count: 1),
-        vault.getAddress(1), '${vault.derivationPath}/1/1', 15000, 3, vault);
-    return Psbt.fromTransaction(tx, vault);
   }
 
   Transaction getMockTransaction(String scriptPubKey, int amount,

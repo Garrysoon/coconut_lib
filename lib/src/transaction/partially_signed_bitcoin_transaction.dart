@@ -896,7 +896,7 @@ class Psbt {
         Uint8List message =
             Codec.decodeHex(signedTransaction.getTaprootSigHash(i, utxoList));
 
-        MuSig2SessionContext sessionContext = MuSig2SessionContext(
+        SessionContext sessionContext = SessionContext(
           inputs[i]
               .muSig2ParticipantPubkeys!
               .map((e) => Codec.decodeHex(e))

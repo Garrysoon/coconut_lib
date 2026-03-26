@@ -319,9 +319,9 @@ class KeyStore {
       }
 
       // String derivationPath = psbtInput.derivationPathList[inputIndex].path;
-      MuSig2SessionContext? sessionContext;
+      SessionContext? sessionContext;
       if (addressType == AddressType.p2tr) {
-        sessionContext = MuSig2SessionContext(
+        sessionContext = SessionContext(
             psbtInput.muSig2ParticipantPubkeys!
                 .map((e) => Codec.decodeHex(e))
                 .toList(),
@@ -341,7 +341,7 @@ class KeyStore {
   ///add signature to PSBT if it's possible.
   void addSignatureToPsbtInput(PsbtInput psbtInput, AddressType addressType,
       String derivationPath, String sigHash,
-      {String? aggregatedPublicKey, MuSig2SessionContext? sessionContext}) {
+      {String? aggregatedPublicKey, SessionContext? sessionContext}) {
     if (!hasSeed) {
       throw Exception('This vault does not have seed.');
     }
@@ -597,7 +597,7 @@ class KeyStore {
   return (Qp, gaccP, taccP);
 }
 
-class MuSig2SessionContext {
+class SessionContext {
   final List<Uint8List> participantPublicKeys;
   final Uint8List aggregatedPubNonce;
   final Uint8List aggregatedPublicKey;
@@ -621,7 +621,7 @@ class MuSig2SessionContext {
   late ECPoint R;
   late BigInt e;
 
-  MuSig2SessionContext(
+  SessionContext(
     this.participantPublicKeys,
     this.aggregatedPubNonce,
     this.aggregatedPublicKey,
@@ -702,7 +702,10 @@ class MuSig2SessionContext {
 
     e = Ecc.fromBuffer(Codec.decodeHex(Hash.taggedHash(
         "BIP0340/challenge",
-        Uint8List.fromList(
-            [...rX, ...Ecc.getEncoded(aggregateQ, true).sublist(1), ...message]))));
+        Uint8List.fromList([
+          ...rX,
+          ...Ecc.getEncoded(aggregateQ, true).sublist(1),
+          ...message
+        ]))));
   }
 }

@@ -118,7 +118,7 @@ abstract class TaprootWalletBase extends WalletBase {
       }
       //get sigHash
       late String sigHash;
-      MuSig2SessionContext? sessionContext;
+      SessionContext? sessionContext;
       if (!addressType.isTaproot) {
         //ECDSA
         if (addressType != AddressType.p2wsh) {
@@ -143,7 +143,7 @@ abstract class TaprootWalletBase extends WalletBase {
         sigHash = psbtObject.unsignedTransaction!
             .getTaprootSigHash(inputIndex, utxoList);
 
-        sessionContext = MuSig2SessionContext(
+        sessionContext = SessionContext(
             psbtInput.muSig2ParticipantPubkeys!
                 .map((e) => Codec.decodeHex(e))
                 .toList(),

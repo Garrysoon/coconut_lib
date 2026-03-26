@@ -171,7 +171,7 @@ class HDWallet {
   }
 
   Uint8List signSchnorrForMuSig2(
-      Uint8List secretNonce, MuSig2SessionContext sessionContext) {
+      Uint8List secretNonce, SessionContext sessionContext) {
     if (secretNonce.length < 64) {
       throw ArgumentError("Secret nonce too short: ${secretNonce.length}");
     }
