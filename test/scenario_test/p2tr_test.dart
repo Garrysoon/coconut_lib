@@ -88,6 +88,8 @@ void main() {
       String signedPsbt = vault.addSignatureToPsbt(noncePsbt);
       Transaction signedTx =
           Psbt.parse(signedPsbt).getSignedTransaction(AddressType.p2tr);
+      expect(signedTx.serialize(),
+          '02000000000101df796cf8db4f1bbb45bc99b7d8f0f45612e7fad116515bd382b8a9a5edf886570000000000ffffffff02e803000000000000160014334924eaf46e806e86b3537a12f81595030d73a7754c00000000000022512079806b80f4062d40fa45b919e1f2ab7d8a0a7d42027b6c03d702e75e90e06e7c0140faf7956c3337046c6820294f58d4dd93b0717a034abbc43cb36de43a81af46dfae21b96e555a11c738e5d482ae3bafbc3cfbeff9c0cac053962dcbbb6a80670b00000000');
     });
 
     test('P2TR MuSig2 Test (case 2)', () {
@@ -121,6 +123,8 @@ void main() {
       String signedPsbt = vault.addSignatureToPsbt(noncePsbt);
       Transaction signedTx =
           Psbt.parse(signedPsbt).getSignedTransaction(AddressType.p2tr);
+      expect(signedTx.serialize(),
+          '02000000000101cb788dbddffc4963fe147551d67810c42475df177d7bad969b939dbd94d753990100000000ffffffff02e803000000000000160014334924eaf46e806e86b3537a12f81595030d73a7754c00000000000022512079806b80f4062d40fa45b919e1f2ab7d8a0a7d42027b6c03d702e75e90e06e7c01403caef0a1bfff48510c0e026cd20c72b1b13076bc2b77e7c7be1568e66bfc82f07907ee409ee479f9d4735d1bb999a516d0d3285c907fec4efcaadbd1cec5764900000000');
     });
 
     test('P2TR Key Path Spending Test', () {
@@ -147,8 +151,8 @@ void main() {
       Psbt signedPsbt = Psbt.parse(vault.addSignatureToPsbt(noncePsbt));
       Transaction signedTx = signedPsbt.getSignedTransaction(vault.addressType);
       expect(signedTx, isA<Transaction>());
-      //02000000000101d718590b330e4ca7d32a61db224cd7572001012c48e75cfafd1f3579f7a251b50100000000ffffffff02e803000000000000160014334924eaf46e806e86b3537a12f81595030d73a7a64c00000000000022512069b812e858cdb410cfd220619b9482b615115e5e1463555c163c1764d067dd2d01404c88765fd1074559ae8da9d715a656032d30a8bee421948f412dbbc6a408a5ffd84c6d5fdfa4a0af6cdafb9af02d3853481de475d8a14fe1b2c280a9d65f59d700000000
-      //02000000000101d718590b330e4ca7d32a61db224cd7572001012c48e75cfafd1f3579f7a251b50100000000ffffffff02e803000000000000160014334924eaf46e806e86b3537a12f81595030d73a7754c0000000000002251204bb144e51b5b6c063ad97ca5fed9227947beedf353809d1ed981c04518090cd20140e19fd8ef0fc7a03cca6ee91c86712bd6ceb97f39e054fbc9ef8c614e9a1633d9aa4b8968a11456756f84be1137df81514f96e2180a550c5ed0ada4
+      expect(signedTx.transactionHash,
+          '65cad85bcc9ccb1b69197061a426a94f83e72fb24d50e7a8f878f48580ed02b2');
     });
   });
 }

@@ -402,7 +402,7 @@ class KeyStore {
         Uint8List publicNonce = Codec.decodeHex(psbtInput.muSig2PubNonces![
             "${Codec.encodeHex(publicKeyByte)}$aggregatedPublicKey$sigHash"]!);
         if (!Ecc.verifyMuSig2PartialSignature(
-            signatureByte, publicNonce, publicKeyByte, sessionContext!)) {
+            signatureByte, publicNonce, publicKeyByte, sessionContext)) {
           throw Exception('Invalid signature');
         }
       }
@@ -568,7 +568,7 @@ class KeyStore {
 }
 
 /// BIP327 `ApplyTweak` on [KeyAgg Context] (see [KeyAgg Context] in BIP-0327).
-(ECPoint Qp, BigInt gaccP, BigInt taccP) _musigApplyTweakKeyAgg(
+(ECPoint qP, BigInt gaccP, BigInt taccP) _musigApplyTweakKeyAgg(
   ECPoint Q,
   BigInt gacc,
   BigInt tacc,
@@ -584,13 +584,13 @@ class KeyStore {
     qWork = Ecc.decodeFrom(Ecc.pointNegate(Ecc.getEncoded(Q, true))!)!;
   }
   final tG = (Ecc.G * t)!;
-  final Qp = (qWork + tG)!;
-  if (Qp.isInfinity) {
+  final qP = (qWork + tG)!;
+  if (qP.isInfinity) {
     throw Exception('MuSig2 ApplyTweak: invalid aggregate point');
   }
   final gaccP = (gPoint * gacc) % Ecc.n;
   final taccP = (t + gPoint * tacc) % Ecc.n;
-  return (Qp, gaccP, taccP);
+  return (qP, gaccP, taccP);
 }
 
 class SessionContext {
@@ -659,14 +659,14 @@ class SessionContext {
       return a.length.compareTo(b.length);
     });
 
-    final ECPoint Q0 = Ecc.decodeFrom(aggregatedPublicKey)!;
+    final ECPoint q0 = Ecc.decodeFrom(aggregatedPublicKey)!;
 
     if (applyTaprootTweak) {
       final Uint8List internalXOnly = aggregatedPublicKey.sublist(1);
       final Uint8List tapTweakBytes =
           Hash.hashTapTweak('TapTweak', internalXOnly, merkleRoot);
       final tweaked = _musigApplyTweakKeyAgg(
-        Q0,
+        q0,
         BigInt.one,
         BigInt.zero,
         tapTweakBytes,
@@ -676,7 +676,7 @@ class SessionContext {
       musigGacc = tweaked.$2;
       musigTacc = tweaked.$3;
     } else {
-      aggregateQ = Q0;
+      aggregateQ = q0;
       musigGacc = BigInt.one;
       musigTacc = BigInt.zero;
     }
