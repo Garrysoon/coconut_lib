@@ -13,6 +13,26 @@ enum TestWalletType {
 
 abstract class MockFactory {
   static String reveiveAddress = 'bcrt1qxdyjf6h5d6qxap4n2dap97q4j5ps6ua8jkxz0z';
+  static Seed getCommonSeed({String passphrase = ''}) {
+    return Seed.fromMnemonic(
+        utf8.encode(
+            'machine crack daughter fish credit glare raven fever tunnel delay fish record'),
+        passphrase: utf8.encode(passphrase));
+  }
+
+  static KeyStore getCommonKeyStore(AddressType addressType) {
+    return KeyStore.fromSeed(getCommonSeed(), addressType);
+  }
+
+  static Utxo getCommonUtxo(AddressType addressType) {
+    String derivationPath = WalletUtility.getDerivationPath(addressType, 0);
+    return Utxo(
+        '0000000000000000000000000000000000000000000000000000000000000000',
+        0,
+        100000,
+        "$derivationPath/0/0");
+  }
+
   static SingleSignatureVault createP2wpkhVault(
       {TestWalletType testWalletType = TestWalletType.forNormal,
       String passphrase = ''}) {
@@ -140,6 +160,16 @@ abstract class MockFactory {
     return utxos;
   }
 
+  static List<Utxo> createTaprootUtxoList(
+      {int count = 10, String derivationPath = "m/86'/1'/0'/0/0"}) {
+    List<Utxo> utxos = [];
+    for (int i = 0; i < count; i++) {
+      utxos.add(createUtxo(
+          entropy: "utxo #${i.toString()}", derivationPath: derivationPath));
+    }
+    return utxos;
+  }
+
   static Psbt createP2wpkhUnsignedPsbt() {
     SingleSignatureVault vault = createP2wpkhVault();
     Transaction tx = Transaction.forSinglePayment(createUtxoList(count: 1),
@@ -184,15 +214,25 @@ abstract class MockFactory {
 
   static Psbt createP2trKeyPathSpendingUnsignedPsbt() {
     TaprootVault vault = createP2trKeyPathSpendingVault();
-    Transaction tx = Transaction.forSinglePayment(createUtxoList(count: 1),
-        vault.getAddress(1), '${vault.derivationPath}/1/1', 15000, 3, vault);
+    Transaction tx = Transaction.forSinglePayment(
+        createTaprootUtxoList(count: 1),
+        vault.getAddress(1),
+        '${vault.derivationPath}/1/1',
+        15000,
+        3,
+        vault);
     return Psbt.fromTransaction(tx, vault);
   }
 
   static Psbt createP2trKeyPathSpendingSignedPsbt() {
     TaprootVault vault = createP2trKeyPathSpendingVault();
-    Transaction tx = Transaction.forSinglePayment(createUtxoList(count: 1),
-        vault.getAddress(1), '${vault.derivationPath}/1/1', 15000, 3, vault);
+    Transaction tx = Transaction.forSinglePayment(
+        createTaprootUtxoList(count: 1),
+        vault.getAddress(1),
+        '${vault.derivationPath}/1/1',
+        15000,
+        3,
+        vault);
     Psbt unsignedPsbt = Psbt.fromTransaction(tx, vault);
 
     return Psbt.parse(vault.addSignatureToPsbt(unsignedPsbt.serialize()));
@@ -225,34 +265,5 @@ abstract class MockFactory {
     ];
 
     return Transaction.withInputsAndOutputs(inputs, outputs, addressType);
-  }
-
-  static SingleSignatureVault createMindVault() {
-    // FP : 382892b6
-    // addr : ...8mgl
-    return SingleSignatureVault.fromMnemonic(
-        utf8.encode(
-            "mind shy assist luxury isolate family spray fabric twice seven bargain fan"),
-        passphrase: utf8.encode("qwerty"));
-  }
-
-  static SingleSignatureVault createClickVault() {
-    //FP : f75f5ab5
-    //addr : ... yfma
-    return SingleSignatureVault.fromMnemonic(
-        utf8.encode(
-            "click exotic patient apple fence abandon abandon abandon abandon abandon abandon abstract"),
-        passphrase: utf8.encode("qwerty"));
-  }
-
-  static SingleSignatureVault createThankVault() {
-    SingleSignatureVault vault = SingleSignatureVault.fromMnemonic(
-        utf8.encode(
-            "thank split shrimp error own spirit slow glow act evidence globe slight"),
-        passphrase: utf8.encode(
-            "f4137717e5b9750f09af0168609b73201a4c5d528ebcb22ef4360d0efc77f88e"));
-    //FP: a419d566
-    //addr : ... 5jk
-    return vault;
   }
 }

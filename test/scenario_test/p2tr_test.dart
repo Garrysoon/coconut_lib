@@ -74,15 +74,7 @@ void main() {
 
       int addressIndex = 1;
 
-      print(
-          "keyStore1.getPrivateKey($addressIndex) : ${keyStore1.getPublicKey(addressIndex)}");
-      print(
-          "keyStore2.getPrivateKey($addressIndex) : ${keyStore2.getPublicKey(addressIndex)}");
-
       vault = TaprootVault.fromKeyStoreList([keyStore1, keyStore2], []);
-
-      print(
-          "vault.getAddress($addressIndex) : ${vault.getAddress(addressIndex)}");
 
       Utxo utxo = Utxo(
           '5786f8eda5a9b882d35b5116d1fae71256f4f0d8b799bc45bb1b4fdbf86c79df',
@@ -96,7 +88,6 @@ void main() {
       String signedPsbt = vault.addSignatureToPsbt(noncePsbt);
       Transaction signedTx =
           Psbt.parse(signedPsbt).getSignedTransaction(AddressType.p2tr);
-      print(signedTx.serialize());
     });
 
     test('P2TR MuSig2 Test (case 2)', () {
@@ -116,15 +107,7 @@ void main() {
 
       int addressIndex = 0;
 
-      print(
-          "keyStore1.getPrivateKey($addressIndex) : ${keyStore1.getPublicKey(addressIndex)}");
-      print(
-          "keyStore2.getPrivateKey($addressIndex) : ${keyStore2.getPublicKey(addressIndex)}");
-
       vault = TaprootVault.fromKeyStoreList([keyStore1, keyStore2], []);
-
-      print(
-          "vault.getAddress($addressIndex) : ${vault.getAddress(addressIndex)}");
 
       Utxo utxo = Utxo(
           '9953d794bd9d939b96ad7b7d17df7524c41078d6517514fe6349fcdfbd8d78cb',
@@ -138,7 +121,6 @@ void main() {
       String signedPsbt = vault.addSignatureToPsbt(noncePsbt);
       Transaction signedTx =
           Psbt.parse(signedPsbt).getSignedTransaction(AddressType.p2tr);
-      print(signedTx.serialize());
     });
 
     test('P2TR Key Path Spending Test', () {

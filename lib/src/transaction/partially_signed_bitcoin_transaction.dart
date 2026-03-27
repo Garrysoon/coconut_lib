@@ -382,6 +382,7 @@ class Psbt {
     psbtData["global"] = globalData;
     //Input
     List<TransactionOutput> witnessUtxoList = [];
+
     for (int i = 0; i < tx.inputs.length; i++) {
       String receivedAddress =
           wallet.getAddressWithDerivationPath(tx.utxoList[i].derivationPath);
@@ -943,7 +944,7 @@ class Psbt {
                 return false;
               }
               for (Signature signature in input.muSig2PartialSigs!) {
-                if (signature.publicKey == publicKey) {
+                if (signature.publicKey.contains(publicKey)) {
                   return true;
                 }
               }
