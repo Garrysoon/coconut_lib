@@ -350,20 +350,29 @@ class KeyStore {
     bool isChange = WalletUtility.isChangeFromDerivationPath(derivationPath);
     HDWallet hdWallet = getChildHdWallet(isChange).derive(accountIndex);
 
-    String publicKey = getPublicKey(accountIndex,
-        isChange: isChange, applyTweak: addressType.applyTweak, isXOnly: false);
+    String publicKey;
     late String signature;
 
     if (!addressType.isTaproot) {
       // ECDSA
+      publicKey = getPublicKey(accountIndex,
+          isChange: isChange,
+          applyTweak: addressType.applyTweak,
+          isXOnly: false);
       signature = Codec.encodeHex(hdWallet.signEcdsa(Codec.decodeHex(sigHash)));
     } else {
-      //Schnorr
-      if (addressType == AddressType.p2trKeyPathSpending) {
-        signature = Codec.encodeHex(hdWallet.signSchnorr(
-            Codec.decodeHex(sigHash), addressType.applyTweak));
-      } else if (addressType == AddressType.p2tr) {
+      //Key path spending
+      if (sessionContext == null) {
+        publicKey = getPublicKey(accountIndex,
+            isChange: isChange, applyTweak: true, isXOnly: false);
+        signature = Codec.encodeHex(
+            hdWallet.signSchnorr(Codec.decodeHex(sigHash), true));
+      } else {
         //MuSig2
+        publicKey = getPublicKey(accountIndex,
+            isChange: isChange,
+            applyTweak: addressType.applyTweak,
+            isXOnly: false);
         if (psbtInput.tapBip32Derivation!.length !=
             psbtInput.muSig2PubNonces!.length) {
           throw Exception("Not enough public nonce.");
@@ -389,20 +398,18 @@ class KeyStore {
       }
     } else {
       // Schnorr
-      if (addressType == AddressType.p2trKeyPathSpending) {
+      if (sessionContext == null) {
         if (!Ecc.verifySchnorr(
             Codec.decodeHex(sigHash), publicKeyByte, signatureByte)) {
           throw Exception('Invalid signature');
         }
-      } else if (addressType == AddressType.p2tr) {
+      } else {
         Uint8List publicNonce = Codec.decodeHex(psbtInput.muSig2PubNonces![
             "${Codec.encodeHex(publicKeyByte)}$aggregatedPublicKey$sigHash"]!);
         if (!Ecc.verifyMuSig2PartialSignature(
             signatureByte, publicNonce, publicKeyByte, sessionContext!)) {
           throw Exception('Invalid signature');
         }
-      } else {
-        throw Exception("Unsupported address type");
       }
     }
 
@@ -418,9 +425,14 @@ class KeyStore {
         // psbtObject.addTapKeySig(inputIndex, signatureMap[pub]!);
         psbtInput.addTapKeySig(signature);
       } else if (addressType == AddressType.p2tr) {
-        // psbtObject.addMuSig2PartialSig(inputIndex, signatureMap[pub]!, pub);
-        psbtInput.addMuSig2PartialSig(signature, publicKey,
-            psbtInput.muSig2AggregatedPublicKey!, sigHash);
+        if (psbtInput.muSig2AggregatedPublicKey == null) {
+          // Key path spending
+          psbtInput.addTapKeySig(signature);
+        } else {
+          // MuSig2
+          psbtInput.addMuSig2PartialSig(signature, publicKey,
+              psbtInput.muSig2AggregatedPublicKey!, sigHash);
+        }
       } else if (addressType == AddressType.p2trScriptPathSpending) {
         // Script path
         // psbtObject.addTapScriptSig(inputIndex, signatureMap[pub]!, pub);

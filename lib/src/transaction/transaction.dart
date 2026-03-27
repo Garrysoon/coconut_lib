@@ -844,8 +844,7 @@ class Transaction {
     //     "02${TransactionOutput.parse(utxoList[inputIndex]).scriptPubKey.commands[1]}");
     Uint8List publicKey = utxoList[inputIndex].scriptPubKey.commands[1];
     Uint8List signature = Codec.decodeHex(inputs[inputIndex].witnessList[0]);
-    bool isValid = Ecc.verifySchnorr(sigHash, publicKey, signature) ||
-        Ecc.verifySchnorr(sigHash, publicKey, signature);
+    bool isValid = Ecc.verifySchnorr(sigHash, publicKey, signature);
     return isValid;
   }
 

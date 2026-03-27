@@ -8,10 +8,9 @@ void main() {
   WalletUtility.getAccountIndexFromDerivationPath("m/86'/1'/0'/0/0");
   NetworkType.setNetworkType(NetworkType.regtest);
   test('Add signature to psbt scenario', () {
-    SingleSignatureVault vault = MockFactory.createP2trKeyPathSpendingVault();
+    TaprootVault vault = MockFactory.createP2trKeyPathSpendingVault();
 
     expect(vault.descriptor.hashCode, 917163750);
-    expect(checkTweak(vault), true);
     expect(vault.getAddress(0),
         'bcrt1p04sfl6yhkw73rsjjk5c0fu5ptem2zvu6ts5cj7s0ww2s5gqtljmqjqsgx3');
     Utxo utxo = Utxo(

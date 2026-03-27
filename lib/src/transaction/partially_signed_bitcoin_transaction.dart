@@ -49,13 +49,7 @@ class Psbt {
             return AddressType.p2wsh;
           }
         } else if (inputs[0].tapBip32Derivation != null) {
-          if (inputs[0].muSig2AggregatedPublicKey != null) {
-            return AddressType.p2tr;
-          } else if (inputs[0].tapLeafScript != null) {
-            return AddressType.p2trScriptPathSpending;
-          } else {
-            return AddressType.p2trKeyPathSpending;
-          }
+          return AddressType.p2tr;
         } else {
           return null;
         }
@@ -469,7 +463,6 @@ class Psbt {
         }
       } else if (wallet.addressType == AddressType.p2tr) {
         List<String> publicKeys = [];
-
         for (KeyStore keyStore in taprootWallet.keyStoreList) {
           // TAP_BIP32_DERIVATION
           String tapBip32DerivationKeyType =
@@ -487,30 +480,44 @@ class Psbt {
                   Codec.encodeHex(
                       _serializeDerivationPath(tx.utxoList[i].derivationPath));
         }
-        // MUSIG2_PARTICIPANT_PUBKEY
-        String musig2ParticipantPubKeyType =
-            getKeyType(inputKeyType, 'MUSIG2_PARTICIPANT_PUBKEY');
-        String aggregatePubKey = Codec.encodeHex(
-            taprootWallet.getAggregatedPublicKey(tx.utxoList[i].accountIndex,
-                isChange: tx.utxoList[i].isChange, isXOnly: false));
-        inputData[musig2ParticipantPubKeyType + aggregatePubKey] =
-            publicKeys.join();
+        if (taprootWallet.keyStoreList.length == 1) {
+          // Key path spending
+          if (tx.inputs[i].witnessList.isNotEmpty) {
+            String taprootKeySpendSignature =
+                getKeyType(inputKeyType, 'TAP_KEY_SIG');
+            inputData[taprootKeySpendSignature] = tx.inputs[i].witnessList[0];
+          }
+          if (tx.inputs[i].witnessList.length == 1) {
+            String taprootKeySpendSignature =
+                getKeyType(inputKeyType, 'PSBT_IN_TAP_KEY_SIG');
+            inputData[taprootKeySpendSignature] = tx.inputs[i].witnessList[0];
+          }
+        } else if (taprootWallet.keyStoreList.length > 1) {
+          // MUSIG2_PARTICIPANT_PUBKEY
+          String musig2ParticipantPubKeyType =
+              getKeyType(inputKeyType, 'MUSIG2_PARTICIPANT_PUBKEY');
+          String aggregatePubKey = Codec.encodeHex(
+              taprootWallet.getAggregatedPublicKey(tx.utxoList[i].accountIndex,
+                  isChange: tx.utxoList[i].isChange, isXOnly: false));
+          inputData[musig2ParticipantPubKeyType + aggregatePubKey] =
+              publicKeys.join();
 
-        // String musig2PubNonceType =
-        //     getKeyType(inputKeyType, 'MUSIG2_PUB_NONCE');
-        for (int keyStoreIndex = 0;
-            keyStoreIndex < taprootWallet.keyStoreList.length;
-            keyStoreIndex++) {
-          // MUSIG2_PUB_NONCE
-          // if (multisignatureWallet.keyStoreList[keyStoreIndex].hasSeed) {
-          //   inputData[musig2PubNonceType + publicKeys[keyStoreIndex]] =
-          //       multisignatureWallet.keyStoreList[keyStoreIndex]
-          //           .getMuSig2PublicNonce(
-          //               tx.getTaprootSigHash(i, witnessUtxoList),
-          //               aggregatePubKey,
-          //               tx.utxoList[i].accountIndex,
-          //               tx.utxoList[i].isChange);
-          // }
+          // String musig2PubNonceType =
+          //     getKeyType(inputKeyType, 'MUSIG2_PUB_NONCE');
+          for (int keyStoreIndex = 0;
+              keyStoreIndex < taprootWallet.keyStoreList.length;
+              keyStoreIndex++) {
+            // MUSIG2_PUB_NONCE
+            // if (multisignatureWallet.keyStoreList[keyStoreIndex].hasSeed) {
+            //   inputData[musig2PubNonceType + publicKeys[keyStoreIndex]] =
+            //       multisignatureWallet.keyStoreList[keyStoreIndex]
+            //           .getMuSig2PublicNonce(
+            //               tx.getTaprootSigHash(i, witnessUtxoList),
+            //               aggregatePubKey,
+            //               tx.utxoList[i].accountIndex,
+            //               tx.utxoList[i].isChange);
+            // }
+          }
         }
       }
       psbtData["inputs"].add(inputData);
@@ -855,66 +862,70 @@ class Psbt {
           throw Exception('Invalid Signatures');
         }
       }
-    } else if (addressType == AddressType.p2trKeyPathSpending) {
-      List<TransactionOutput> utxoList = [];
-      for (int i = 0; i < inputs.length; i++) {
-        utxoList.add(inputs[i].witnessUtxo!);
-      }
-
-      for (int i = 0; i < inputs.length; i++) {
-        if (inputs[i].tapKeySig != null) {
-          signedTransaction.inputs[i]
-              .setTaprootKeyPathSpendingSignature(inputs[i].tapKeySig!);
-
-          if (utxoList.isEmpty) {
-            continue;
-          }
-
-          if (signedTransaction.validateSchnorr(i, utxoList)) {
-            continue;
-          } else {
-            throw Exception('Invalid Signatures');
-          }
-        }
-      }
     } else if (addressType == AddressType.p2tr) {
       List<TransactionOutput> utxoList = [];
       for (int i = 0; i < inputs.length; i++) {
         utxoList.add(inputs[i].witnessUtxo!);
       }
       for (int i = 0; i < inputs.length; i++) {
-        if (inputs[i].totalSinger < inputs[i].requiredSignature) {
-          throw Exception('Not enough signatures');
-        }
+        if (inputs[i].muSig2AggregatedPublicKey == null) {
+          //Key path spending
+          List<TransactionOutput> utxoList = [];
+          for (int i = 0; i < inputs.length; i++) {
+            utxoList.add(inputs[i].witnessUtxo!);
+          }
 
-        Uint8List aggregatedPubKey =
-            Codec.decodeHex(inputs[i].muSig2AggregatedPublicKey!);
-        Uint8List aggregatedPubNonce =
-            Codec.decodeHex(inputs[i].getAggregatedPublicNonce());
-        Uint8List message =
-            Codec.decodeHex(signedTransaction.getTaprootSigHash(i, utxoList));
+          for (int i = 0; i < inputs.length; i++) {
+            if (inputs[i].tapKeySig != null) {
+              signedTransaction.inputs[i]
+                  .setTaprootKeyPathSpendingSignature(inputs[i].tapKeySig!);
 
-        SessionContext sessionContext = SessionContext(
-          inputs[i]
-              .muSig2ParticipantPubkeys!
-              .map((e) => Codec.decodeHex(e))
-              .toList(),
-          aggregatedPubNonce,
-          aggregatedPubKey,
-          message,
-          applyTaprootTweak: true,
-        );
+              if (utxoList.isEmpty) {
+                continue;
+              }
 
-        Uint8List aggregatedSignature = Ecc.getAggregatedSignatureForMuSig2(
-            sessionContext, inputs[i].muSig2PartialSigs!);
-        if (Ecc.verifySchnorr(
-            message,
-            Ecc.getEncoded(sessionContext.aggregateQ, true).sublist(1),
-            aggregatedSignature)) {
-          signedTransaction.inputs[i].setTaprootKeyPathSpendingSignature(
-              Codec.encodeHex(aggregatedSignature));
+              if (signedTransaction.validateSchnorr(i, utxoList)) {
+                continue;
+              } else {
+                throw Exception('Invalid Signatures');
+              }
+            }
+          }
         } else {
-          throw Exception('Invalid Signatures');
+          //MuSig2
+          if (inputs[i].totalSinger < inputs[i].requiredSignature) {
+            throw Exception('Not enough signatures');
+          }
+
+          Uint8List aggregatedPubKey =
+              Codec.decodeHex(inputs[i].muSig2AggregatedPublicKey!);
+          Uint8List aggregatedPubNonce =
+              Codec.decodeHex(inputs[i].getAggregatedPublicNonce());
+          Uint8List message =
+              Codec.decodeHex(signedTransaction.getTaprootSigHash(i, utxoList));
+
+          SessionContext sessionContext = SessionContext(
+            inputs[i]
+                .muSig2ParticipantPubkeys!
+                .map((e) => Codec.decodeHex(e))
+                .toList(),
+            aggregatedPubNonce,
+            aggregatedPubKey,
+            message,
+            applyTaprootTweak: true,
+          );
+
+          Uint8List aggregatedSignature = Ecc.getAggregatedSignatureForMuSig2(
+              sessionContext, inputs[i].muSig2PartialSigs!);
+          if (Ecc.verifySchnorr(
+              message,
+              Ecc.getEncoded(sessionContext.aggregateQ, true).sublist(1),
+              aggregatedSignature)) {
+            signedTransaction.inputs[i].setTaprootKeyPathSpendingSignature(
+                Codec.encodeHex(aggregatedSignature));
+          } else {
+            throw Exception('Invalid Signatures');
+          }
         }
       }
     } else {

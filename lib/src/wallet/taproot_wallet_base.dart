@@ -55,8 +55,14 @@ abstract class TaprootWalletBase extends WalletBase {
   /// Get the address of the given index.
   @override
   String getAddress(int addressIndex, {bool isChange = false}) {
-    Uint8List internalKey =
-        getAggregatedPublicKey(addressIndex, isChange: isChange, isXOnly: true);
+    Uint8List internalKey;
+    if (keyStoreList.length == 1) {
+      internalKey = keyStoreList[0].getPublicKeyBytes(addressIndex,
+          isChange: isChange, applyTweak: false, isXOnly: true);
+    } else {
+      internalKey = getAggregatedPublicKey(addressIndex,
+          isChange: isChange, isXOnly: true);
+    }
     Uint8List merkleRoot = Uint8List(0);
 
     if (_policyList.isNotEmpty) {
@@ -103,6 +109,10 @@ abstract class TaprootWalletBase extends WalletBase {
       throw Exception('Address Type is not matched.');
     }
 
+    if (addressType != AddressType.p2tr) {
+      throw Exception('Address type must be Taproot.');
+    }
+
     if (psbtObject.inputs.length !=
         psbtObject.unsignedTransaction!.inputs.length) {
       throw Exception('Not enought psbt inputs or transaction inputs');
@@ -116,24 +126,40 @@ abstract class TaprootWalletBase extends WalletBase {
       if (psbtInput.requiredSignature <= psbtInput.signedCount) {
         continue;
       }
-      //get sigHash
       late String sigHash;
-      SessionContext? sessionContext;
-      if (!addressType.isTaproot) {
-        //ECDSA
-        if (addressType != AddressType.p2wsh) {
-          throw Exception('Not support witness script for this address type.');
+      //Key path spending
+      if (keyStoreList.length == 1) {
+        List<DerivationPath>? derivationPathList;
+        if (!addressType.isTaproot) {
+          derivationPathList = psbtInput.bip32Derivation;
+          sigHash = psbtObject.unsignedTransaction!
+              .getSigHash(inputIndex, psbtInput.witnessUtxo!, addressType);
+        } else {
+          derivationPathList = psbtInput.tapBip32Derivation;
+
+          List<TransactionOutput> utxoList = [];
+          for (int j = 0;
+              j < psbtObject.unsignedTransaction!.inputs.length;
+              j++) {
+            utxoList.add(psbtObject.inputs[j].witnessUtxo!);
+          }
+          sigHash = psbtObject.unsignedTransaction!
+              .getTaprootSigHash(inputIndex, utxoList);
         }
-        TransactionOutput utxo = psbtInput.witnessUtxo!;
-        String? witnessScript = psbtInput.witnessScript!.rawSerialize();
-        sigHash = psbtObject.unsignedTransaction!.getSigHash(
-            inputIndex, utxo, addressType,
-            witnessScript: witnessScript);
-      } else {
-        //Taproot
-        if (addressType != AddressType.p2tr) {
-          throw Exception('Not support witness script for this address type.');
+
+        for (DerivationPath derivationPath in derivationPathList!) {
+          if (derivationPath.masterFingerprint ==
+              keyStoreList[0].masterFingerprint) {
+            keyStoreList[0].addSignatureToPsbtInput(
+                psbtInput, addressType, derivationPath.path, sigHash);
+            break;
+          }
         }
+      }
+      //MuSig2
+      else if (keyStoreList.length > 1) {
+        SessionContext? sessionContext;
+
         List<TransactionOutput> utxoList = [];
         for (int j = 0;
             j < psbtObject.unsignedTransaction!.inputs.length;
@@ -151,29 +177,30 @@ abstract class TaprootWalletBase extends WalletBase {
             Codec.decodeHex(psbtInput.muSig2AggregatedPublicKey!),
             Codec.decodeHex(sigHash),
             applyTaprootTweak: true);
-      }
 
-      List<DerivationPath>? derivationPathList;
-      if (!addressType.isTaproot) {
-        derivationPathList = psbtInput.bip32Derivation;
-      } else {
-        derivationPathList = psbtInput.tapBip32Derivation;
-      }
-      for (DerivationPath derivationPath in derivationPathList!) {
-        if (psbtInput.requiredSignature <= psbtInput.signedCount) {
-          break;
+        List<DerivationPath>? derivationPathList;
+        if (!addressType.isTaproot) {
+          derivationPathList = psbtInput.bip32Derivation;
+        } else {
+          derivationPathList = psbtInput.tapBip32Derivation;
         }
-        for (KeyStore keyStore in keyStoreList) {
-          if (!keyStore.hasSeed) {
-            continue;
-          }
-          if (derivationPath.masterFingerprint == keyStore.masterFingerprint) {
-            // print("add signature to psbt ${keyStore.seed.passphrase}");
-            keyStore.addSignatureToPsbtInput(
-                psbtInput, addressType, derivationPath.path, sigHash,
-                aggregatedPublicKey: psbtInput.muSig2AggregatedPublicKey!,
-                sessionContext: sessionContext);
+        for (DerivationPath derivationPath in derivationPathList!) {
+          if (psbtInput.requiredSignature <= psbtInput.signedCount) {
             break;
+          }
+          for (KeyStore keyStore in keyStoreList) {
+            if (!keyStore.hasSeed) {
+              continue;
+            }
+            if (derivationPath.masterFingerprint ==
+                keyStore.masterFingerprint) {
+              // print("add signature to psbt ${keyStore.seed.passphrase}");
+              keyStore.addSignatureToPsbtInput(
+                  psbtInput, addressType, derivationPath.path, sigHash,
+                  aggregatedPublicKey: psbtInput.muSig2AggregatedPublicKey!,
+                  sessionContext: sessionContext);
+              break;
+            }
           }
         }
       }

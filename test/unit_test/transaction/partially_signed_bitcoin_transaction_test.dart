@@ -180,15 +180,18 @@ void main() {
           expect(signedPsbt.isSigned(vault.keyStore), true);
         });
         test('Check if psbt is signed (taproot)', () {
-          SingleSignatureVault vault =
-              MockFactory.createP2trKeyPathSpendingVault();
+          TaprootVault vault = MockFactory.createP2trKeyPathSpendingVault();
           Psbt unsignedPsbt =
               MockFactory.createP2trKeyPathSpendingUnsignedPsbt();
           Psbt signedPsbt = MockFactory.createP2trKeyPathSpendingSignedPsbt();
 
-          expect(unsignedPsbt.isSigned(vault.keyStore, isKeyPathSpending: true),
+          expect(
+              unsignedPsbt.isSigned(vault.keyStoreList[0],
+                  isKeyPathSpending: true),
               false);
-          expect(signedPsbt.isSigned(vault.keyStore, isKeyPathSpending: true),
+          expect(
+              signedPsbt.isSigned(vault.keyStoreList[0],
+                  isKeyPathSpending: true),
               true);
         });
       });

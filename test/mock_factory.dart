@@ -28,18 +28,20 @@ abstract class MockFactory {
     return vault!;
   }
 
-  static SingleSignatureVault createP2trKeyPathSpendingVault(
+  static TaprootVault createP2trKeyPathSpendingVault(
       {TestWalletType testWalletType = TestWalletType.forNormal,
       String passphrase = ''}) {
-    SingleSignatureVault? vault;
+    TaprootVault? vault;
     if (testWalletType == TestWalletType.forNormal) {
-      vault = SingleSignatureVault.fromMnemonic(
-          utf8.encode(
-              'machine crack daughter fish credit glare raven fever tunnel delay fish record'),
-          addressType: AddressType.p2trKeyPathSpending,
-          passphrase: utf8.encode(passphrase));
+      vault = TaprootVault.fromKeyStoreList([
+        KeyStore.fromSeed(
+            Seed.fromMnemonic(utf8.encode(
+                'machine crack daughter fish credit glare raven fever tunnel delay fish record')),
+            AddressType.p2tr)
+      ], []);
     } else if (testWalletType == TestWalletType.random) {
-      vault = SingleSignatureVault.random();
+      vault = TaprootVault.fromKeyStoreList(
+          [KeyStore.random(AddressType.p2tr)], []);
     }
     return vault!;
   }
@@ -181,14 +183,14 @@ abstract class MockFactory {
   }
 
   static Psbt createP2trKeyPathSpendingUnsignedPsbt() {
-    SingleSignatureVault vault = createP2trKeyPathSpendingVault();
+    TaprootVault vault = createP2trKeyPathSpendingVault();
     Transaction tx = Transaction.forSinglePayment(createUtxoList(count: 1),
         vault.getAddress(1), '${vault.derivationPath}/1/1', 15000, 3, vault);
     return Psbt.fromTransaction(tx, vault);
   }
 
   static Psbt createP2trKeyPathSpendingSignedPsbt() {
-    SingleSignatureVault vault = createP2trKeyPathSpendingVault();
+    TaprootVault vault = createP2trKeyPathSpendingVault();
     Transaction tx = Transaction.forSinglePayment(createUtxoList(count: 1),
         vault.getAddress(1), '${vault.derivationPath}/1/1', 15000, 3, vault);
     Psbt unsignedPsbt = Psbt.fromTransaction(tx, vault);

@@ -300,8 +300,7 @@ void main() {
         expect(tx.estimateVirtualByte(AddressType.p2wpkh), 412.75);
       });
       test('Get estimated virtual byte in p2tr key path spending', () {
-        SingleSignatureVault vault =
-            MockFactory.createP2trKeyPathSpendingVault();
+        TaprootVault vault = MockFactory.createP2trKeyPathSpendingVault();
         List<Utxo> utxos = MockFactory.createUtxoList(count: 1);
         Transaction tx = Transaction.forSweep(
             utxos,

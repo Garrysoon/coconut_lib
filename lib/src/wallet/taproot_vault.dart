@@ -60,6 +60,9 @@ class TaprootVault extends TaprootWalletBase {
     if (!hasPublicKeyInPsbt(psbt)) {
       throw Exception('No keyStore can sign to the PSBT.');
     }
+    if (keyStoreList.length == 1) {
+      return psbt;
+    }
     Psbt psbtObject = Psbt.parse(psbt);
     if (psbtObject.addressType != AddressType.p2tr) {
       throw Exception('Only p2tr needs public nonce.');
