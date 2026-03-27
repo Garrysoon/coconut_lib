@@ -55,15 +55,9 @@ abstract class SingleSignatureWalletBase extends WalletBase {
       throw Exception("Derivation path does not match");
     }
 
-    bool xOnly = false;
-    if (addressType.isTaproot) {
-      xOnly = true;
-    }
-
     String pubkey = _keyStore.getPublicKey(
         WalletUtility.getAccountIndexFromDerivationPath(derivationPath),
-        isChange: WalletUtility.isChangeFromDerivationPath(derivationPath),
-        isXOnly: xOnly);
+        isChange: WalletUtility.isChangeFromDerivationPath(derivationPath));
     return _addressType.getAddress(pubkey);
   }
 

@@ -55,13 +55,8 @@ abstract class MultisignatureWalletBase extends WalletBase {
 
   @override
   String getAddress(int addressIndex, {bool isChange = false}) {
-    bool isXonly = false;
-    if (addressType.isTaproot) {
-      isXonly = true;
-    }
     List<String> pubkeys = _keyStoreList
-        .map((e) =>
-            e.getPublicKey(addressIndex, isChange: isChange, isXOnly: isXonly))
+        .map((e) => e.getPublicKey(addressIndex, isChange: isChange))
         .toList();
     return _addressType.getMultisignatureAddress(pubkeys, _requiredSignature);
   }
@@ -76,15 +71,9 @@ abstract class MultisignatureWalletBase extends WalletBase {
       throw Exception("Derivation path does not match");
     }
 
-    bool isXonly = false;
-    if (addressType.isTaproot) {
-      isXonly = true;
-    }
-
     List<String> pubkeys = _keyStoreList
         .map((e) => e.getPublicKey(
             WalletUtility.getAccountIndexFromDerivationPath(derivationPath),
-            isXOnly: isXonly,
             isChange: WalletUtility.isChangeFromDerivationPath(derivationPath)))
         .toList();
     return _addressType.getMultisignatureAddress(pubkeys, _requiredSignature);
