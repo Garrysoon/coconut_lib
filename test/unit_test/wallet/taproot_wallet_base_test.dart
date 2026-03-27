@@ -50,7 +50,7 @@ void main() {
       test('returns 32-byte x-only aggregated key', () {
         //0331cd531693ac6f845e040afbad01fc13816869436d5bbaa0367abc3809b8848f
         //0336df5f7ac13900bef3fa97c66110397344af522501630a7490cd88e91fff1e24
-        expect(Codec.encodeHex(vault.getAggregatedPublicKey(0)),
+        expect(Codec.encodeHex(vault.getAggregatedPublicKey(0, isXOnly: true)),
             'ca86cf1e3ca9f06623db7c9e84ad1f1e6c5bf5eea7b107cd39031b84be94be1e');
       });
     });

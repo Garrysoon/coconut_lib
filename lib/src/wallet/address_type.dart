@@ -301,26 +301,6 @@ class AddressType {
     return address;
   }
 
-  //BIP0327
-  static String getP2trMuSig2Address(
-      List<String> publicKeys, int requiredSignature) {
-    if (requiredSignature > publicKeys.length) {
-      throw Exception(
-          "requiredSignature cannot be greater than the number of pubkeys");
-    }
-    if (requiredSignature != publicKeys.length) {
-      throw Exception(
-          "In MuSig2, the number of public keys must equal the required signatures");
-    }
-
-    // Calculate the internal key (tweak) using SHA256
-    String internalKey = Codec.encodeHex(WalletUtility.aggregatePublicKey(
-        publicKeys.map((e) => Codec.decodeHex(e)).toList()));
-
-    // Get the Taproot address using the internal key
-    return getTaprootAddressFromTweakedPublicKey(internalKey);
-  }
-
   static String getP2trScriptPathSpendingAddress(
       List<String> publicKeys, int requiredSignature) {
     if (requiredSignature > 3) {

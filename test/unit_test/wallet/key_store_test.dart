@@ -11,6 +11,7 @@ void main() {
   group('KeyStore', () {
     late Seed seed;
     late KeyStore keyStore;
+
     setUpAll(() async {
       seed = Seed.fromMnemonic(utf8.encode(
           "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"));
@@ -328,6 +329,71 @@ void main() {
 
   group('MuSigSessionContext', () {
     group('getMuSig2PublicNonce', () {
+      Uint8List aggregatePublicKey(List<Uint8List> publicKeyList,
+          {bool isSort = true, bool isXOnly = true}) {
+        if (isSort) {
+          publicKeyList.sort((a, b) {
+            int len = a.length < b.length ? a.length : b.length;
+
+            for (int i = 0; i < len; i++) {
+              if (a[i] != b[i]) {
+                return a[i].compareTo(b[i]);
+              }
+            }
+
+            return a.length.compareTo(b.length);
+          });
+        }
+
+        late Uint8List secondKey = Uint8List(0);
+        for (Uint8List key in publicKeyList) {
+          if (Codec.encodeHex(publicKeyList[0]) != Codec.encodeHex(key)) {
+            secondKey = key;
+            break;
+          }
+        }
+
+        String concatenatedPublicKey =
+            publicKeyList.map((e) => Codec.encodeHex(e)).join();
+
+        Uint8List Q = publicKeyList[0];
+
+        for (int i = 0; i < publicKeyList.length; i++) {
+          Uint8List coefficient = Uint8List(0);
+          if (Codec.encodeHex(publicKeyList[i]) == Codec.encodeHex(secondKey)) {
+            coefficient = Uint8List.fromList(List<int>.generate(
+                32,
+                (i) => int.parse(
+                    BigInt.one
+                        .toRadixString(16)
+                        .padLeft(64, '0')
+                        .substring(i * 2, i * 2 + 2),
+                    radix: 16)));
+          } else {
+            String data = Hash.taggedHash(
+                    'KeyAgg list', Codec.decodeHex(concatenatedPublicKey)) +
+                Codec.encodeHex(publicKeyList[i]);
+            coefficient = Codec.decodeHex(
+                Hash.taggedHash('KeyAgg coefficient', Codec.decodeHex(data)));
+          }
+
+          if (i == 0) {
+            Q = Ecc.pointMultiplyScalar(publicKeyList[i], coefficient, true)!;
+          } else {
+            Q = Ecc.pointCombine(
+                Q,
+                Ecc.pointMultiplyScalar(publicKeyList[i], coefficient, true)!,
+                true)!;
+          }
+        }
+
+        if (isXOnly) {
+          return Q.sublist(1);
+        } else {
+          return Q;
+        }
+      }
+
       test('Generate session context', () {
         Uint8List message = Codec.decodeHex(
             '6701942fd0f38440a7c410a3fcf6a6e10bd76a4974c3b0a9553e60528c78a6b5');
@@ -339,9 +405,8 @@ void main() {
           Codec.decodeHex(
               '02e9ee267a4bd5d0df21cc649bdda375bb5510d173ed4127b15da93f0717b1f99d')
         ];
-        Uint8List aggregatedPublicKey = WalletUtility.aggregatePublicKey(
-            participantPublicKeys,
-            isXOnly: false);
+        Uint8List aggregatedPublicKey =
+            aggregatePublicKey(participantPublicKeys, isXOnly: false);
         Uint8List aggregatedPubNonce = Codec.decodeHex(
             '03ddffdfd8f613ca697f313579e80adbf34564fac6ce5808b6d0dde9d09327c1b002cfa39d381c6366ebdd7019641dba6dd453f9d38f56d38b0d7e33b51cfbfe95ef');
         SessionContext sessionContext = SessionContext(participantPublicKeys,

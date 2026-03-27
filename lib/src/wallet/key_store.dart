@@ -376,7 +376,7 @@ class KeyStore {
             psbtInput.muSig2AggregatedPublicKey!, accountIndex, isChange);
 
         signature = Codec.encodeHex(
-            hdWallet.signSchnorrForMuSig2(secretNonce, sessionContext!));
+            hdWallet.signSchnorrForMuSig2(secretNonce, sessionContext));
       }
     }
 

@@ -55,6 +55,71 @@ void main() {
           radix: 16);
     }
 
+    Uint8List _aggregatePublicKey(List<Uint8List> publicKeyList,
+        {bool isSort = true, bool isXOnly = true}) {
+      if (isSort) {
+        publicKeyList.sort((a, b) {
+          int len = a.length < b.length ? a.length : b.length;
+
+          for (int i = 0; i < len; i++) {
+            if (a[i] != b[i]) {
+              return a[i].compareTo(b[i]);
+            }
+          }
+
+          return a.length.compareTo(b.length);
+        });
+      }
+
+      late Uint8List secondKey = Uint8List(0);
+      for (Uint8List key in publicKeyList) {
+        if (Codec.encodeHex(publicKeyList[0]) != Codec.encodeHex(key)) {
+          secondKey = key;
+          break;
+        }
+      }
+
+      String concatenatedPublicKey =
+          publicKeyList.map((e) => Codec.encodeHex(e)).join();
+
+      Uint8List Q = publicKeyList[0];
+
+      for (int i = 0; i < publicKeyList.length; i++) {
+        Uint8List coefficient = Uint8List(0);
+        if (Codec.encodeHex(publicKeyList[i]) == Codec.encodeHex(secondKey)) {
+          coefficient = Uint8List.fromList(List<int>.generate(
+              32,
+              (i) => int.parse(
+                  BigInt.one
+                      .toRadixString(16)
+                      .padLeft(64, '0')
+                      .substring(i * 2, i * 2 + 2),
+                  radix: 16)));
+        } else {
+          String data = Hash.taggedHash(
+                  'KeyAgg list', Codec.decodeHex(concatenatedPublicKey)) +
+              Codec.encodeHex(publicKeyList[i]);
+          coefficient = Codec.decodeHex(
+              Hash.taggedHash('KeyAgg coefficient', Codec.decodeHex(data)));
+        }
+
+        if (i == 0) {
+          Q = Ecc.pointMultiplyScalar(publicKeyList[i], coefficient, true)!;
+        } else {
+          Q = Ecc.pointCombine(
+              Q,
+              Ecc.pointMultiplyScalar(publicKeyList[i], coefficient, true)!,
+              true)!;
+        }
+      }
+
+      if (isXOnly) {
+        return Q.sublist(1);
+      } else {
+        return Q;
+      }
+    }
+
     group('isPrivate', () {
       test('Valid private key in range', () {
         Uint8List validPrivateKey = bigIntToUint8List(BigInt.one);
@@ -421,6 +486,7 @@ void main() {
 
     group('signSchnorrForMuSig2', () {
       //Test case from : https://github.com/bitcoin/bips/blob/master/bip-0327/vectors/sign_verify_vectors.json
+
       test('Get partial signature for musig2 (case 1)', () {
         Uint8List message = Codec.decodeHex(
             '599c67ea410d005b9da90817cf03ed3b1c868e4da4edf00a5880b0082c237869');
@@ -439,9 +505,8 @@ void main() {
             '0341432722c5cd0268d829c702cf0d1cbce57033eed201fd335191385227c3210c03d377f2d258b64aadc0e16f26462323d701d286046a2ea93365656afd9875982b');
         Uint8List publicKey = Codec.decodeHex(
             '03935f972da013f80ae011890fa89b67a27b7be6ccb24d3274d18b2d4067f261a9');
-        Uint8List aggregatedPublicKey = WalletUtility.aggregatePublicKey(
-            participantPublicKeys,
-            isXOnly: false);
+        Uint8List aggregatedPublicKey =
+            _aggregatePublicKey(participantPublicKeys, isXOnly: false);
 
         SessionContext sessionContext = SessionContext(participantPublicKeys,
             aggregatedPubNonce, aggregatedPublicKey, message);
@@ -466,9 +531,8 @@ void main() {
           Codec.decodeHex(
               '02d2dc6f5df7c56acf38c7fa0ae7a759ae30e19b37359dfde015872324c7ef6e05')
         ];
-        Uint8List aggregatedPublicKey = WalletUtility.aggregatePublicKey(
-            participantPublicKeys,
-            isXOnly: false);
+        Uint8List aggregatedPublicKey =
+            _aggregatePublicKey(participantPublicKeys, isXOnly: false);
         Uint8List privateKey = Codec.decodeHex(
             '3874d22de7a7290c49ce7f1dc17d1a8cd8918e1f799055139d57fc0988d04d10');
         Uint8List secretNonce = Codec.decodeHex(
@@ -495,9 +559,8 @@ void main() {
           Codec.decodeHex(
               '03c7fb101d97ff930acd0c6760852ef64e69083de0b06ac6335724754bb4b0522c')
         ];
-        Uint8List aggregatedPublicKey = WalletUtility.aggregatePublicKey(
-            participantPublicKeys,
-            isXOnly: false);
+        Uint8List aggregatedPublicKey =
+            _aggregatePublicKey(participantPublicKeys, isXOnly: false);
         Uint8List privateKey = Codec.decodeHex(
             '7fb9e0e687ada1eebf7ecfe2f21e73ebdb51a7d450948dfe8d76d7f2d1007671');
         Uint8List secretNonce = Codec.decodeHex(
@@ -527,9 +590,8 @@ void main() {
           Codec.decodeHex(
               '02e9ee267a4bd5d0df21cc649bdda375bb5510d173ed4127b15da93f0717b1f99d')
         ];
-        Uint8List aggregatedPublicKey = WalletUtility.aggregatePublicKey(
-            participantPublicKeys,
-            isXOnly: false);
+        Uint8List aggregatedPublicKey =
+            _aggregatePublicKey(participantPublicKeys, isXOnly: false);
         Uint8List privateKey = Codec.decodeHex(
             'b6c67f3861dcb9d9efc935dee890bdbce190b6bedbe1428c77a0e4a8ab2ec032');
         Uint8List secretNonce = Codec.decodeHex(
@@ -757,7 +819,7 @@ void main() {
       test('Verify schnorr signature for musig2 (case 1)', () {
         Uint8List message = Codec.decodeHex(
             '599c67ea410d005b9da90817cf03ed3b1c868e4da4edf00a5880b0082c237869');
-        Uint8List aggregatedPubKey = WalletUtility.aggregatePublicKey([
+        Uint8List aggregatedPubKey = _aggregatePublicKey([
           Codec.decodeHex(
               '03935f972da013f80ae011890fa89b67a27b7be6ccb24d3274d18b2d4067f261a9'),
           Codec.decodeHex(
@@ -793,9 +855,8 @@ void main() {
           Codec.decodeHex(
               '02d2dc6f5df7c56acf38c7fa0ae7a759ae30e19b37359dfde015872324c7ef6e05')
         ];
-        Uint8List aggregatedPublicKey = WalletUtility.aggregatePublicKey(
-            participantPublicKeys,
-            isXOnly: false);
+        Uint8List aggregatedPublicKey =
+            _aggregatePublicKey(participantPublicKeys, isXOnly: false);
         Uint8List publicNonce = Codec.decodeHex(
             '036e5ee6e28824029fea3e8a9ddd2c8483f5af98f7177c3af3cb6f47caf8d94ae902dba67e4a1f3680826172da15afb1a8ca85c7c5cc88900905c8dc8c328511b53e');
         Uint8List aggregatedPubNonce = Codec.decodeHex(
@@ -823,9 +884,8 @@ void main() {
           Codec.decodeHex(
               '02d2dc6f5df7c56acf38c7fa0ae7a759ae30e19b37359dfde015872324c7ef6e05')
         ];
-        Uint8List aggregatedPublicKey = WalletUtility.aggregatePublicKey(
-            participantPublicKeys,
-            isXOnly: false);
+        Uint8List aggregatedPublicKey =
+            _aggregatePublicKey(participantPublicKeys, isXOnly: false);
         Uint8List aggregatedPubNonce = Codec.decodeHex(
             '0341432722c5cd0268d829c702cf0d1cbce57033eed201fd335191385227c3210c03d377f2d258b64aadc0e16f26462323d701d286046a2ea93365656afd9875982b');
         Uint8List publicKey = Codec.decodeHex(
@@ -851,9 +911,8 @@ void main() {
           Codec.decodeHex(
               '03c7fb101d97ff930acd0c6760852ef64e69083de0b06ac6335724754bb4b0522c')
         ];
-        Uint8List aggregatedPublicKey = WalletUtility.aggregatePublicKey(
-            participantPublicKeys,
-            isXOnly: false);
+        Uint8List aggregatedPublicKey =
+            _aggregatePublicKey(participantPublicKeys, isXOnly: false);
         Uint8List aggregatedPubNonce = Codec.decodeHex(
             '0224afd36c902084058b51b5d36676bba4dc97c775873768e58822f87fe437d792028cb15929099eee2f5dae404cd39357591ba32e9af4e162b8d3e7cb5efe31cb20');
         Uint8List publicKey = Codec.decodeHex(
@@ -883,9 +942,8 @@ void main() {
           Codec.decodeHex(
               '02e9ee267a4bd5d0df21cc649bdda375bb5510d173ed4127b15da93f0717b1f99d')
         ];
-        Uint8List aggregatedPublicKey = WalletUtility.aggregatePublicKey(
-            participantPublicKeys,
-            isXOnly: false);
+        Uint8List aggregatedPublicKey =
+            _aggregatePublicKey(participantPublicKeys, isXOnly: false);
         Uint8List publicNonce = Codec.decodeHex(
             '02e4acb5eae5b50403442790a6b154473a024303e4f2dacbbbcac094834e0d5a4c02bf9bd74b91e3ca25dfab448c6b87301ad6e8d3b9cea500d1ced085cab5455dcb');
         Uint8List aggregatedPubNonce = Codec.decodeHex(
@@ -915,9 +973,8 @@ void main() {
               '02d2dc6f5df7c56acf38c7fa0ae7a759ae30e19b37359dfde015872324c7ef6e05')
         ];
 
-        Uint8List aggregatedPublicKey = WalletUtility.aggregatePublicKey(
-            participantPublicKeys,
-            isXOnly: false);
+        Uint8List aggregatedPublicKey =
+            _aggregatePublicKey(participantPublicKeys, isXOnly: false);
         // Uint8List aggregatedPubKey = Codec.decodeHex(
         //     'f68803d6235df99eb72f251d832b52029a64ae2c195a15823bd85f9577478408');
         Uint8List aggregatedPubNonce = Codec.decodeHex(
@@ -951,9 +1008,8 @@ void main() {
           Codec.decodeHex(
               '03C7FB101D97FF930ACD0C6760852EF64E69083DE0B06AC6335724754BB4B0522C')
         ];
-        Uint8List aggregatedPublicKey = WalletUtility.aggregatePublicKey(
-            participantPublicKeys,
-            isXOnly: false);
+        Uint8List aggregatedPublicKey =
+            _aggregatePublicKey(participantPublicKeys, isXOnly: false);
 
         Uint8List aggregatedPubNonce = Codec.decodeHex(
             '0224AFD36C902084058B51B5D36676BBA4DC97C775873768E58822F87FE437D792028CB15929099EEE2F5DAE404CD39357591BA32E9AF4E162B8D3E7CB5EFE31CB20');
