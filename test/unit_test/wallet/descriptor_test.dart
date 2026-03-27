@@ -182,19 +182,6 @@ void main() {
         Descriptor descriptor = Descriptor('tr', pubList, AddressType.p2tr);
         expect(descriptor.serialize(), desc);
       });
-
-      // test('Serialize nested segwit', () {
-      //   String desc =
-      //       'sh(wpkh([33a0cbfd/49h/0h/0h]xpub6CorSC5E8wkNboiq84Ndxvm3w4ccSA4MbEva8khZ4a5Cxk8hQYwrsJoPsmL8KsmCeFWzD4irCJdEqcd7kKRi5SAg355pTxTgHW2eVzQu2dd/<0;1>/*))#z3ulg0nr';
-      //   List<String> pubList = [
-      //     '[33a0cbfd/49h/0h/0h]xpub6CorSC5E8wkNboiq84Ndxvm3w4ccSA4MbEva8khZ4a5Cxk8hQYwrsJoPsmL8KsmCeFWzD4irCJdEqcd7kKRi5SAg355pTxTgHW2eVzQu2dd/<0;1>/*'
-      //   ];
-      //   Descriptor descriptor = Descriptor(
-      //       'sh-wpkh', pubList, AddressType.p2wpkhInP2sh,
-      //       requiredSignatures: 2);
-      //   expect(descriptor.serialize(), desc);
-      //   //final descriptor =
-      // });
     });
     group('getAddressTypeFromDescriptor', () {
       test('Get address type from descriptor', () {

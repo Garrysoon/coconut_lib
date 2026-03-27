@@ -421,7 +421,8 @@ void main() {
         Uint8List aggregatedPubNonce = Codec.decodeHex(
             '03ddffdfd8f613ca697f313579e80adbf34564fac6ce5808b6d0dde9d09327c1b002cfa39d381c6366ebdd7019641dba6dd453f9d38f56d38b0d7e33b51cfbfe95ef');
         SessionContext sessionContext = SessionContext(participantPublicKeys,
-            aggregatedPubNonce, aggregatedPublicKey, message);
+            aggregatedPubNonce, aggregatedPublicKey, message,
+            applyTaprootTweak: false);
         expect(Codec.encodeHex(Ecc.getEncoded(sessionContext.aggregateQ, true)),
             '0244c18be84322bd051743e9dac38d8a9472fc1e39d66ea3951da419747a4f96eb');
         expect(sessionContext.b.toString(),

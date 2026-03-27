@@ -623,7 +623,7 @@ class SessionContext {
     this.aggregatedPublicKey,
     this.message, {
     this.merkleRoot,
-    this.applyTaprootTweak = false,
+    this.applyTaprootTweak = true,
   }) {
     if (message.length != 32) {
       throw ArgumentError("sighash must be 32 bytes (got ${message.length})");
