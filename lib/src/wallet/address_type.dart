@@ -23,15 +23,10 @@ class AddressType {
 
   /// Check if the address type is for single signature.
   bool get isSingleSignature =>
-      name == 'p2pkh' ||
-      name == 'p2wpkh' ||
-      name == 'p2wpkhInP2sh' ||
-      name == 'p2trKeyPathSpending';
+      name == 'p2pkh' || name == 'p2wpkh' || name == 'p2wpkhInP2sh';
 
   // Check if the address type is for taproot.
   bool get isTaproot => name.startsWith('p2tr');
-
-  bool get applyTweak => name == 'p2trKeyPathSpending';
 
   /// @nodoc
   final int versionForMainnet;
@@ -123,18 +118,6 @@ class AddressType {
       getWrongMultisigatureAddress,
       getP2trTaprootAddress);
 
-  /// Address type for P2TR key path (single signature) address.
-  static AddressType p2trKeyPathSpending = AddressType._(
-      'p2trKeyPathSpending',
-      86,
-      'bc1',
-      'tr',
-      0x0488b21e,
-      0x043587cf,
-      getP2trKeyPathSpendingAddress,
-      getWrongMultisigatureAddress,
-      getWrongTaprootAddress);
-
   static AddressType p2trScriptPathSpending = AddressType._(
       'p2trScriptPathSpending',
       86,
@@ -147,16 +130,8 @@ class AddressType {
       getWrongTaprootAddress);
 
   /// List of all address types.
-  static List<AddressType> get values => [
-        p2pkh,
-        p2wpkh,
-        p2wpkhInP2sh,
-        p2sh,
-        p2wsh,
-        p2tr,
-        p2trKeyPathSpending,
-        p2trScriptPathSpending
-      ];
+  static List<AddressType> get values =>
+      [p2pkh, p2wpkh, p2wpkhInP2sh, p2sh, p2wsh, p2tr, p2trScriptPathSpending];
 
   /// Get the address type from the script type.(P2PKH, P2WPKH, P2WSH-in-P2SH, P2SH, P2WSH)
   static AddressType getAddressTypeFromScriptType(String scriptType) {
@@ -324,11 +299,6 @@ class AddressType {
     var address = bech32.encode(Bech32(hrp, [version] + program));
 
     return address;
-  }
-
-  //BIP0086
-  static String getP2trKeyPathSpendingAddress(String tweakedPubKey) {
-    return getTaprootAddressFromTweakedPublicKey(tweakedPubKey);
   }
 
   //BIP0327

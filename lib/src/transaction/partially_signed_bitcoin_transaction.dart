@@ -440,27 +440,6 @@ class Psbt {
           String signature = tx.inputs[i].witnessList[1];
           inputData[partialSigKeyType + publicKey] = signature;
         }
-      } else if (wallet.addressType == AddressType.p2trKeyPathSpending) {
-        String tapBip32DerivationKeyType =
-            getKeyType(inputKeyType, 'TAP_BIP32_DERIVATION');
-        String publicKey = singleSignatureWallet.keyStore
-            .getPublicKey(tx.utxoList[i].accountIndex,
-                isChange: tx.utxoList[i].isChange, applyTweak: false)
-            .substring(2);
-        String fingerPrint = singleSignatureWallet.keyStore.masterFingerprint;
-        inputData[tapBip32DerivationKeyType + publicKey] = fingerPrint +
-            Codec.encodeHex(
-                _serializeDerivationPath(tx.utxoList[i].derivationPath));
-        if (tx.inputs[i].witnessList.isNotEmpty) {
-          String taprootKeySpendSignature =
-              getKeyType(inputKeyType, 'TAP_KEY_SIG');
-          inputData[taprootKeySpendSignature] = tx.inputs[i].witnessList[0];
-        }
-        if (tx.inputs[i].witnessList.length == 1) {
-          String taprootKeySpendSignature =
-              getKeyType(inputKeyType, 'PSBT_IN_TAP_KEY_SIG');
-          inputData[taprootKeySpendSignature] = tx.inputs[i].witnessList[0];
-        }
       } else if (wallet.addressType == AddressType.p2tr) {
         List<String> publicKeys = [];
         for (KeyStore keyStore in taprootWallet.keyStoreList) {

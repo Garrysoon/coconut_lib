@@ -308,7 +308,6 @@ class KeyStore {
         if (psbtInput.derivationPathList[i].publicKey ==
             getPublicKey(WalletUtility.getAccountIndexFromDerivationPath(path),
                 isChange: WalletUtility.isChangeFromDerivationPath(path),
-                applyTweak: addressType.applyTweak,
                 isXOnly: addressType.isTaproot)) {
           derivationPath = psbtInput.derivationPathList[i].path;
           break;
@@ -355,10 +354,8 @@ class KeyStore {
 
     if (!addressType.isTaproot) {
       // ECDSA
-      publicKey = getPublicKey(accountIndex,
-          isChange: isChange,
-          applyTweak: addressType.applyTweak,
-          isXOnly: false);
+      publicKey =
+          getPublicKey(accountIndex, isChange: isChange, isXOnly: false);
       signature = Codec.encodeHex(hdWallet.signEcdsa(Codec.decodeHex(sigHash)));
     } else {
       //Key path spending
@@ -369,10 +366,8 @@ class KeyStore {
             hdWallet.signSchnorr(Codec.decodeHex(sigHash), true));
       } else {
         //MuSig2
-        publicKey = getPublicKey(accountIndex,
-            isChange: isChange,
-            applyTweak: addressType.applyTweak,
-            isXOnly: false);
+        publicKey =
+            getPublicKey(accountIndex, isChange: isChange, isXOnly: false);
         if (psbtInput.tapBip32Derivation!.length !=
             psbtInput.muSig2PubNonces!.length) {
           throw Exception("Not enough public nonce.");
@@ -420,25 +415,14 @@ class KeyStore {
       psbtInput.addPartialSig(signature, publicKey);
     } else {
       // Taproot
-      if (addressType == AddressType.p2trKeyPathSpending) {
-        // Key path
-        // psbtObject.addTapKeySig(inputIndex, signatureMap[pub]!);
+
+      if (psbtInput.muSig2AggregatedPublicKey == null) {
+        // Key path spending
         psbtInput.addTapKeySig(signature);
-      } else if (addressType == AddressType.p2tr) {
-        if (psbtInput.muSig2AggregatedPublicKey == null) {
-          // Key path spending
-          psbtInput.addTapKeySig(signature);
-        } else {
-          // MuSig2
-          psbtInput.addMuSig2PartialSig(signature, publicKey,
-              psbtInput.muSig2AggregatedPublicKey!, sigHash);
-        }
-      } else if (addressType == AddressType.p2trScriptPathSpending) {
-        // Script path
-        // psbtObject.addTapScriptSig(inputIndex, signatureMap[pub]!, pub);
-        psbtInput.addTapScriptSig(signature, publicKey);
       } else {
-        throw Exception("Unsupported address type");
+        // MuSig2
+        psbtInput.addMuSig2PartialSig(signature, publicKey,
+            psbtInput.muSig2AggregatedPublicKey!, sigHash);
       }
     }
   }

@@ -81,12 +81,12 @@ void main() {
           KeyStore keyStore = KeyStore.fromMnemonic(
               utf8.encode(
                   "machine crack daughter fish credit glare raven fever tunnel delay fish record"),
-              AddressType.p2trKeyPathSpending);
+              AddressType.p2tr);
 
           // print(vault.derivationPath);
           // print(keyStore.getPublicKey(0, isSchnorr: true));
           expect(
-              AddressType.p2trKeyPathSpending.getAddress(
+              AddressType.p2tr.getAddress(
                   keyStore.getPublicKey(2, applyTweak: true, isXOnly: true)),
               'bc1p4trvc4y8hu4cyj93vytg57dx5853d9qjrs9w7ctamn5gn6frgawqtkpnv8');
         });
@@ -104,9 +104,9 @@ void main() {
           SingleSignatureVault vault = SingleSignatureVault.fromMnemonic(
               utf8.encode(
                   "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"),
-              addressType: AddressType.p2trKeyPathSpending);
+              addressType: AddressType.p2tr);
           expect(
-              AddressType.p2trKeyPathSpending.getAddress(vault.keyStore
+              AddressType.p2tr.getAddress(vault.keyStore
                   .getPublicKey(0, applyTweak: true, isXOnly: true)),
               'bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr');
         });
@@ -115,10 +115,10 @@ void main() {
           SingleSignatureVault vault = SingleSignatureVault.fromMnemonic(
               utf8.encode(
                   "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"),
-              addressType: AddressType.p2trKeyPathSpending);
+              addressType: AddressType.p2tr);
 
           expect(
-              AddressType.p2trKeyPathSpending.getAddress(vault.keyStore
+              AddressType.p2tr.getAddress(vault.keyStore
                   .getPublicKey(1, applyTweak: true, isXOnly: true)),
               'bc1p4qhjn9zdvkux4e44uhx8tc55attvtyu358kutcqkudyccelu0was9fqzwh');
         });
@@ -127,12 +127,11 @@ void main() {
           SingleSignatureVault vault = SingleSignatureVault.fromMnemonic(
               utf8.encode(
                   "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"),
-              addressType: AddressType.p2trKeyPathSpending);
+              addressType: AddressType.p2tr);
 
           expect(
-              AddressType.p2trKeyPathSpending.getAddress(vault.keyStore
-                  .getPublicKey(0,
-                      isChange: true, applyTweak: true, isXOnly: true)),
+              AddressType.p2tr.getAddress(vault.keyStore.getPublicKey(0,
+                  isChange: true, applyTweak: true, isXOnly: true)),
               'bc1p3qkhfews2uk44qtvauqyr2ttdsw7svhkl9nkm9s9c3x4ax5h60wqwruhk7');
         });
         test('getP2trScriptPathMultisignatureAddress', () {
@@ -148,9 +147,7 @@ void main() {
                   '02d6889cb081036e0faefa3a35157ad71086b123b2b144b649798b494c300a961d'),
               Uint8List.fromList([]));
           Uint8List tPubKey = hdWallet.getPublicKey(true, true);
-          expect(
-              AddressType.getP2trKeyPathSpendingAddress(
-                  Codec.encodeHex(tPubKey)),
+          expect(AddressType.getP2trTaprootAddress(Codec.encodeHex(tPubKey)),
               'bc1p2wsldez5mud2yam29q22wgfh9439spgduvct83k3pm50fcxa5dps59h4z5');
         });
 
@@ -301,7 +298,7 @@ void main() {
           expect(AddressType.p2wpkh.toString(), 'wpkh');
           expect(AddressType.p2sh.toString(), 'sh');
           expect(AddressType.p2wsh.toString(), 'wsh');
-          expect(AddressType.p2trKeyPathSpending.toString(), 'tr');
+          expect(AddressType.p2tr.toString(), 'tr');
         });
       });
     });

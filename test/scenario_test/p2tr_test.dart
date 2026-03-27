@@ -146,26 +146,25 @@ void main() {
       NetworkType.setNetworkType(NetworkType.regtest);
 
       TaprootVault vault = MockFactory.createP2trKeyPathSpendingVault();
-      int addressIndex = 1;
+      int addressIndex = 3;
 
       expect(vault.descriptor.hashCode, 917163750);
       expect(vault.getAddress(addressIndex),
-          'bcrt1p48l8hrgk0xtdhhvsxq933me2rmccdp30vx3z22wm9scx4tvalsxqf7amp3');
+          'bcrt1prxdp6w8rvnlhy7jpq9er26wwc663wcjqk2p8yv2x6xelwudvedksemnydv');
       Utxo utxo = Utxo(
-          'b551a2f779351ffdfa5ce7482c01012057d74c22db612ad3a74c0e330b5918d7',
-          1,
+          '83ff14d4ec99062d9f84793d878320096dd3c3e7fe3cc500fc7e83540ac33b7d',
+          0,
           21000,
           "m/86'/1'/0'/0/$addressIndex");
 
       Transaction tx = Transaction.forSinglePayment([utxo],
-          MockFactory.reveiveAddress, "m/86'/1'/0'/1/0", 1000, 3, vault);
+          MockFactory.reveiveAddress, "m/86'/1'/0'/1/0", 20000, 1, vault);
       Psbt unsignedPsbt = Psbt.fromTransaction(tx, vault);
       expect(unsignedPsbt.addressType, AddressType.p2tr);
       String noncePsbt = vault.addPublicNonce(unsignedPsbt.serialize());
       Psbt signedPsbt = Psbt.parse(vault.addSignatureToPsbt(noncePsbt));
       Transaction signedTx = signedPsbt.getSignedTransaction(vault.addressType);
       expect(signedTx, isA<Transaction>());
-      print(signedTx.serialize());
       //02000000000101d718590b330e4ca7d32a61db224cd7572001012c48e75cfafd1f3579f7a251b50100000000ffffffff02e803000000000000160014334924eaf46e806e86b3537a12f81595030d73a7a64c00000000000022512069b812e858cdb410cfd220619b9482b615115e5e1463555c163c1764d067dd2d01404c88765fd1074559ae8da9d715a656032d30a8bee421948f412dbbc6a408a5ffd84c6d5fdfa4a0af6cdafb9af02d3853481de475d8a14fe1b2c280a9d65f59d700000000
       //02000000000101d718590b330e4ca7d32a61db224cd7572001012c48e75cfafd1f3579f7a251b50100000000ffffffff02e803000000000000160014334924eaf46e806e86b3537a12f81595030d73a7754c0000000000002251204bb144e51b5b6c063ad97ca5fed9227947beedf353809d1ed981c04518090cd20140e19fd8ef0fc7a03cca6ee91c86712bd6ceb97f39e054fbc9ef8c614e9a1633d9aa4b8968a11456756f84be1137df81514f96e2180a550c5ed0ada4
     });

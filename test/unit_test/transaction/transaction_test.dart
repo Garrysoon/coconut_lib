@@ -307,7 +307,7 @@ void main() {
             'bc1p5fdr2ht0y4rjckn869skpml7pulm8wx6lu4c5eezwngx3c3uupzssx4myf',
             1,
             vault);
-        expect(tx.estimateVirtualByte(AddressType.p2trKeyPathSpending), 111.25);
+        expect(tx.estimateVirtualByte(AddressType.p2tr), 111.25);
       });
     });
     group('estimateFee', () {

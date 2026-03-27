@@ -211,7 +211,7 @@ void main() {
         expect(
             Descriptor.getAddressTypeFromDescriptor(
                 p2trKeyPathSpendingDescriptor),
-            AddressType.p2trKeyPathSpending);
+            AddressType.p2tr);
         String p2trMuSig2Descriptor =
             'tr(musig(sorted(2,[e50bd392/48h/0h/0h/2h]xpub6FPPhpChFv7pQE7D19ZNGoFcCUzmMdwEMwqGFshE7SCfBiN5YqpejTKkshCS3sawXF98w7j5YeaYmnVdcMuX4wLr2pwiUaccvb4WsF1w5Kz/<0;1>/*,[906222f7/48h/0h/0h/2h]xpub6EgRoGnrQpGy55qdvYXqCspbx3M4zwEJqqMY4Gvf8wTd927pAoiknQBWvLpk6gh1tWJErqgW6S4QDJykGedZ7ngV2TbRG25wUEpnCox9dKA/<0;1>/*,[476ec2dc/48h/0h/0h/2h]xpub6ERySjYpfyoWiREzdy5hZFjzkPWQK5GzUiPppcqdYm1qqbi5H8tpUeX93LG1MzQLn4Dj5iMwydhnFLqWvHHJk2ZHiKD9gYZh6YbVR1VQT1V/<0;1>/*)))#x9cc762c';
         expect(Descriptor.getAddressTypeFromDescriptor(p2trMuSig2Descriptor),

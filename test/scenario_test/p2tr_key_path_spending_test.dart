@@ -22,7 +22,7 @@ void main() {
     Transaction tx = Transaction.forSinglePayment(
         [utxo], vault.getAddress(1), "m/86'/1'/0'/1/0", 210000, 3, vault);
     Psbt unsignedPsbt = Psbt.fromTransaction(tx, vault);
-    expect(unsignedPsbt.addressType, AddressType.p2trKeyPathSpending);
+    expect(unsignedPsbt.addressType, AddressType.p2tr);
     Psbt signedPsbt =
         Psbt.parse(vault.addSignatureToPsbt(unsignedPsbt.serialize()));
     Transaction signedTx = signedPsbt.getSignedTransaction(vault.addressType);

@@ -898,8 +898,7 @@ class Transaction {
     // witnessSize += 2; //marker + flag
     // witnessSize += 1; //num of witness
 
-    if (addressType == AddressType.p2wpkh ||
-        addressType == AddressType.p2trKeyPathSpending) {
+    if (addressType == AddressType.p2wpkh || addressType == AddressType.p2tr) {
       int emptyWitness = 0;
       for (TransactionInput input in inputs) {
         if (input.witnessList.isEmpty) {

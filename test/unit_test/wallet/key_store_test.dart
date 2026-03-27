@@ -109,7 +109,7 @@ void main() {
         SingleSignatureVault vault = SingleSignatureVault.fromMnemonic(
             utf8.encode(
                 "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"),
-            addressType: AddressType.p2trKeyPathSpending);
+            addressType: AddressType.p2tr);
         expect(
             vault.keyStore.getPublicKey(0,
                 isChange: false, applyTweak: true, isXOnly: true),
