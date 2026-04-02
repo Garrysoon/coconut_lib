@@ -48,6 +48,33 @@ class InheritancePolicy extends Policy {
     return 'and_v(v:pk(${beneficiaryWallet.getKeyOriginExpression()}),older($locktime))';
   }
 
+  @override
+  String toJson() {
+    return jsonEncode({
+      'type': 'inheritance',
+      'locktime': locktime,
+      // Keep the same JSON convention as the rest of the library:
+      // nested objects are stored as JSON strings.
+      'beneficiaryKeyStore': beneficiaryKeyStore.toJson(),
+      // Convenience for debugging / legacy parsing
+      'miniscript': toMiniscript(),
+    });
+  }
+
+  factory InheritancePolicy.fromJson(String jsonStr) {
+    final Map<String, dynamic> map = jsonDecode(jsonStr);
+
+    final int locktime = map['locktime'];
+
+    final dynamic ks = map['beneficiaryKeyStore'];
+    if (ks == null) {
+      throw Exception('Invalid InheritancePolicy json: missing beneficiaryKeyStore');
+    }
+    final KeyStore beneficiaryKeyStore = KeyStore.fromJson(ks as String);
+
+    return InheritancePolicy(beneficiaryKeyStore, locktime);
+  }
+
   static Policy fromMiniscript(String miniscript) {
     RegExpMatch match =
         RegExp(r'and_v\(v:pk\((.+)\),older\((\d+)\)\)').firstMatch(miniscript)!;

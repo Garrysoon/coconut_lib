@@ -101,28 +101,34 @@ class TaprootVault extends TaprootWalletBase {
   String toJson() {
     return jsonEncode({
       "keyStores": keyStoreList.map((e) => e.toJson()).toList(),
-      // TODO: Miniscript의 toJson 구현 필요
-      // "miniscripts": miniscriptList?.map((e) => e.toJson()).toList() ?? [],
+      "policies": policyList.map((e) => e.toJson()).toList(),
       "addressTypeName": AddressType.p2tr.name,
-      "derivationPath": derivationPath
+      "derivationPath": derivationPath,
+      "isVault": true,
     });
   }
 
   /// Create a Taproot vault from a json string.
   factory TaprootVault.fromJson(String jsonStr) {
-    Map<String, dynamic> json = jsonDecode(jsonStr);
-    List<KeyStore> keyStores = [];
-    for (var keyStoreJson in json['keyStores']) {
-      keyStores.add(KeyStore.fromJson(keyStoreJson));
+    final Map<String, dynamic> json = jsonDecode(jsonStr);
+    if (json['isVault'] == false) {
+      throw Exception('JSON is for TaprootWallet; use TaprootWallet.fromJson');
+    }
+    final String path = json['derivationPath'] as String;
+    final List<KeyStore> keyStores = [];
+    for (final dynamic keyStoreJson in json['keyStores'] as List<dynamic>) {
+      keyStores.add(KeyStore.fromJson(keyStoreJson as String));
     }
 
-    // TODO: Miniscript의 fromJson 구현 필요
-    List<Policy> policies = [];
-    // for (var miniscriptJson in json['miniscripts']) {
-    //   miniscripts.add(Miniscript.fromJson(miniscriptJson));
-    // }
+    final List<Policy> policies = [];
+    final dynamic policiesJson = json['policies'];
+    if (policiesJson != null) {
+      for (final dynamic policyJson in policiesJson as List<dynamic>) {
+        policies.add(Policy.fromJson(policyJson as String));
+      }
+    }
 
-    return TaprootVault.fromKeyStoreList(keyStores, policies, accountIndex: 0);
+    return TaprootVault._(keyStores, policies, path);
   }
 
   static TaprootVault fromHeritorDescriotor(String descriptor) {

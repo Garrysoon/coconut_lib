@@ -12,14 +12,14 @@ void main() {
       vault = MockFactory.createP2trVaultWithPolicies();
     });
 
-    Uint8List _concat(Uint8List a, Uint8List b) {
+    Uint8List concat(Uint8List a, Uint8List b) {
       final out = Uint8List(a.length + b.length);
       out.setRange(0, a.length, a);
       out.setRange(a.length, a.length + b.length, b);
       return out;
     }
 
-    int _lexicographicCompare(Uint8List a, Uint8List b) {
+    int lexicographicCompare(Uint8List a, Uint8List b) {
       final minLen = a.length < b.length ? a.length : b.length;
       for (int i = 0; i < minLen; i++) {
         if (a[i] != b[i]) return a[i] < b[i] ? -1 : 1;
@@ -28,14 +28,14 @@ void main() {
       return a.length < b.length ? -1 : 1;
     }
 
-    Uint8List _tapBranchHash(Uint8List a, Uint8List b) {
-      final compare = _lexicographicCompare(a, b);
+    Uint8List tapBranchHash(Uint8List a, Uint8List b) {
+      final compare = lexicographicCompare(a, b);
       final first = compare <= 0 ? a : b;
       final second = compare <= 0 ? b : a;
-      return Hash.taggedHash('TapBranch', _concat(first, second));
+      return Hash.taggedHash('TapBranch', concat(first, second));
     }
 
-    Uint8List _reconstructMerkleRootFromControlBlock({
+    Uint8List reconstructMerkleRootFromControlBlock({
       required Uint8List leafHash,
       required Uint8List controlBlockBytes,
     }) {
@@ -52,7 +52,7 @@ void main() {
       for (int i = 0; i < merklePathBytes.length; i += 32) {
         final sibling =
             merklePathBytes.sublist(i, i + 32); // tap sibling at each level
-        current = _tapBranchHash(current, sibling);
+        current = tapBranchHash(current, sibling);
       }
       return current;
     }
@@ -65,29 +65,60 @@ void main() {
       });
 
       test('supports change addresses (isChange=true)', () {
-        // TODO: change 주소 인덱스에 대한 address 생성 검증
+        NetworkType.setNetworkType(NetworkType.testnet);
+        expect(vault.getAddress(0, isChange: true),
+            'tb1pw6t5h5p36tpx9nra4md37fcvnaste26m8d070w44k55cml75s46qy29nja');
       });
     });
 
     group('getAddressWithDerivationPath', () {
       test('validates derivation path', () {
-        // TODO: 올바른/잘못된 파생경로 케이스 추가
-      });
-
-      test(
-          'rejects derivation paths that do not start with wallet derivationPath',
-          () {
-        // TODO: prefix mismatch 케이스 추가
+        NetworkType.setNetworkType(NetworkType.testnet);
+        expect(vault.getAddressWithDerivationPath("m/86'/1'/0'/0/0"),
+            "tb1ptyvhlupy3snr0f6d2shd3fw9kmfsvd575x8g28gpav7h707550xssacxdm");
+        expect(vault.getAddressWithDerivationPath("m/86'/1'/0'/0/1"),
+            "tb1pnr5umaxnc5geggml09p4fv7k6nqxdc6w6exvmjxn3vpkq9rt6vfsycl62n");
       });
     });
 
     group('hasPublicKeyInPsbt', () {
       test('returns true when psbt contains a key from one of keyStores', () {
-        // TODO: PSBT에 keyStore의 fingerprint/pubkey가 포함될 때 true 검증
+        Utxo utxo = Utxo(
+            '4518033c0c22e2fafd5779d5f5c4e4df4849730581d5d93658de18444b1080d6',
+            1,
+            21000,
+            "m/86'/1'/0'/0/0");
+
+        Transaction tx = Transaction.forSinglePayment([utxo],
+            MockFactory.reveiveAddress, "m/86'/1'/0'/1/0", 20000, 1, vault);
+
+        // Build PSBT using the wallet that owns the UTXO (parentVault),
+        // then sign via beneficiaryVault using script path.
+        Psbt psbt = Psbt.fromTransaction(tx, vault);
+        expect(vault.hasPublicKeyInPsbt(psbt.serialize()), true);
+
+        SingleSignatureVault targetVault = SingleSignatureVault.random();
+        expect(targetVault.hasPublicKeyInPsbt(psbt.serialize()), false);
       });
 
-      test('returns false when psbt contains no matching keys', () {
-        // TODO: 매칭되는 키가 없을 때 false 검증
+      test('returns true when psbt contains a key from policy list', () {
+        TaprootVault childVault =
+            MockFactory.createBeneficiaryVault(passphrase: 'C');
+        TaprootVault beneficiaryVault =
+            TaprootVault.fromHeritorDescriotor(vault.descriptor);
+        beneficiaryVault
+            .bindSeedToBeneficiaryKeyStore(childVault.keyStoreList[0].seed);
+        Utxo utxo = Utxo(
+            '4518033c0c22e2fafd5779d5f5c4e4df4849730581d5d93658de18444b1080d6',
+            1,
+            21000,
+            "m/86'/1'/0'/0/0");
+        Transaction tx = Transaction.forSinglePayment([utxo],
+            MockFactory.reveiveAddress, "m/86'/1'/0'/1/0", 20000, 1, vault);
+        tx.setPolicy(beneficiaryVault.getSpendablePolicy());
+
+        Psbt psbt = Psbt.fromTransaction(tx, beneficiaryVault);
+        expect(beneficiaryVault.hasPublicKeyInPsbt(psbt.serialize()), true);
       });
     });
 
@@ -137,7 +168,7 @@ void main() {
         final Uint8List leafHash = leafHashes[policyIndex];
 
         final Uint8List merkleRootFromControl =
-            _reconstructMerkleRootFromControlBlock(
+            reconstructMerkleRootFromControlBlock(
                 leafHash: leafHash, controlBlockBytes: controlBlockBytes);
         final Uint8List expectedMerkleRoot =
             vault.getMerkleRoot(addressIndex, isChange: isChange);
@@ -175,7 +206,7 @@ void main() {
             .toList();
 
         final Uint8List merkleRootFromControl =
-            _reconstructMerkleRootFromControlBlock(
+            reconstructMerkleRootFromControlBlock(
                 leafHash: leafHashes[policyIndex],
                 controlBlockBytes: controlBlockBytes);
         final Uint8List expectedMerkleRoot =
@@ -196,21 +227,58 @@ void main() {
 
     group('addSignatureToPsbt', () {
       test('adds signatures when seeds exist', () {
-        // TODO: PSBT 생성 후 서명 추가 플로우 검증
+        Utxo utxo = Utxo(
+            '4518033c0c22e2fafd5779d5f5c4e4df4849730581d5d93658de18444b1080d6',
+            1,
+            21000,
+            "m/86'/1'/0'/0/0");
+        Transaction tx = Transaction.forSinglePayment([utxo],
+            MockFactory.reveiveAddress, "m/86'/1'/0'/1/0", 20000, 1, vault);
+        Psbt psbt = Psbt.fromTransaction(tx, vault);
+        Psbt noncePsbt = Psbt.parse(vault.addPublicNonce(psbt.serialize()));
+        Psbt signedPsbt =
+            Psbt.parse(vault.addSignatureToPsbt(noncePsbt.serialize()));
+        Transaction signedTx =
+            signedPsbt.getSignedTransaction(vault.addressType);
+        expect(
+            signedTx.validateSchnorr(0, [
+              TransactionOutput.forPayment(utxo.amount, vault.getAddress(0))
+            ]),
+            true);
       });
-
-      test('does not change psbt when no keyStore has seed', () {
-        // TODO: neutered keyStore만 있을 때 변화 없음 검증
-      });
-
-      test('throws when addressType mismatches', () {
-        // TODO: addressType 불일치 시 예외 검증
-      });
-    });
-
-    group('descriptor', () {
-      test('is created and parseable (round-trip)', () {
-        // TODO: wallet.descriptor serialize/parse round-trip 검증
+      test('adds signatures for script path', () {
+        TaprootVault childVault =
+            MockFactory.createBeneficiaryVault(passphrase: 'C');
+        TaprootVault beneficiaryVault =
+            TaprootVault.fromHeritorDescriotor(vault.descriptor);
+        beneficiaryVault
+            .bindSeedToBeneficiaryKeyStore(childVault.keyStoreList[0].seed);
+        Utxo utxo = Utxo(
+            '4518033c0c22e2fafd5779d5f5c4e4df4849730581d5d93658de18444b1080d6',
+            1,
+            21000,
+            "m/86'/1'/0'/0/0");
+        Transaction tx = Transaction.forSinglePayment(
+            [utxo],
+            MockFactory.reveiveAddress,
+            "m/86'/1'/0'/1/0",
+            20000,
+            1,
+            beneficiaryVault);
+        tx.setPolicy(beneficiaryVault.getSpendablePolicy());
+        Psbt psbt = Psbt.fromTransaction(tx, beneficiaryVault);
+        Psbt noncePsbt =
+            Psbt.parse(beneficiaryVault.addPublicNonce(psbt.serialize()));
+        Psbt signedPsbt = Psbt.parse(
+            beneficiaryVault.addSignatureToPsbt(noncePsbt.serialize()));
+        Transaction signedTx =
+            signedPsbt.getSignedTransaction(beneficiaryVault.addressType);
+        expect(
+            signedTx.validateSpend([
+              TransactionOutput.forPayment(
+                  utxo.amount, beneficiaryVault.getAddress(0))
+            ]),
+            true);
       });
     });
   });

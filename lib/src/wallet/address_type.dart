@@ -118,20 +118,9 @@ class AddressType {
       getWrongMultisigatureAddress,
       getP2trTaprootAddress);
 
-  static AddressType p2trScriptPathSpending = AddressType._(
-      'p2trScriptPathSpending',
-      86,
-      'bc1',
-      'tr',
-      0x0488b21e,
-      0x043587cf,
-      getWrongAddress,
-      getP2trScriptPathSpendingAddress,
-      getWrongTaprootAddress);
-
   /// List of all address types.
   static List<AddressType> get values =>
-      [p2pkh, p2wpkh, p2wpkhInP2sh, p2sh, p2wsh, p2tr, p2trScriptPathSpending];
+      [p2pkh, p2wpkh, p2wpkhInP2sh, p2sh, p2wsh, p2tr];
 
   /// Get the address type from the script type.(P2PKH, P2WPKH, P2WSH-in-P2SH, P2SH, P2WSH)
   static AddressType getAddressTypeFromScriptType(String scriptType) {

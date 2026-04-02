@@ -853,12 +853,66 @@ class Transaction {
   bool validateSchnorr(int inputIndex, List<TransactionOutput> utxoList) {
     Uint8List sigHash =
         Codec.decodeHex(getTaprootSigHash(inputIndex, utxoList));
-    // Uint8List publicKey = Encoder.decodeHex(
-    //     "02${TransactionOutput.parse(utxoList[inputIndex]).scriptPubKey.commands[1]}");
+
     Uint8List publicKey = utxoList[inputIndex].scriptPubKey.commands[1];
     Uint8List signature = Codec.decodeHex(inputs[inputIndex].witnessList[0]);
     bool isValid = Ecc.verifySchnorr(sigHash, publicKey, signature);
     return isValid;
+  }
+
+  bool validateSpend(List<TransactionOutput> utxoList) {
+    for (int inputIndex = 0; inputIndex < inputs.length; inputIndex++) {
+      TransactionInput input = inputs[inputIndex];
+      TransactionOutput utxo = utxoList[inputIndex];
+      Uint8List sigHash;
+      if (utxo.scriptPubKey.isP2wpkh()) {
+        sigHash =
+            Codec.decodeHex(getSigHash(inputIndex, utxo, AddressType.p2wpkh));
+      } else if (utxo.scriptPubKey.isP2wsh()) {
+        sigHash = Codec.decodeHex(getSigHash(
+            inputIndex, utxo, AddressType.p2wsh,
+            witnessScript: input.witnessList.last));
+      } else if (utxo.scriptPubKey.isP2tr()) {
+        bool isKeyPathSpending;
+        if (input.witnessList.length == 1) {
+          isKeyPathSpending = true;
+        } else if (input.witnessList.length == 3) {
+          isKeyPathSpending = false;
+        } else {
+          throw Exception('Invalid Taproot Transaction');
+        }
+        if (isKeyPathSpending) {
+          sigHash = Codec.decodeHex(getTaprootSigHash(inputIndex, utxoList));
+        } else {
+          final Uint8List controlBlockBytes =
+              Codec.decodeHex(input.witnessList[2]);
+          final int controlByte = controlBlockBytes[0];
+          final int leafVersion = controlByte & 0xfe;
+          final String tapscriptHex = input.witnessList[1];
+          final Uint8List scriptBytes = Codec.decodeHex(tapscriptHex);
+          final Uint8List scriptLen =
+              Codec.encodeVariableInteger(scriptBytes.length);
+
+          final Uint8List tapleafHash = Hash.taggedHash('TapLeaf',
+              Uint8List.fromList([leafVersion, ...scriptLen, ...scriptBytes]));
+          sigHash = Codec.decodeHex(getTaprootSigHash(
+            inputIndex,
+            utxoList,
+            isTapscript: true,
+            tapleafHash: tapleafHash,
+            keyVersion: 0,
+            codesepPos: 0xffffffff,
+          ));
+        }
+      } else {
+        throw Exception('Unsupported Address Type');
+      }
+
+      if (!input.verifySpend(sigHash, utxo)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /// Get the virtual byte size of the transaction.
@@ -891,7 +945,7 @@ class Transaction {
   }
 
   double estimateVirtualByte(AddressType addressType,
-      {int? requiredSignature, int? totalSigner}) {
+      {int? requiredSignature, int? totalSigner, int? leafCount}) {
     if (!addressType.isSegwit) {
       return getVirtualByte();
     }
@@ -911,7 +965,7 @@ class Transaction {
     // witnessSize += 2; //marker + flag
     // witnessSize += 1; //num of witness
 
-    if (addressType == AddressType.p2wpkh || addressType == AddressType.p2tr) {
+    if (addressType == AddressType.p2wpkh) {
       int emptyWitness = 0;
       for (TransactionInput input in inputs) {
         if (input.witnessList.isEmpty) {
@@ -941,6 +995,64 @@ class Transaction {
       }
       if (emptyWitness == inputs.length) {
         additionalWitnessSize += 1; // number of witness
+      }
+    } else if (addressType == AddressType.p2tr) {
+      if (_appliedPolicy == null) {
+        //key path spending
+        int emptyWitness = 0;
+        for (TransactionInput input in inputs) {
+          if (input.witnessList.isEmpty) {
+            additionalWitnessSize += (sigSize + pubKeySize);
+            emptyWitness += 1;
+          }
+        }
+        if (emptyWitness == inputs.length) {
+          additionalWitnessSize += 1; // number of witness
+        }
+      } else {
+        final int tapscriptLen =
+            Codec.decodeHex(_appliedPolicy!.toScript(0).rawSerialize()).length;
+
+        // This library's taptree construction promotes the last node when the
+        // level has an odd number of nodes (i.e., it is carried to the next
+        // level without hashing). Therefore, a leaf's Merkle path length depends
+        // on which leaf is spent.
+        //
+        // For fee estimation we choose the "last leaf" assumption, which matches
+        // common constructions where a designated policy ends up being the last
+        // leaf and thus gets promoted on odd levels.
+        //
+        // Under this rule, the last leaf only gains a Merkle sibling on levels
+        // with an even node count.
+        int estimateMerklePath(int leafCount) {
+          if (leafCount <= 1) return 0;
+          int pathLen = 0;
+          int levelSize = leafCount;
+          while (levelSize > 1) {
+            if (levelSize.isEven) {
+              pathLen += 1;
+            }
+            levelSize = (levelSize + 1) ~/ 2; // ceil(n/2)
+          }
+          return pathLen;
+        }
+
+        final int merklePathLen = estimateMerklePath(leafCount!);
+        final int controlBlockSize = 33 + 32 * merklePathLen;
+
+        final int sigElementSize =
+            Codec.encodeVariableInteger(64).length + 64; // schnorr sig
+        final int tapscriptElementSize =
+            Codec.encodeVariableInteger(tapscriptLen).length + tapscriptLen;
+        final int controlBlockElementSize =
+            Codec.encodeVariableInteger(controlBlockSize).length +
+                controlBlockSize;
+
+        // +1 for number of witness stack items (assumed < 0xfd)
+        final int witnessSizePerInput =
+            1 + sigElementSize + tapscriptElementSize + controlBlockElementSize;
+
+        additionalWitnessSize += witnessSizePerInput * inputs.length;
       }
     }
 

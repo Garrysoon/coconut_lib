@@ -368,9 +368,6 @@ class KeyStore {
     } else {
       if (psbtInput.tapLeafScript != null) {
         //Script path spending
-        // Tapscript OP_CHECKSIG uses x-only pubkeys (BIP340).
-        // Use x-only here so the signature verifies against the same key
-        // (HDWallet.signSchnorr normalizes to even-y).
         publicKey = getPublicKey(accountIndex,
             isChange: isChange, applyTweak: false, isXOnly: true);
         signature = Codec.encodeHex(
@@ -413,18 +410,25 @@ class KeyStore {
       }
     } else {
       // Schnorr
-      if (sessionContext == null) {
+      if (psbtInput.tapLeafScript != null) {
         if (!Ecc.verifySchnorr(
             Codec.decodeHex(sigHash), publicKeyByte, signatureByte)) {
           throw Exception('Invalid signature');
         }
-      } else {
+      } else if (psbtInput.tapLeafScript == null && sessionContext == null) {
+        if (!Ecc.verifySchnorr(
+            Codec.decodeHex(sigHash), publicKeyByte, signatureByte)) {
+          throw Exception('Invalid signature');
+        }
+      } else if (psbtInput.tapLeafScript == null && sessionContext != null) {
         Uint8List publicNonce = Codec.decodeHex(psbtInput.muSig2PubNonces![
             "${Codec.encodeHex(publicKeyByte)}$aggregatedPublicKey$sigHash"]!);
         if (!Ecc.verifyMuSig2PartialSignature(
             signatureByte, publicNonce, publicKeyByte, sessionContext)) {
           throw Exception('Invalid signature');
         }
+      } else {
+        throw Exception('Invalid PSBT input.');
       }
     }
 

@@ -96,27 +96,33 @@ class TaprootWallet extends TaprootWalletBase {
   String toJson() {
     return jsonEncode({
       "keyStores": keyStoreList.map((e) => e.toJson()).toList(),
-      // TODO: Policy의 toJson 구현 필요
-      // "policies": policyList.map((e) => e.toJson()).toList(),
+      "policies": policyList.map((e) => e.toJson()).toList(),
       "addressTypeName": AddressType.p2tr.name,
-      "derivationPath": derivationPath
+      "derivationPath": derivationPath,
+      "isVault": false,
     });
   }
 
   /// Create a Taproot wallet from a json string.
   factory TaprootWallet.fromJson(String jsonStr) {
-    Map<String, dynamic> json = jsonDecode(jsonStr);
-    List<KeyStore> keyStores = [];
-    for (var keyStoreJson in json['keyStores']) {
-      keyStores.add(KeyStore.fromJson(keyStoreJson));
+    final Map<String, dynamic> json = jsonDecode(jsonStr);
+    if (json['isVault'] == true) {
+      throw Exception('JSON is for TaprootVault; use TaprootVault.fromJson');
+    }
+    final String path = json['derivationPath'] as String;
+    final List<KeyStore> keyStores = [];
+    for (final dynamic keyStoreJson in json['keyStores'] as List<dynamic>) {
+      keyStores.add(KeyStore.fromJson(keyStoreJson as String));
     }
 
-    // TODO: Policy의 fromJson 구현 필요
-    List<Policy> policies = [];
-    // for (var policyJson in json['policies']) {
-    //   policies.add(Policy.fromJson(policyJson));
-    // }
+    final List<Policy> policies = [];
+    final dynamic policiesJson = json['policies'];
+    if (policiesJson != null) {
+      for (final dynamic policyJson in policiesJson as List<dynamic>) {
+        policies.add(Policy.fromJson(policyJson as String));
+      }
+    }
 
-    return TaprootWallet.fromKeyStoreList(keyStores, policies, accountIndex: 0);
+    return TaprootWallet._(keyStores, policies, path);
   }
 }

@@ -272,9 +272,13 @@ void main() {
         expect(tx.validateEcdsa(0, utxo), false);
       });
     });
-    group('validateTaprootSignature', () {
+    group('validateSchnorr', () {
       test('Validate taproot signature of transaction', () {
-        //TODO: Implement test
+        Transaction tx = Transaction.parse(
+            '020000000001019b17422115ffae89c52a1d30a3b06ca23c2cc33755a714243151dc6fa73320600100000000ffffffff02881300000000000022512033a2310b5332888679eb9895a6b7297d6fd94620695f38ab98beb17c8b170d146c3d000000000000225120daaf3b1d59ca6401fda16d0bc787bf9fd9cb0d45b2294b95224981585cb343cd0140db7b6b9ddc1c58a43d5f6acb1cefb9ee8edac6e52af62fd616ba5781fef4f01137089880e27568fe7c72db4fc71c14bce4fb70a01c0cdd7567ccafea4e9416f400000000');
+        Transaction prevTx = Transaction.parse(
+            '02000000000101daf6dcbf7314137242e25895b13a7dc38968b33339b92416aea10b667c8d09570000000000feffffff02c3eca33144010000225120871f4bef9f9a4345c20db6c61cc4a6a2379d2623a76afb8f1aee18365de63504085200000000000022512001826f5d42f01744aa419ec6f32881fa7fe128391a2f626db06fc794fb9bc3c20140ade3827861cc2b900faab5588600aa641f3e8636b78bfa1fb7956575ff52dd84488e9a5434d10276179986254bfd9ff080d893f98eb05b528b0b8d8e918a3b2b693b0100');
+        expect(tx.validateSchnorr(0, [prevTx.outputs[1]]), true);
       });
     });
     group('getVirtualByte', () {
@@ -308,6 +312,67 @@ void main() {
             1,
             vault);
         expect(tx.estimateVirtualByte(AddressType.p2tr), 111.25);
+      });
+      test('Get estimated virtual byte in musig2 spending', () {
+        late KeyStore keyStore1;
+        late KeyStore keyStore2;
+        late TaprootVault vault;
+
+        NetworkType.setNetworkType(NetworkType.regtest);
+
+        SingleSignatureVault vault1 =
+            MockFactory.createP2wpkhVault(passphrase: 'A');
+        SingleSignatureVault vault2 =
+            MockFactory.createP2wpkhVault(passphrase: 'B');
+
+        keyStore1 = KeyStore.fromSeed(vault1.keyStore.seed, AddressType.p2tr);
+        keyStore2 = KeyStore.fromSeed(vault2.keyStore.seed, AddressType.p2tr);
+
+        int addressIndex = 1;
+
+        vault = TaprootVault.fromKeyStoreList([keyStore1, keyStore2], []);
+
+        Utxo utxo = Utxo(
+            '5786f8eda5a9b882d35b5116d1fae71256f4f0d8b799bc45bb1b4fdbf86c79df',
+            0,
+            21000,
+            "m/86'/1'/0'/0/$addressIndex");
+        Transaction tx = Transaction.forSinglePayment([utxo],
+            MockFactory.reveiveAddress, "m/86'/1'/0'/1/0", 1000, 3, vault);
+        expect(tx.estimateVirtualByte(AddressType.p2tr), 142.25);
+      });
+
+      test('Get estimated virtual byte in p2tr script path spending', () {
+        TaprootVault parentVault = MockFactory.createP2trVaultWithPolicies();
+        TaprootVault childVault =
+            MockFactory.createBeneficiaryVault(passphrase: 'C');
+        TaprootVault beneficiaryVault =
+            TaprootVault.fromHeritorDescriotor(parentVault.descriptor);
+        beneficiaryVault
+            .bindSeedToBeneficiaryKeyStore(childVault.keyStoreList[0].seed);
+        int addressIndex = 1;
+        expect(parentVault.getAddress(addressIndex),
+            'bcrt1pnr5umaxnc5geggml09p4fv7k6nqxdc6w6exvmjxn3vpkq9rt6vfsfp4ulf');
+        // Create a coherent funding tx and spend its output via script path.
+
+        Utxo utxo = Utxo(
+            '4518033c0c22e2fafd5779d5f5c4e4df4849730581d5d93658de18444b1080d6',
+            1,
+            21000,
+            "m/86'/1'/0'/0/$addressIndex");
+
+        Transaction tx = Transaction.forSinglePayment(
+            [utxo],
+            MockFactory.reveiveAddress,
+            "m/86'/1'/0'/1/0",
+            20000,
+            1,
+            beneficiaryVault);
+        tx.setPolicy(beneficiaryVault.getSpendablePolicy());
+        expect(
+            tx.estimateVirtualByte(AddressType.p2tr,
+                leafCount: parentVault.policyList.length),
+            169.25);
       });
     });
     group('estimateFee', () {

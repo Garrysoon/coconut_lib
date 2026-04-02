@@ -125,7 +125,34 @@ abstract class TaprootWalletBase extends WalletBase {
 
   @override
   bool hasPublicKeyInPsbt(String psbt) {
-    return _keyStoreList.any((keyStore) => keyStore.hasPublicKeyInPsbt(psbt));
+    Psbt psbtObject = Psbt.parse(psbt);
+    if (psbtObject.addressType != addressType) {
+      throw Exception('Address Type is not matched.');
+    }
+    if (addressType != AddressType.p2tr) {
+      throw Exception('Address type must be Taproot.');
+    }
+    if (psbtObject.inputs.length !=
+        psbtObject.unsignedTransaction!.inputs.length) {
+      throw Exception('Not enought psbt inputs or transaction inputs');
+    }
+    Set<KeyStore> targetkeyStoreSet = {};
+    for (PsbtInput psbtInput in psbtObject.inputs) {
+      if (psbtInput.tapLeafScript != null) {
+        for (Policy policy in _policyList) {
+          if (policy is InheritancePolicy) {
+            targetkeyStoreSet.add(policy.beneficiaryKeyStore);
+          }
+        }
+      } else {
+        for (KeyStore keyStore in _keyStoreList) {
+          targetkeyStoreSet.add(keyStore);
+        }
+      }
+    }
+    return targetkeyStoreSet.isNotEmpty &&
+        targetkeyStoreSet.any(
+            (keyStore) => keyStore.hasPublicKeyInPsbt(psbtObject.serialize()));
   }
 
   @override
@@ -137,6 +164,10 @@ abstract class TaprootWalletBase extends WalletBase {
 
     if (addressType != AddressType.p2tr) {
       throw Exception('Address type must be Taproot.');
+    }
+
+    if (!hasPublicKeyInPsbt(psbt)) {
+      throw Exception('No keyStore can sign to the PSBT.');
     }
 
     if (psbtObject.inputs.length !=
@@ -158,17 +189,19 @@ abstract class TaprootWalletBase extends WalletBase {
         utxoList.add(psbtObject.inputs[j].witnessUtxo!);
       }
       // Default (key-path) taproot sighash; may be overridden for tapscript spends.
-      String sigHash =
-          psbtObject.unsignedTransaction!.getTaprootSigHash(inputIndex, utxoList);
+      String sigHash = psbtObject.unsignedTransaction!
+          .getTaprootSigHash(inputIndex, utxoList);
       List<DerivationPath>? derivationPathList = psbtInput.tapBip32Derivation;
 
       //Script path spending
       if (psbtInput.tapLeafScript != null) {
-        final Uint8List raw = Codec.decodeHex(psbtInput.tapLeafScript!.rawSerialize());
+        final Uint8List raw =
+            Codec.decodeHex(psbtInput.tapLeafScript!.rawSerialize());
         final Uint8List size = Codec.encodeVariableInteger(raw.length);
         final Uint8List tapleafHash = Hash.taggedHash(
             'TapLeaf', Uint8List.fromList([0xc0, ...size, ...raw]));
-        sigHash = psbtObject.unsignedTransaction!.getTaprootSigHash(inputIndex, utxoList,
+        sigHash = psbtObject.unsignedTransaction!.getTaprootSigHash(
+            inputIndex, utxoList,
             // tapscript keyVersion is 0 (BIP342); leaf version is committed in tapleafHash
             isTapscript: true,
             tapleafHash: tapleafHash,

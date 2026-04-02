@@ -6,11 +6,13 @@ abstract class Policy {
   Script toScript(int addressIndex, {bool isChange = false});
   String toMiniscript();
 
+  String toJson();
+
   Uint8List getTapleafHash(int addressIndex, {bool isChange = false}) {
     int version = 0xc0;
     // TapLeaf hash commits to the *raw* tapscript bytes (no length prefix).
-    Uint8List scriptBytes =
-        Codec.decodeHex(toScript(addressIndex, isChange: isChange).rawSerialize());
+    Uint8List scriptBytes = Codec.decodeHex(
+        toScript(addressIndex, isChange: isChange).rawSerialize());
     Uint8List scriptSize;
 
     if (scriptBytes.length < 0xfd) {
@@ -41,5 +43,31 @@ abstract class Policy {
     } else {
       throw Exception('Unsupported miniscript type.');
     }
+  }
+
+  /// Deserialize a policy from a JSON string.
+  ///
+  /// Supported formats:
+  /// - `{ "type": "inheritance", ... }`
+  /// - `{ "miniscript": "..." }` (legacy / compact form)
+  static Policy fromJson(String jsonStr) {
+    final Map<String, dynamic> map = jsonDecode(jsonStr);
+
+    final String? type = map['type'];
+    if (type != null) {
+      switch (type) {
+        case 'inheritance':
+          return InheritancePolicy.fromJson(jsonStr);
+        default:
+          throw Exception('Unsupported policy type: $type');
+      }
+    }
+
+    final String? miniscript = map['miniscript'];
+    if (miniscript != null) {
+      return Policy.fromMiniscript(miniscript);
+    }
+
+    throw Exception('Invalid policy json: missing "type" or "miniscript".');
   }
 }
