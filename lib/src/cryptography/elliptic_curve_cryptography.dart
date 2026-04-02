@@ -259,14 +259,14 @@ class Ecc {
         Uint8List.fromList(
             List.generate(32, (_) => Random.secure().nextInt(256)));
     Uint8List t = Uint8List(32);
-    Uint8List hashAux = Codec.decodeHex(Hash.taggedHash("BIP0340/aux", aux));
+    Uint8List hashAux = Hash.taggedHash("BIP0340/aux", aux);
     Uint8List dBytes = toBuffer(d0);
     for (int i = 0; i < 32; i++) {
       t[i] = dBytes[i] ^ hashAux[i];
     }
 
-    Uint8List k0Bytes = Codec.decodeHex(Hash.taggedHash(
-        "BIP0340/nonce", Uint8List.fromList([...t, ...P_x, ...message])));
+    Uint8List k0Bytes = Hash.taggedHash(
+        "BIP0340/nonce", Uint8List.fromList([...t, ...P_x, ...message]));
     BigInt k0 = fromBuffer(k0Bytes) % n;
     if (k0 == BigInt.zero) {
       throw Exception(
@@ -284,8 +284,8 @@ class Ecc {
 
     Uint8List R_x = getEncoded(R, false).sublist(1, 33);
 
-    Uint8List eBytes = Codec.decodeHex(Hash.taggedHash(
-        "BIP0340/challenge", Uint8List.fromList([...R_x, ...P_x, ...message])));
+    Uint8List eBytes = Hash.taggedHash(
+        "BIP0340/challenge", Uint8List.fromList([...R_x, ...P_x, ...message]));
     BigInt e = fromBuffer(eBytes) % n;
 
     BigInt s = (k0 + e * d0) % n;
@@ -348,8 +348,8 @@ class Ecc {
       return false;
     }
 
-    Uint8List eBytes = Codec.decodeHex(Hash.taggedHash("BIP0340/challenge",
-        Uint8List.fromList([...R_x, ...publicKey.sublist(1), ...message])));
+    Uint8List eBytes = Hash.taggedHash("BIP0340/challenge",
+        Uint8List.fromList([...R_x, ...publicKey.sublist(1), ...message]));
     BigInt e = fromBuffer(eBytes) % n;
 
     ECPoint? R_prime = (G * s)! + (P * (n - e));
@@ -458,16 +458,16 @@ class Ecc {
 
     Uint8List R_x = getEncoded(R, false).sublist(1, 33);
 
-    e = fromBuffer(Codec.decodeHex(Hash.taggedHash(
+    e = fromBuffer(Hash.taggedHash(
         "BIP0340/challenge",
         Uint8List.fromList(
-            [...R_x, ...Q.sublist(1), ...sessionContext.message]))));
+            [...R_x, ...Q.sublist(1), ...sessionContext.message])));
 
     late BigInt a;
-    Uint8List L = Codec.decodeHex(Hash.taggedHash(
+    Uint8List L = Hash.taggedHash(
         'KeyAgg list',
         Uint8List.fromList(
-            sessionContext.participantPublicKeys.expand((x) => x).toList())));
+            sessionContext.participantPublicKeys.expand((x) => x).toList()));
     Uint8List? secondKey;
     for (int keyIndex = 1;
         keyIndex < sessionContext.participantPublicKeys.length;
@@ -483,9 +483,7 @@ class Ecc {
         Codec.encodeHex(publicKey) == Codec.encodeHex(secondKey)) {
       a = BigInt.one;
     } else {
-      a = fromBuffer(Codec.decodeHex(
-              Hash.taggedHash('KeyAgg coefficient', L + publicKey))) %
-          n;
+      a = fromBuffer(Hash.taggedHash('KeyAgg coefficient', L + publicKey)) % n;
     }
 
     BigInt g = BigInt.one;
@@ -581,10 +579,10 @@ class Ecc {
     final P = secp256k1.curve.decodePoint(prefixedPublicKey)!;
 
     late BigInt a;
-    Uint8List L = Codec.decodeHex(Hash.taggedHash(
+    Uint8List L = Hash.taggedHash(
         'KeyAgg list',
         Uint8List.fromList(
-            sessionContext.participantPublicKeys.expand((x) => x).toList())));
+            sessionContext.participantPublicKeys.expand((x) => x).toList()));
 
     Uint8List? secondKey;
     for (int keyIndex = 1;
@@ -601,8 +599,8 @@ class Ecc {
         Codec.encodeHex(prefixedPublicKey) == Codec.encodeHex(secondKey)) {
       a = BigInt.one;
     } else {
-      a = fromBuffer(Codec.decodeHex(
-              Hash.taggedHash('KeyAgg coefficient', L + prefixedPublicKey))) %
+      a = fromBuffer(
+              Hash.taggedHash('KeyAgg coefficient', L + prefixedPublicKey)) %
           n;
     }
 

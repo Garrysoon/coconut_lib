@@ -10,7 +10,7 @@ class TransactionInput {
   late Uint8List _sequence;
 
   /// @nodoc
-  late List<String> witnessList = [];
+  late List<String> witnessList;
 
   /// Get the previous transaction hash.
   String get transactionHash =>
@@ -35,7 +35,9 @@ class TransactionInput {
   /// @nodoc
   TransactionInput(
       this._transactionHash, this._index, this.scriptSig, this._sequence,
-      {this.witnessList = const []});
+      {List<String>? witnessList})
+      : witnessList =
+            witnessList != null ? List<String>.from(witnessList) : <String>[];
 
   /// Parse the transaction input from the given input string.
   factory TransactionInput.parse(String input) {
@@ -135,6 +137,11 @@ class TransactionInput {
 
   void setTaprootKeyPathSpendingSignature(String signature) {
     witnessList = [signature];
+  }
+
+  void setTaprootScriptPathSpendingSignature(
+      String signature, String tapScript, String controlBlock) {
+    witnessList = [signature, tapScript, controlBlock];
   }
 
   /// Check if the transaction input has signature.

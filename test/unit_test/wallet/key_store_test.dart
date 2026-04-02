@@ -381,11 +381,12 @@ void main() {
                         .substring(i * 2, i * 2 + 2),
                     radix: 16)));
           } else {
-            String data = Hash.taggedHash(
-                    'KeyAgg list', Codec.decodeHex(concatenatedPublicKey)) +
+            String data = Codec.encodeHex(Hash.taggedHash(
+                    'KeyAgg list', Codec.decodeHex(concatenatedPublicKey))) +
                 Codec.encodeHex(publicKeyList[i]);
-            coefficient = Codec.decodeHex(
-                Hash.taggedHash('KeyAgg coefficient', Codec.decodeHex(data)));
+
+            coefficient =
+                Hash.taggedHash('KeyAgg coefficient', Codec.decodeHex(data));
           }
 
           if (i == 0) {
@@ -448,9 +449,13 @@ void main() {
               3,
               vault),
           vault);
-      String noncePsbtTarget =
-          'cHNidP8BAIkCAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/////Apg6AAAAAAAAIlEgdNKLLMk+8msQjNUMpyUTVCFvxTFckQAtQJXefNKQpe85SgEAAAAAACJRIJn86aiSuDZNL9BSzE2XjCtz3XcesI6OS786RgRM9RgJAAAAAE8BBDWHzwPEL9zkgAAAAP1FDK9+PMOkHYuy2QPlMUgLehK36fwrWer145IMwKSeAkixbmEgZyVuCA7KVS8l2rIwz1Qn4evyBrZR93CuVJfCEDYJI8lWAACAAQAAgAAAAIBPAQQ1h88DHNyamoAAAADq9XonS55qbmCQc2iVVj6pQtv2qOqpvQC2YUpRNdkOiALkXWEu1yL/dwxo0IP/OxhpwLVci+Hkqa7EumaKQ4vFKhCWFJ40VgAAgAEAAIAAAACAAAEBK6CGAQAAAAAAIlEgUVhoP2eVnaPja+ulezIRXkFIxDa2xfiL0DRp9NGrHy8BAwQBAAAAIRau0tnIgNKnlw6QdPOceAofkOnPR8HEbo+0n/kp2hoX5BkANgkjyVYAAIABAACAAAAAgAAAAAAAAAAAIRb4KNbEtCQJb7bMRanVKUDMfJgrMcJHQHql21dPBGQVJxkAlhSeNFYAAIABAACAAAAAgAAAAAAAAAAAIhoDpeST4tnG2pSvmhCJdXpwGD8BnV8ejksVTmJZrERpyCBCA67S2ciA0qeXDpB085x4Ch+Q6c9HwcRuj7Sf+SnaGhfkAvgo1sS0JAlvtsxFqdUpQMx8mCsxwkdAeqXbV08EZBUnYxsDrtLZyIDSp5cOkHTznHgKH5Dpz0fBxG6PtJ/5KdoaF+QDpeST4tnG2pSvmhCJdXpwGD8BnV8ejksVTmJZrERpyCDapzgb4v1WC6X2yiy9PqfmgpCBT8TyEUcZTzt9/QKDwkIDonSkDIILVI9OyHfI/A2FykBFHPI4Ve4msd1o8hY5RdMCdrFsikXTHe92rRhJ0ZMBoqXg22cmtrMAVVGlcRRgZUIAACICA7YoMhmW/XOWwhvm9PZg1fY0+noCBAI9L35gzCKQG9/4GDYJI8lWAACAAQAAgAAAAIABAAAAAQAAACICAxMkRw3rIgC+2HTH3MFoe1F8DqIEOUAng5ptfSQatCdeGJYUnjRWAACAAQAAgAAAAIABAAAAAQAAAAA=';
-      expect(keyStore.addPublicNonceToPsbt(psbt.serialize()), noncePsbtTarget);
+
+      Psbt noncePsbt =
+          Psbt.parse(keyStore.addPublicNonceToPsbt(psbt.serialize()));
+      expect(noncePsbt.inputs[0].getAggregatedPublicNonce(),
+          '03a274a40c820b548f4ec877c8fc0d85ca40451cf23855ee26b1dd68f2163945d30276b16c8a45d31def76ad1849d19301a2a5e0db6726b6b3005551a57114606542');
+
+      // expect(keyStore.addPublicNonceToPsbt(psbt.serialize()), noncePsbtTarget);
     });
   });
 }

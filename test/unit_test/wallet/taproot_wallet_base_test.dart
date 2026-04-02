@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
@@ -12,11 +12,56 @@ void main() {
       vault = MockFactory.createP2trVaultWithPolicies();
     });
 
+    Uint8List _concat(Uint8List a, Uint8List b) {
+      final out = Uint8List(a.length + b.length);
+      out.setRange(0, a.length, a);
+      out.setRange(a.length, a.length + b.length, b);
+      return out;
+    }
+
+    int _lexicographicCompare(Uint8List a, Uint8List b) {
+      final minLen = a.length < b.length ? a.length : b.length;
+      for (int i = 0; i < minLen; i++) {
+        if (a[i] != b[i]) return a[i] < b[i] ? -1 : 1;
+      }
+      if (a.length == b.length) return 0;
+      return a.length < b.length ? -1 : 1;
+    }
+
+    Uint8List _tapBranchHash(Uint8List a, Uint8List b) {
+      final compare = _lexicographicCompare(a, b);
+      final first = compare <= 0 ? a : b;
+      final second = compare <= 0 ? b : a;
+      return Hash.taggedHash('TapBranch', _concat(first, second));
+    }
+
+    Uint8List _reconstructMerkleRootFromControlBlock({
+      required Uint8List leafHash,
+      required Uint8List controlBlockBytes,
+    }) {
+      // control block = 1 byte (0xc0|parityBit) + 32 bytes (internal key xonly) + N*32 bytes (merkle path)
+      if (controlBlockBytes.length < 1 + 32) {
+        throw ArgumentError('Invalid control block length');
+      }
+      final merklePathBytes = controlBlockBytes.sublist(1 + 32);
+      if (merklePathBytes.length % 32 != 0) {
+        throw ArgumentError('Invalid merkle path length in control block');
+      }
+
+      Uint8List current = leafHash;
+      for (int i = 0; i < merklePathBytes.length; i += 32) {
+        final sibling =
+            merklePathBytes.sublist(i, i + 32); // tap sibling at each level
+        current = _tapBranchHash(current, sibling);
+      }
+      return current;
+    }
+
     group('getAddress', () {
       test('returns a valid taproot address', () {
         NetworkType.setNetworkType(NetworkType.regtest);
         expect(vault.getAddress(0),
-            'bcrt1p4jk004e854y8c84n5ymv4tm3dv0tqu6uhms9zheskj4gexakwrpsd04al6');
+            'bcrt1ptyvhlupy3snr0f6d2shd3fw9kmfsvd575x8g28gpav7h707550xsayjqcp');
       });
 
       test('supports change addresses (isChange=true)', () {
@@ -58,7 +103,94 @@ void main() {
     group('getMerkleRoot', () {
       test('returns 32-byte merkle root', () {
         expect(Codec.encodeHex(vault.getMerkleRoot(0)),
-            '92117d3d19caa7d5e4f6c30ef9cf6a1409120b1b45605ebe6c73b6e40840acdf');
+            '3bd740b79eee8736133cf721d31471f121d4fc3020fba08c9d352566fb3152c4');
+      });
+    });
+
+    group('getControlBlock', () {
+      test('reconstructs merkle root and validates parity (policyIndex=0)', () {
+        final int addressIndex = 0;
+        final bool isChange = false;
+        final int policyIndex = 0;
+
+        final String controlBlockHex = vault
+            .getControlBlock(policyIndex, addressIndex, isChange: isChange);
+        final Uint8List controlBlockBytes = Codec.decodeHex(controlBlockHex);
+
+        // control block: 1 byte prefix + 32 bytes internal key + 32 bytes * path length
+        expect(controlBlockBytes.length, greaterThan(1 + 32));
+        expect((controlBlockBytes.length - (1 + 32)) % 32, 0,
+            reason: 'merkle path part must be 32-byte aligned');
+
+        final int controlByte = controlBlockBytes[0];
+        final Uint8List internalKeyXOnly = controlBlockBytes.sublist(1, 33);
+
+        final Uint8List expectedInternalKeyXOnly =
+            vault.getInternalKey(addressIndex, isChange: isChange);
+        expect(Codec.encodeHex(internalKeyXOnly),
+            Codec.encodeHex(expectedInternalKeyXOnly));
+
+        final List<Uint8List> leafHashes = vault.policyList
+            .map((policy) =>
+                policy.getTapleafHash(addressIndex, isChange: isChange))
+            .toList();
+        final Uint8List leafHash = leafHashes[policyIndex];
+
+        final Uint8List merkleRootFromControl =
+            _reconstructMerkleRootFromControlBlock(
+                leafHash: leafHash, controlBlockBytes: controlBlockBytes);
+        final Uint8List expectedMerkleRoot =
+            vault.getMerkleRoot(addressIndex, isChange: isChange);
+
+        expect(Codec.encodeHex(merkleRootFromControl),
+            Codec.encodeHex(expectedMerkleRoot));
+
+        final Uint8List tweak = Hash.hashTapTweak(
+            'TapTweak', expectedInternalKeyXOnly, expectedMerkleRoot);
+        final Uint8List outputKey =
+            Ecc.pointAddScalar(expectedInternalKeyXOnly, tweak, true)!;
+        final int parityBitExpected = outputKey[0] == 0x03 ? 1 : 0;
+        final int controlByteExpected = 0xc0 | parityBitExpected;
+        expect(controlByte, controlByteExpected);
+      });
+
+      test('reconstructs merkle root and validates parity (policyIndex=2)', () {
+        final int addressIndex = 0;
+        final bool isChange = false;
+        final int policyIndex = 2;
+
+        final String controlBlockHex = vault
+            .getControlBlock(policyIndex, addressIndex, isChange: isChange);
+        final Uint8List controlBlockBytes = Codec.decodeHex(controlBlockHex);
+
+        final Uint8List internalKeyXOnly = controlBlockBytes.sublist(1, 33);
+        final Uint8List expectedInternalKeyXOnly =
+            vault.getInternalKey(addressIndex, isChange: isChange);
+        expect(Codec.encodeHex(internalKeyXOnly),
+            Codec.encodeHex(expectedInternalKeyXOnly));
+
+        final List<Uint8List> leafHashes = vault.policyList
+            .map((policy) =>
+                policy.getTapleafHash(addressIndex, isChange: isChange))
+            .toList();
+
+        final Uint8List merkleRootFromControl =
+            _reconstructMerkleRootFromControlBlock(
+                leafHash: leafHashes[policyIndex],
+                controlBlockBytes: controlBlockBytes);
+        final Uint8List expectedMerkleRoot =
+            vault.getMerkleRoot(addressIndex, isChange: isChange);
+        expect(Codec.encodeHex(merkleRootFromControl),
+            Codec.encodeHex(expectedMerkleRoot));
+
+        final int controlByte = controlBlockBytes[0];
+        final Uint8List tweak = Hash.hashTapTweak(
+            'TapTweak', expectedInternalKeyXOnly, expectedMerkleRoot);
+        final Uint8List outputKey =
+            Ecc.pointAddScalar(expectedInternalKeyXOnly, tweak, true)!;
+        final int parityBitExpected = outputKey[0] == 0x03 ? 1 : 0;
+        final int controlByteExpected = 0xc0 | parityBitExpected;
+        expect(controlByte, controlByteExpected);
       });
     });
 

@@ -11,6 +11,7 @@ class Transaction {
   late String? changeAddressDerivationPath;
 
   late List<Utxo> _utxoList = [];
+  Policy? _appliedPolicy;
 
   /// Get the version of the transaction.
   String get version => Codec.encodeHex(_version);
@@ -622,6 +623,9 @@ class Transaction {
   String getTaprootSigHash(int index, List<TransactionOutput> utxoList,
       {int hashType = 0,
       bool isTapscript = false,
+      Uint8List? tapleafHash,
+      int keyVersion = 0xc0,
+      int codesepPos = 0xffffffff,
       Uint8List? annexHash,
       Uint8List? spentOutput,
       Uint8List? prevout}) {
@@ -680,7 +684,16 @@ class Transaction {
     if (haveAnnex == 1) {
       buffer.addAll(annexHash!);
     }
-    return Hash.taggedHash("TapSighash", buffer);
+    if (extFlag == 1) {
+      if (tapleafHash == null || tapleafHash.length != 32) {
+        throw ArgumentError('tapleafHash (32 bytes) is required for tapscript');
+      }
+      buffer.addAll(tapleafHash);
+      buffer.add(keyVersion & 0xff);
+      buffer.addAll(Uint8List(4)
+        ..buffer.asByteData().setUint32(0, codesepPos, Endian.little));
+    }
+    return Codec.encodeHex(Hash.taggedHash("TapSighash", buffer));
   }
 
   String _getHashPrevOuts(bool isTaproot) {
@@ -1085,6 +1098,21 @@ class Transaction {
 
         if (changeOutput.isDustOutput(wallet.addressType.isSegwit)) {
           outputs.remove(changeOutput);
+        }
+      }
+    }
+  }
+
+  void setPolicy(Policy policy) {
+    _appliedPolicy = policy;
+    // If the policy uses CLTV (e.g. InheritancePolicy), make the transaction
+    // satisfiable by setting nLockTime and non-final sequences.
+    if (policy is InheritancePolicy) {
+      _lockTime = Converter.intToLittleEndianBytes(policy.locktime, 4);
+      for (final input in _inputs) {
+        // For CLTV, sequence must be < 0xffffffff (non-final).
+        if (input.sequence == 0xffffffff) {
+          input._sequence = Converter.intToLittleEndianBytes(0xfffffffe, 4);
         }
       }
     }

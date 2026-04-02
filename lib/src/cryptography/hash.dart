@@ -59,11 +59,11 @@ class Hash {
     return derivator.process(Uint8List.fromList(utf8.decode(secret).codeUnits));
   }
 
-  static String taggedHash(String tag, List<int> data) {
+  static Uint8List taggedHash(String tag, List<int> data) {
     var tagByte = Hash.sha256fromByte(utf8.encode(tag));
     var tagHash = Uint8List.fromList(tagByte + tagByte);
     var taggedHash = Hash.sha256fromByte(Uint8List.fromList(tagHash + data));
-    return Codec.encodeHex(taggedHash);
+    return taggedHash;
   }
 
   static Uint8List hashTapTweak(
@@ -74,7 +74,7 @@ class Hash {
     } else {
       combined = pubkey + merkleRoot;
     }
-    String hashTapTweak = taggedHash(tag, combined);
-    return Codec.decodeHex(hashTapTweak);
+    Uint8List hashTapTweak = taggedHash(tag, combined);
+    return hashTapTweak;
   }
 }

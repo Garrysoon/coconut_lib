@@ -124,4 +124,65 @@ class TaprootVault extends TaprootWalletBase {
 
     return TaprootVault.fromKeyStoreList(keyStores, policies, accountIndex: 0);
   }
+
+  static TaprootVault fromHeritorDescriotor(String descriptor) {
+    Descriptor descriptorObject = Descriptor.parse(descriptor);
+
+    if (descriptorObject.scriptType != 'tr') {
+      throw Exception('Descriptor is not for Taproot address type.');
+    }
+
+    List<KeyStore> keyStores = [];
+    String derivationPath = descriptorObject.getDerivationPath(0);
+
+    for (int i = 0; i < descriptorObject.totalSigner; i++) {
+      String fingerprint = descriptorObject.getFingerprint(i);
+      ExtendedPublicKey extendedPublicKey =
+          ExtendedPublicKey.parse(descriptorObject.getPublicKey(i));
+      HDWallet wallet = HDWallet.fromPublicKey(
+          extendedPublicKey.publicKey, extendedPublicKey.chainCode);
+      if (derivationPath != descriptorObject.getDerivationPath(i)) {
+        throw Exception('Derivation Path is not same.');
+      }
+
+      KeyStore keyStore = KeyStore(fingerprint, wallet, extendedPublicKey);
+      keyStores.add(keyStore);
+    }
+
+    // Parse policies from miniscript list if available
+    List<Policy> policies = [];
+    if (descriptorObject.miniscriptList.isNotEmpty &&
+        descriptorObject.miniscriptList.length > 0) {
+      for (String miniscript in descriptorObject.miniscriptList) {
+        policies.add(Policy.fromMiniscript(miniscript));
+      }
+    }
+
+    return TaprootVault._(keyStores, policies, derivationPath);
+  }
+
+  void bindSeedToBeneficiaryKeyStore(Seed seed, {int accountIndex = 0}) {
+    KeyStore keyStoreFromSeed =
+        KeyStore.fromSeed(seed, AddressType.p2tr, accountIndex: accountIndex);
+    for (Policy policy in policyList) {
+      if (policy is InheritancePolicy) {
+        if (policy.beneficiaryKeyStore.masterFingerprint ==
+            keyStoreFromSeed.masterFingerprint) {
+          policy.beneficiaryKeyStore = keyStoreFromSeed;
+          return;
+        }
+      }
+    }
+  }
+
+  Policy getSpendablePolicy() {
+    for (Policy policy in policyList) {
+      if (policy is InheritancePolicy) {
+        if (policy.beneficiaryKeyStore.hasSeed) {
+          return policy;
+        }
+      }
+    }
+    throw Exception('No spendable policy found.');
+  }
 }

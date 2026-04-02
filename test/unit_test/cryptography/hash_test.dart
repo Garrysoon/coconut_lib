@@ -277,7 +277,7 @@ void main() {
     group('taggedHash', () {
       test('Get tagged hash', () {
         final result = Hash.taggedHash('tag', Hash.sha256('salt'));
-        expect(result,
+        expect(Codec.encodeHex(result),
             '8a38cdedb7e8e90315ef4d169732c89e7dbfe24e28a7467d43841c5e74c04aec');
       });
     });

@@ -67,44 +67,6 @@ class MultisignatureVault extends MultisignatureWalletBase {
     }
   }
 
-  String addPublicNonce(String psbt) {
-    if (!hasPublicKeyInPsbt(psbt)) {
-      throw Exception('No keyStore can sign to the PSBT.');
-    }
-    Psbt psbtObject = Psbt.parse(psbt);
-    if (psbtObject.addressType != AddressType.p2tr) {
-      throw Exception('Only p2tr needs public nonce.');
-    }
-    if (psbtObject.inputs.length !=
-        psbtObject.unsignedTransaction!.inputs.length) {
-      throw Exception('Not enought psbt inputs or transaction inputs');
-    }
-
-    List<TransactionOutput> utxoList = [];
-    for (int j = 0; j < psbtObject.unsignedTransaction!.inputs.length; j++) {
-      utxoList.add(psbtObject.inputs[j].witnessUtxo!);
-    }
-
-    for (int inputIndex = 0;
-        inputIndex < psbtObject.inputs.length;
-        inputIndex++) {
-      String sigHash = psbtObject.unsignedTransaction!
-          .getTaprootSigHash(inputIndex, utxoList);
-      PsbtInput psbtInput = psbtObject.inputs[inputIndex];
-      for (DerivationPath derivationPath in psbtInput.tapBip32Derivation!) {
-        for (KeyStore keyStore in keyStoreList) {
-          if (keyStore.hasSeed &&
-              derivationPath.masterFingerprint == keyStore.masterFingerprint) {
-            keyStore.hasPublicKeyInPsbt(psbt);
-            keyStore.addPublicNonceToPsbtInput(
-                psbtInput, derivationPath.path, sigHash);
-          }
-        }
-      }
-    }
-    return psbtObject.serialize();
-  }
-
   /// Get Json string of the multisignature vault.
   String toJson() {
     return jsonEncode({

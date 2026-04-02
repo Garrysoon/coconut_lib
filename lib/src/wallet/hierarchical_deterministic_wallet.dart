@@ -255,28 +255,30 @@ class HDWallet {
   Uint8List _getTweakedPublicKey(bool isXOnly,
       {Uint8List? merkleRoot, Uint8List? aggregatedPublicKey}) {
     // print("pub:" + Encoder.encodeHex(publicKey));
-    Uint8List keyToTweak;
+    // BIP341 TapTweak always uses the 32-byte x-only internal key.
+    // Do NOT use the 33-byte compressed key as tweak input.
+    Uint8List keyToTweakXOnly;
     if (aggregatedPublicKey != null) {
-      keyToTweak = aggregatedPublicKey;
+      // Accept either 32-byte x-only or 33-byte compressed aggregated keys.
+      keyToTweakXOnly = aggregatedPublicKey.length == 33
+          ? aggregatedPublicKey.sublist(1)
+          : aggregatedPublicKey;
     } else {
-      if (isXOnly) {
-        if (publicKey[0] == 0x03) {
-          keyToTweak = Ecc.pointNegate(publicKey)!.sublist(1);
-        } else {
-          keyToTweak = publicKey.sublist(1);
-        }
+      // Normalize internal public key to even-y x-only.
+      if (publicKey[0] == 0x03) {
+        keyToTweakXOnly = Ecc.pointNegate(publicKey)!.sublist(1);
       } else {
-        keyToTweak = publicKey;
+        keyToTweakXOnly = publicKey.sublist(1);
       }
     }
 
     merkleRoot ??= Uint8List(0);
 
     Uint8List hashTapTweak =
-        Hash.hashTapTweak('TapTweak', keyToTweak, merkleRoot);
+        Hash.hashTapTweak('TapTweak', keyToTweakXOnly, merkleRoot);
 
     Uint8List tweakedPubKey =
-        Ecc.pointAddScalar(keyToTweak, hashTapTweak, true)!;
+        Ecc.pointAddScalar(keyToTweakXOnly, hashTapTweak, true)!;
 
     if (isXOnly && tweakedPubKey[0] == 0x03) {
       tweakedPubKey = Ecc.pointNegate(tweakedPubKey)!;

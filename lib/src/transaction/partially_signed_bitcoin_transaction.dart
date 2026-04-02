@@ -85,6 +85,7 @@ class Psbt {
 
       // for every taproot
       List<DerivationPath> tapBip32Derivation = [];
+      String? internalKey;
 
       // for key path spending
       String? taprootKeyPathSpendingSignature;
@@ -94,6 +95,13 @@ class Psbt {
       List<String>? muSig2participantPubKeyList;
       Map<String, String>? muSig2PubNonces;
       List<Signature>? muSig2PartialSigs;
+
+      // field for script path spending
+      String? tapLeafHash;
+      Script? tapLeafScript;
+      String? controlBlock;
+      String? tapMerkleRoot;
+      List<Signature> tapScriptSigList = [];
 
       psbtMap["inputs"][i].keys.forEach((key) {
         // 06 : BIP32_DERIVATION
@@ -123,14 +131,47 @@ class Psbt {
           taprootKeyPathSpendingSignature = psbtMap["inputs"][i][key];
         }
 
+        // 20 : TAP_SCRIPT_SIG (non-standard simplified encoding: 0x14 || pubkey -> signature)
+        if (key.startsWith('14')) {
+          String publicKey = key.substring(2);
+          String signature = psbtMap["inputs"][i][key];
+          tapScriptSigList.add(Signature(signature, publicKey));
+        }
+
+        //21 : TAP_LEAF_SCRIPT
+        if (key.startsWith('15')) {
+          // Key is: 0x15 || control_block. Store only the control_block bytes.
+          controlBlock = key.substring(2);
+          String script = psbtMap["inputs"][i][key];
+
+          // Value is: raw_tapscript || leaf_version (1 byte).
+          final String rawScriptHex =
+              psbtMap["inputs"][i][key].substring(0, script.length - 2);
+          tapLeafScript = Script(Script.parseToCommand(Uint8List.fromList([
+            ...Codec.encodeVariableInteger(rawScriptHex.length ~/ 2),
+            ...Codec.decodeHex(rawScriptHex),
+          ])));
+        }
+        // 23 : INTERNAL_KEY_XONLY
+        if (key.startsWith('17')) {
+          internalKey = psbtMap["inputs"][i][key];
+        }
+
         // 22 : TAP_BIP32_DERIVATION
         if (key.startsWith('16')) {
           String publicKey = key.substring(2);
           Uint8List valueBytes = Codec.decodeHex(psbtMap["inputs"][i][key]);
           int offset = 0;
 
-          String numberOfHash =
+          String numberOfTapleafHash =
               Codec.encodeHex(valueBytes.sublist(offset, offset + 1));
+          List<String> tapleafHashList = [];
+          for (int i = 0; i < int.parse(numberOfTapleafHash); i++) {
+            String tapleafHash =
+                Codec.encodeHex(valueBytes.sublist(offset, offset + 32));
+            tapleafHashList.add(tapleafHash);
+            offset += 32;
+          }
           offset += 1;
           String masterFingerprint =
               Codec.encodeHex(valueBytes.sublist(offset, offset + 4));
@@ -138,8 +179,15 @@ class Psbt {
 
           String derivationPath = _parseDerivationPath(
               valueBytes.sublist(offset, valueBytes.length));
-          tapBip32Derivation.add(
-              DerivationPath(publicKey, masterFingerprint, derivationPath));
+          tapBip32Derivation.add(DerivationPath(
+              publicKey, masterFingerprint, derivationPath,
+              numberOfTapleafHash: numberOfTapleafHash,
+              tapleafHashList: tapleafHashList));
+        }
+
+        // 24 : TAP_MERKLE_ROOT
+        if (key.startsWith('18')) {
+          tapMerkleRoot = psbtMap["inputs"][i][key];
         }
 
         // 26: 'MUSIG2_PARTICIPANT_PUBKEY',
@@ -181,18 +229,36 @@ class Psbt {
             witnessUtxo, inputDerivationPathList, partialSigList,
             witnessScript: witnessScript));
       } else if (tapBip32Derivation.isNotEmpty &&
-          muSig2AggregatedPublicKey == null) {
-        inputs.add(PsbtInput.forKeyPathSpending(
-            witnessUtxo, tapBip32Derivation, taprootKeyPathSpendingSignature));
+          muSig2AggregatedPublicKey == null &&
+          tapLeafScript == null) {
+        inputs.add(PsbtInput.forKeyPathSpending(internalKey, witnessUtxo,
+            tapBip32Derivation, taprootKeyPathSpendingSignature,
+            tapMerkleRoot: tapMerkleRoot));
       } else if (tapBip32Derivation.isNotEmpty &&
-          muSig2AggregatedPublicKey != null) {
+          muSig2AggregatedPublicKey != null &&
+          tapLeafScript == null) {
         inputs.add(PsbtInput.forMuSig2(
+            internalKey,
             witnessUtxo,
             tapBip32Derivation,
             muSig2AggregatedPublicKey,
             muSig2participantPubKeyList,
             muSig2PubNonces,
-            muSig2PartialSigs));
+            muSig2PartialSigs,
+            tapMerkleRoot));
+      } else if (tapBip32Derivation.isNotEmpty && tapLeafScript != null) {
+        final input = PsbtInput.forScriptPathSpending(
+            internalKey,
+            witnessUtxo,
+            tapBip32Derivation,
+            tapLeafHash,
+            tapLeafScript,
+            controlBlock,
+            tapMerkleRoot);
+        if (tapScriptSigList.isNotEmpty) {
+          input.tapScriptSig = tapScriptSigList;
+        }
+        inputs.add(input);
       } else {
         inputs.add(PsbtInput.forSignatureOnly(partialSigList,
             witnessScript: witnessScript));
@@ -281,8 +347,11 @@ class Psbt {
         }
       }
       if (inputs[i].tapScriptSig != null) {
-        if (!psbtMap["inputs"][i].keys.contains("14")) {
-          psbtMap["inputs"][i]["14"] = inputs[i].tapScriptSig!;
+        for (final Signature signature in inputs[i].tapScriptSig!) {
+          final String key = "14${signature.publicKey}";
+          if (!psbtMap["inputs"][i].keys.contains(key)) {
+            psbtMap["inputs"][i][key] = signature.signature;
+          }
         }
       }
       if (inputs[i].muSig2PubNonces != null) {
@@ -291,6 +360,11 @@ class Psbt {
             psbtMap["inputs"][i]["1b$publicKey"] =
                 inputs[i].muSig2PubNonces![publicKey]!;
           }
+        }
+      }
+      if (inputs[i].tapMerkleRoot != null) {
+        if (!psbtMap["inputs"][i].keys.contains("18")) {
+          psbtMap["inputs"][i]["18"] = inputs[i].tapMerkleRoot!;
         }
       }
     }
@@ -442,61 +516,121 @@ class Psbt {
           inputData[partialSigKeyType + publicKey] = signature;
         }
       } else if (wallet.addressType == AddressType.p2tr) {
-        List<String> publicKeys = [];
-        for (KeyStore keyStore in taprootWallet.keyStoreList) {
-          // TAP_BIP32_DERIVATION
-          String tapBip32DerivationKeyType =
-              getKeyType(inputKeyType, 'TAP_BIP32_DERIVATION');
-          String publicKey = keyStore.getPublicKey(tx.utxoList[i].accountIndex,
-              isChange: tx.utxoList[i].isChange, isXOnly: false);
-          publicKeys.add(publicKey);
-
-          String fingerPrint = keyStore.masterFingerprint;
-          //TODO: get the number of hash
-          String numberOfHash = "00";
-          inputData[tapBip32DerivationKeyType + publicKey.substring(2)] =
-              numberOfHash +
-                  fingerPrint +
-                  Codec.encodeHex(
-                      _serializeDerivationPath(tx.utxoList[i].derivationPath));
+        final Uint8List tapMerkleRoot = taprootWallet.getMerkleRoot(
+          tx.utxoList[i].accountIndex,
+          isChange: tx.utxoList[i].isChange,
+        );
+        //TAP_MERKLE_ROOT
+        if (tapMerkleRoot.isNotEmpty) {
+          String tapMerkleRootKeyType =
+              getKeyType(inputKeyType, 'TAP_MERKLE_ROOT');
+          inputData[tapMerkleRootKeyType] = Codec.encodeHex(tapMerkleRoot);
         }
-        if (taprootWallet.keyStoreList.length == 1) {
-          // Key path spending
-          if (tx.inputs[i].witnessList.isNotEmpty) {
-            String taprootKeySpendSignature =
-                getKeyType(inputKeyType, 'TAP_KEY_SIG');
-            inputData[taprootKeySpendSignature] = tx.inputs[i].witnessList[0];
-          }
-          if (tx.inputs[i].witnessList.length == 1) {
-            String taprootKeySpendSignature =
-                getKeyType(inputKeyType, 'PSBT_IN_TAP_KEY_SIG');
-            inputData[taprootKeySpendSignature] = tx.inputs[i].witnessList[0];
-          }
-        } else if (taprootWallet.keyStoreList.length > 1) {
-          // MUSIG2_PARTICIPANT_PUBKEY
-          String musig2ParticipantPubKeyType =
-              getKeyType(inputKeyType, 'MUSIG2_PARTICIPANT_PUBKEY');
-          String aggregatePubKey = Codec.encodeHex(
-              taprootWallet.getAggregatedPublicKey(tx.utxoList[i].accountIndex,
-                  isChange: tx.utxoList[i].isChange, isXOnly: false));
-          inputData[musig2ParticipantPubKeyType + aggregatePubKey] =
-              publicKeys.join();
 
-          // String musig2PubNonceType =
-          //     getKeyType(inputKeyType, 'MUSIG2_PUB_NONCE');
-          for (int keyStoreIndex = 0;
-              keyStoreIndex < taprootWallet.keyStoreList.length;
-              keyStoreIndex++) {
-            // MUSIG2_PUB_NONCE
-            // if (multisignatureWallet.keyStoreList[keyStoreIndex].hasSeed) {
-            //   inputData[musig2PubNonceType + publicKeys[keyStoreIndex]] =
-            //       multisignatureWallet.keyStoreList[keyStoreIndex]
-            //           .getMuSig2PublicNonce(
-            //               tx.getTaprootSigHash(i, witnessUtxoList),
-            //               aggregatePubKey,
-            //               tx.utxoList[i].accountIndex,
-            //               tx.utxoList[i].isChange);
-            // }
+        //TAP_INTERNAL_KEY
+        String tapInternalKeyType =
+            getKeyType(inputKeyType, 'TAP_INTERNAL_KEY');
+        Uint8List internalKey = taprootWallet.getInternalKey(
+            tx.utxoList[i].accountIndex,
+            isChange: tx.utxoList[i].isChange);
+        inputData[tapInternalKeyType] = Codec.encodeHex(internalKey);
+
+        if (tx._appliedPolicy != null) {
+          // Policy included
+          // TAP_BIP32_DERIVATION
+          if (tx._appliedPolicy is InheritancePolicy) {
+            String tapBip32DerivationKeyType =
+                getKeyType(inputKeyType, 'TAP_BIP32_DERIVATION');
+            InheritancePolicy inheritancePolicy =
+                tx._appliedPolicy as InheritancePolicy;
+            KeyStore keyStore = inheritancePolicy.beneficiaryKeyStore;
+            String publicKey = keyStore.getPublicKey(
+                tx.utxoList[i].accountIndex,
+                isChange: tx.utxoList[i].isChange,
+                isXOnly: false);
+            String fingerPrint = keyStore.masterFingerprint;
+            String policy = Codec.encodeHex(inheritancePolicy.getTapleafHash(
+                tx.utxoList[i].accountIndex,
+                isChange: tx.utxoList[i].isChange));
+            inputData[tapBip32DerivationKeyType + publicKey.substring(2)] =
+                "01$policy$fingerPrint${Codec.encodeHex(_serializeDerivationPath(tx.utxoList[i].derivationPath))}";
+
+            // TAP_LEAF_SCRIPT
+            String tapLeafScriptType =
+                getKeyType(inputKeyType, 'TAP_LEAF_SCRIPT');
+            final int policyIndex = taprootWallet.policyList.indexWhere(
+                (p) => p.toMiniscript() == inheritancePolicy.toMiniscript());
+            if (policyIndex < 0) {
+              throw Exception('Applied policy not found in wallet policy list');
+            }
+            String controlBlock = taprootWallet.getControlBlock(
+                policyIndex, tx.utxoList[i].accountIndex,
+                isChange: tx.utxoList[i].isChange);
+            // PSBT TapLeafScript value must be raw tapscript bytes + leaf version.
+            String leafScript = inheritancePolicy
+                .toScript(tx.utxoList[i].accountIndex,
+                    isChange: tx.utxoList[i].isChange)
+                .rawSerialize();
+            inputData[tapLeafScriptType + controlBlock] = '${leafScript}c0';
+          } else {
+            throw Exception('Only InheritancePolicy is supported');
+          }
+        } else {
+          // No policy applied
+          List<String> publicKeys = [];
+          // TAP_BIP32_DERIVATION
+          for (KeyStore keyStore in taprootWallet.keyStoreList) {
+            String tapBip32DerivationKeyType =
+                getKeyType(inputKeyType, 'TAP_BIP32_DERIVATION');
+            String publicKey = keyStore.getPublicKey(
+                tx.utxoList[i].accountIndex,
+                isChange: tx.utxoList[i].isChange,
+                isXOnly: false);
+            publicKeys.add(publicKey);
+
+            String fingerPrint = keyStore.masterFingerprint;
+
+            inputData[tapBip32DerivationKeyType + publicKey.substring(2)] =
+                "00$fingerPrint${Codec.encodeHex(_serializeDerivationPath(tx.utxoList[i].derivationPath))}";
+          }
+          if (taprootWallet.keyStoreList.length == 1) {
+            // Key path spending
+            if (tx.inputs[i].witnessList.isNotEmpty) {
+              String taprootKeySpendSignature =
+                  getKeyType(inputKeyType, 'TAP_KEY_SIG');
+              inputData[taprootKeySpendSignature] = tx.inputs[i].witnessList[0];
+            }
+            if (tx.inputs[i].witnessList.length == 1) {
+              String taprootKeySpendSignature =
+                  getKeyType(inputKeyType, 'PSBT_IN_TAP_KEY_SIG');
+              inputData[taprootKeySpendSignature] = tx.inputs[i].witnessList[0];
+            }
+          } else if (taprootWallet.keyStoreList.length > 1) {
+            // MUSIG2_PARTICIPANT_PUBKEY
+            String musig2ParticipantPubKeyType =
+                getKeyType(inputKeyType, 'MUSIG2_PARTICIPANT_PUBKEY');
+            String aggregatePubKey = Codec.encodeHex(taprootWallet
+                .getAggregatedPublicKey(tx.utxoList[i].accountIndex,
+                    isChange: tx.utxoList[i].isChange, isXOnly: false));
+            inputData[musig2ParticipantPubKeyType + aggregatePubKey] =
+                publicKeys.join();
+
+            // String musig2PubNonceType =
+            //     getKeyType(inputKeyType, 'MUSIG2_PUB_NONCE');
+            for (int keyStoreIndex = 0;
+                keyStoreIndex < taprootWallet.keyStoreList.length;
+                keyStoreIndex++) {
+              // MUSIG2_PUB_NONCE
+              // if (multisignatureWallet.keyStoreList[keyStoreIndex].hasSeed) {
+              //   inputData[musig2PubNonceType + publicKeys[keyStoreIndex]] =
+              //       multisignatureWallet.keyStoreList[keyStoreIndex]
+              //           .getMuSig2PublicNonce(
+              //               tx.getTaprootSigHash(i, witnessUtxoList),
+              //               aggregatePubKey,
+              //               tx.utxoList[i].accountIndex,
+              //               tx.utxoList[i].isChange);
+              // }
+            }
           }
         }
       }
@@ -805,6 +939,7 @@ class Psbt {
         Transaction.parseUnsignedTransaction(unsignedTransaction!.serialize());
     signedTransaction._isSegwit = addressType.isSegwit;
     if (addressType == AddressType.p2wsh) {
+      //p2wsh multisig
       for (int i = 0; i < inputs.length; i++) {
         if (inputs[i].totalSinger < inputs[i].requiredSignature) {
           throw Exception('Not enough signatures');
@@ -825,6 +960,7 @@ class Psbt {
         }
       }
     } else if (addressType == AddressType.p2wpkh) {
+      //p2wpkh single signature
       for (int i = 0; i < inputs.length; i++) {
         if (inputs[i].partialSig == null) {
           throw Exception('Not enough signatures');
@@ -848,7 +984,15 @@ class Psbt {
         utxoList.add(inputs[i].witnessUtxo!);
       }
       for (int i = 0; i < inputs.length; i++) {
-        if (inputs[i].muSig2AggregatedPublicKey == null) {
+        if (inputs[i].tapScriptSig != null) {
+          //Script path spending
+          signedTransaction.inputs[i].setTaprootScriptPathSpendingSignature(
+              inputs[i].tapScriptSig![0].signature,
+              // Witness must contain raw tapscript bytes (no length prefix).
+              inputs[i].tapLeafScript!.rawSerialize(),
+              inputs[i].controlBlock!);
+        } else if (inputs[i].tapScriptSig == null &&
+            inputs[i].muSig2AggregatedPublicKey == null) {
           //Key path spending
           List<TransactionOutput> utxoList = [];
           for (int i = 0; i < inputs.length; i++) {
@@ -871,7 +1015,8 @@ class Psbt {
               }
             }
           }
-        } else {
+        } else if (inputs[i].tapScriptSig == null &&
+            inputs[i].muSig2AggregatedPublicKey != null) {
           //MuSig2
           if (inputs[i].totalSinger < inputs[i].requiredSignature) {
             throw Exception('Not enough signatures');
@@ -892,6 +1037,10 @@ class Psbt {
             aggregatedPubNonce,
             aggregatedPubKey,
             message,
+            merkleRoot: (inputs[i].tapMerkleRoot != null &&
+                    inputs[i].tapMerkleRoot!.isNotEmpty)
+                ? Codec.decodeHex(inputs[i].tapMerkleRoot!)
+                : null,
             applyTaprootTweak: true,
           );
 
@@ -1023,14 +1172,18 @@ class PsbtInput {
   PsbtInput.forSignatureOnly(this.partialSig, {this.witnessScript});
 
   //Field for taproot
+  String? internalKey; //0x17
   String? tapKeySig; //0x13(19)
   List<Signature>? tapScriptSig; //0x14(20)
-  MultisignatureScript? tapLeafScript; //0x15
+  String? tapLeafHash; //0x16
+  Script? tapLeafScript; //0x15
   String? controlBlock; //0x15
   List<DerivationPath>? tapBip32Derivation; //16
+  String? tapMerkleRoot; //0x18
 
-  PsbtInput.forKeyPathSpending(
-      this.witnessUtxo, this.tapBip32Derivation, this.tapKeySig);
+  PsbtInput.forKeyPathSpending(this.internalKey, this.witnessUtxo,
+      this.tapBip32Derivation, this.tapKeySig,
+      {this.tapMerkleRoot});
 
   String? muSig2AggregatedPublicKey; // 0x1a
   List<String>? muSig2ParticipantPubkeys; // 0x1a
@@ -1038,12 +1191,23 @@ class PsbtInput {
   List<Signature>? muSig2PartialSigs; // 0x1c
 
   PsbtInput.forMuSig2(
+      this.internalKey,
       this.witnessUtxo,
       this.tapBip32Derivation,
       this.muSig2AggregatedPublicKey,
       this.muSig2ParticipantPubkeys,
       this.muSig2PubNonces,
-      this.muSig2PartialSigs);
+      this.muSig2PartialSigs,
+      this.tapMerkleRoot);
+
+  PsbtInput.forScriptPathSpending(
+      this.internalKey,
+      this.witnessUtxo,
+      this.tapBip32Derivation,
+      this.tapLeafHash,
+      this.tapLeafScript,
+      this.controlBlock,
+      this.tapMerkleRoot);
 
   List<DerivationPath> get derivationPathList =>
       bip32Derivation == null ? tapBip32Derivation! : bip32Derivation!;
@@ -1091,6 +1255,7 @@ class PsbtInput {
   }
 
   addTapScriptSig(String signature, String publicKey) {
+    tapScriptSig ??= [];
     tapScriptSig!.add(Signature(signature, publicKey));
   }
 
@@ -1190,8 +1355,11 @@ class DerivationPath {
   final String _publicKey;
   final String _masterFingerprint;
   final String _path;
+  final String? numberOfTapleafHash;
+  final List<String>? tapleafHashList;
 
-  DerivationPath(this._publicKey, this._masterFingerprint, this._path);
+  DerivationPath(this._publicKey, this._masterFingerprint, this._path,
+      {this.numberOfTapleafHash, this.tapleafHashList});
 
   String get publicKey => _publicKey;
   String get masterFingerprint => _masterFingerprint.toUpperCase();

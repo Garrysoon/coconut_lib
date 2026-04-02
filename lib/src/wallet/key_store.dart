@@ -181,7 +181,6 @@ class KeyStore {
               thisInput.tapBip32Derivation![j].accountIndex,
               isChange: thisInput.tapBip32Derivation![j].isChange,
               isXOnly: false);
-
           if (publicKeyInPsbt.length != publicKey.length) {
             publicKey = publicKey.substring(2);
           }
@@ -298,6 +297,11 @@ class KeyStore {
             j++) {
           utxoList.add(psbtObject.inputs[j].witnessUtxo!);
         }
+        // Keep sighash computation consistent with getSignedTransaction(),
+        // which reparses the unsigned transaction before validating.
+        final Transaction unsignedTx = Transaction.parseUnsignedTransaction(
+            psbtObject.unsignedTransaction!.serialize());
+        sigHash = unsignedTx.getTaprootSigHash(inputIndex, utxoList);
         sigHash = psbtObject.unsignedTransaction!
             .getTaprootSigHash(inputIndex, utxoList);
       }
@@ -327,6 +331,10 @@ class KeyStore {
             Codec.decodeHex(psbtInput.getAggregatedPublicNonce()),
             Codec.decodeHex(psbtInput.muSig2AggregatedPublicKey!),
             Codec.decodeHex(sigHash),
+            merkleRoot: (psbtInput.tapMerkleRoot != null &&
+                    psbtInput.tapMerkleRoot!.isNotEmpty)
+                ? Codec.decodeHex(psbtInput.tapMerkleRoot!)
+                : null,
             applyTaprootTweak: true);
       }
 
@@ -358,13 +366,23 @@ class KeyStore {
           getPublicKey(accountIndex, isChange: isChange, isXOnly: false);
       signature = Codec.encodeHex(hdWallet.signEcdsa(Codec.decodeHex(sigHash)));
     } else {
+      if (psbtInput.tapLeafScript != null) {
+        //Script path spending
+        // Tapscript OP_CHECKSIG uses x-only pubkeys (BIP340).
+        // Use x-only here so the signature verifies against the same key
+        // (HDWallet.signSchnorr normalizes to even-y).
+        publicKey = getPublicKey(accountIndex,
+            isChange: isChange, applyTweak: false, isXOnly: true);
+        signature = Codec.encodeHex(
+            hdWallet.signSchnorr(Codec.decodeHex(sigHash), false));
+      }
       //Key path spending
-      if (sessionContext == null) {
+      else if (psbtInput.tapLeafScript == null && sessionContext == null) {
         publicKey = getPublicKey(accountIndex,
             isChange: isChange, applyTweak: true, isXOnly: false);
         signature = Codec.encodeHex(
             hdWallet.signSchnorr(Codec.decodeHex(sigHash), true));
-      } else {
+      } else if (psbtInput.tapLeafScript == null && sessionContext != null) {
         //MuSig2
         publicKey =
             getPublicKey(accountIndex, isChange: isChange, isXOnly: false);
@@ -377,6 +395,8 @@ class KeyStore {
 
         signature = Codec.encodeHex(
             hdWallet.signSchnorrForMuSig2(secretNonce, sessionContext));
+      } else {
+        throw Exception('Invalid PSBT input.');
       }
     }
 
@@ -415,7 +435,9 @@ class KeyStore {
       psbtInput.addPartialSig(signature, publicKey);
     } else {
       // Taproot
-
+      if (psbtInput.tapLeafScript != null) {
+        psbtInput.addTapScriptSig(signature, publicKey);
+      }
       if (psbtInput.muSig2AggregatedPublicKey == null) {
         // Key path spending
         psbtInput.addTapKeySig(signature);
@@ -453,7 +475,7 @@ class KeyStore {
       Uint8List? extraInput,
       {bool isDeterministic = true}) {
     if (!isDeterministic) {
-      final auxHash = Codec.decodeHex(Hash.taggedHash("MuSig/aux", rand));
+      final auxHash = Hash.taggedHash("MuSig/aux", rand);
       final result = Uint8List(32);
       for (int i = 0; i < 32; i++) {
         result[i] = secretKey[i] ^ auxHash[i];
@@ -487,7 +509,7 @@ class KeyStore {
         ...extraInput,
         ...prefix
       ]);
-      final hash = Codec.decodeHex(Hash.taggedHash("MuSig/nonce", input));
+      final hash = Hash.taggedHash("MuSig/nonce", input);
       scalars.add(hash);
     }
     k1 = scalars[0];
@@ -681,13 +703,13 @@ class SessionContext {
       musigTacc = BigInt.zero;
     }
 
-    b = Ecc.fromBuffer(Codec.decodeHex(Hash.taggedHash(
+    b = Ecc.fromBuffer(Hash.taggedHash(
         "MuSig/noncecoef",
         Uint8List.fromList([
           ...aggregatedPubNonce,
           ...Ecc.getEncoded(aggregateQ, true).sublist(1),
           ...message
-        ]))));
+        ])));
 
     final r1 = Ecc.decodeFrom(aggregatedPubNonce.sublist(0, 33))!;
     final r2 = Ecc.decodeFrom(aggregatedPubNonce.sublist(33, 66))!;
@@ -696,12 +718,12 @@ class SessionContext {
 
     Uint8List rX = Ecc.getEncoded(R, false).sublist(1, 33);
 
-    e = Ecc.fromBuffer(Codec.decodeHex(Hash.taggedHash(
+    e = Ecc.fromBuffer(Hash.taggedHash(
         "BIP0340/challenge",
         Uint8List.fromList([
           ...rX,
           ...Ecc.getEncoded(aggregateQ, true).sublist(1),
           ...message
-        ]))));
+        ])));
   }
 }

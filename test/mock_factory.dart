@@ -93,11 +93,11 @@ abstract class MockFactory {
             passphrase: utf8.encode('B')),
         AddressType.p2tr);
     Policy policy1 = InheritancePolicy.fromDescriptor(
-        createBeneficiaryVault(passphrase: 'C').descriptor, 1000000000);
+        createBeneficiaryVault(passphrase: 'A').descriptor, 1767225600);
     Policy policy2 = InheritancePolicy.fromDescriptor(
-        createBeneficiaryVault(passphrase: 'C').descriptor, 2000000000);
+        createBeneficiaryVault(passphrase: 'B').descriptor, 1767225600);
     Policy policy3 = InheritancePolicy.fromDescriptor(
-        createBeneficiaryVault(passphrase: 'C').descriptor, 1500000000);
+        createBeneficiaryVault(passphrase: 'C').descriptor, 1767225600);
     return TaprootVault.fromKeyStoreList(
         [keyStore1, keyStore2], [policy1, policy2, policy3]);
   }

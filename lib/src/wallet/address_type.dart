@@ -41,7 +41,7 @@ class AddressType {
   final String Function(List<String>, int) getMultisignatureAddress;
 
   /// Get the taproot address from the internal key and merkle root.
-  final String Function(String, {String? merkleRoot}) getTaprootAddress;
+  final String Function(String) getTaprootAddress;
 
   AddressType._(
       this.name,
@@ -358,28 +358,39 @@ class AddressType {
     return codec.encode(bech32m.Bech32m(_getSegwitHrp(), [0x01] + data5Bits));
   }
 
-  static String getP2trTaprootAddress(String internalKey,
-      {String? merkleRoot}) {
-    if (internalKey.length != 64) {
-      throw Exception("Invalid internal key length");
-    }
-    Uint8List internalKeyBytes = Codec.decodeHex(internalKey);
-    Uint8List merkleRootBytes =
-        merkleRoot != null ? Codec.decodeHex(merkleRoot) : Uint8List(0);
+  // static String getP2trTaprootAddress(String internalKey,
+  //     {String? merkleRoot}) {
+  //   if (internalKey.length != 64) {
+  //     throw Exception("Invalid internal key length");
+  //   }
+  //   Uint8List internalKeyBytes = Codec.decodeHex(internalKey);
+  //   Uint8List merkleRootBytes =
+  //       merkleRoot != null ? Codec.decodeHex(merkleRoot) : Uint8List(0);
 
-    Uint8List keyToTweak = internalKeyBytes;
-    Uint8List hashTapTweak =
-        Hash.hashTapTweak('TapTweak', keyToTweak, merkleRootBytes);
+  //   Uint8List keyToTweak = internalKeyBytes;
+  //   Uint8List hashTapTweak =
+  //       Hash.hashTapTweak('TapTweak', keyToTweak, merkleRootBytes);
 
-    Uint8List tweakedPubKey =
-        Ecc.pointAddScalar(keyToTweak, hashTapTweak, true)!;
+  //   Uint8List tweakedPubKey =
+  //       Ecc.pointAddScalar(keyToTweak, hashTapTweak, true)!;
 
-    if (tweakedPubKey[0] == 0x03) {
-      tweakedPubKey = Ecc.pointNegate(tweakedPubKey)!;
-    }
+  //   if (tweakedPubKey[0] == 0x03) {
+  //     tweakedPubKey = Ecc.pointNegate(tweakedPubKey)!;
+  //   }
 
+  //   Uint8List outputKey = tweakedPubKey.sublist(1);
+
+  //   var data5Bits = Converter.convertBits(
+  //       Uint8List.fromList(tweakedPubKey.sublist(1)), 8, 5,
+  //       pad: true);
+
+  //   bech32m.Bech32mCodec codec = bech32m.Bech32mCodec();
+  //   return codec.encode(bech32m.Bech32m(_getSegwitHrp(), [0x01] + data5Bits));
+  // }
+  static String getP2trTaprootAddress(String outputKey) {
+    Uint8List outputKeyBytes = Codec.decodeHex(outputKey);
     var data5Bits = Converter.convertBits(
-        Uint8List.fromList(tweakedPubKey.sublist(1)), 8, 5,
+        Uint8List.fromList(outputKeyBytes), 8, 5,
         pad: true);
 
     bech32m.Bech32mCodec codec = bech32m.Bech32mCodec();

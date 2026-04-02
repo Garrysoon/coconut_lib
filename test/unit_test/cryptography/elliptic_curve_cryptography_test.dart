@@ -96,11 +96,11 @@ void main() {
                       .substring(i * 2, i * 2 + 2),
                   radix: 16)));
         } else {
-          String data = Hash.taggedHash(
-                  'KeyAgg list', Codec.decodeHex(concatenatedPublicKey)) +
+          String data = Codec.encodeHex(Hash.taggedHash(
+                  'KeyAgg list', Codec.decodeHex(concatenatedPublicKey))) +
               Codec.encodeHex(publicKeyList[i]);
-          coefficient = Codec.decodeHex(
-              Hash.taggedHash('KeyAgg coefficient', Codec.decodeHex(data)));
+          coefficient =
+              Hash.taggedHash('KeyAgg coefficient', Codec.decodeHex(data));
         }
 
         if (i == 0) {
