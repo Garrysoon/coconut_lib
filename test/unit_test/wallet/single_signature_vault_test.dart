@@ -23,6 +23,18 @@ void main() {
         expect(targetVault.keyStore.extendedPublicKey.serialize(),
             keyStore.extendedPublicKey.serialize());
       });
+
+      test('throws for multisig-only address types', () {
+        KeyStore keyStore = vault.keyStore;
+        expect(
+            () => SingleSignatureVault.fromKeyStore(keyStore,
+                addressType: AddressType.p2sh),
+            throwsException);
+        expect(
+            () => SingleSignatureVault.fromKeyStore(keyStore,
+                addressType: AddressType.p2wsh),
+            throwsException);
+      });
     });
     group('SingleSignatureVault.random', () {
       test('Generate random single signature vault', () {
@@ -62,6 +74,40 @@ void main() {
     group('getSignerBsms', () {
       test('Get signer bsms', () {
         expect(vault.getSignerBsms(AddressType.p2wsh, "").hashCode, 380644378);
+      });
+
+      test('throws when keyStore has no seed', () {
+        final source = vault.keyStore;
+        final seedless = SingleSignatureVault.fromKeyStore(
+          KeyStore.fromExtendedPublicKey(
+            source.extendedPublicKey.serialize(),
+            source.masterFingerprint,
+          ),
+        );
+        expect(() => seedless.getSignerBsms(AddressType.p2wsh, ''), throwsException);
+      });
+
+      test('throws when target address type is not multisig/p2tr', () {
+        expect(() => vault.getSignerBsms(AddressType.p2wpkh, ''), throwsException);
+      });
+    });
+
+    group('json', () {
+      test('toJson/fromJson roundtrip', () {
+        final source = vault.keyStore;
+        final seedlessVault = SingleSignatureVault.fromKeyStore(
+          KeyStore.fromExtendedPublicKey(
+            source.extendedPublicKey.serialize(),
+            source.masterFingerprint,
+          ),
+          addressType: vault.addressType,
+        );
+        final json = seedlessVault.toJson();
+        final restored = SingleSignatureVault.fromJson(json);
+        expect(restored.addressType, seedlessVault.addressType);
+        expect(restored.derivationPath, seedlessVault.derivationPath);
+        expect(restored.keyStore.masterFingerprint,
+            seedlessVault.keyStore.masterFingerprint);
       });
     });
   });

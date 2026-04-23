@@ -68,6 +68,19 @@ main() {
             [6, 77, 4, 0, 0xab, 0xcd]); // OP_PUSHDATA2 with incorrect length
         expect(() => Script.parseToCommand(script), throwsException);
       });
+
+      test('Parses script with CompactSize prefix 0xfd', () {
+        // varint: 0xfd 0x01 0x00 -> length 1, then one opcode 0x51
+        final Uint8List script = Uint8List.fromList([0xfd, 0x01, 0x00, 0x51]);
+        expect(Script.parseToCommand(script), equals([0x51]));
+      });
+
+      test('Parses script with CompactSize prefix 0xfe', () {
+        // varint: 0xfe 0x01 0x00 0x00 0x00 -> length 1, then one opcode 0x52
+        final Uint8List script =
+            Uint8List.fromList([0xfe, 0x01, 0x00, 0x00, 0x00, 0x52]);
+        expect(Script.parseToCommand(script), equals([0x52]));
+      });
     });
     group('rawSerialize', () {
       test('Serialize script without length', () {
@@ -75,6 +88,20 @@ main() {
         Uint8List script = Codec.decodeHex(scriptText);
         expect(Script(Script.parseToCommand(script)).rawSerialize(),
             '00143c5e7ce7108e9c0fd8845cc124ea60d30a635e95');
+      });
+
+      test('Uses OP_PUSHDATA1 for 76-255 byte data', () {
+        final Uint8List data = Uint8List.fromList(List.filled(100, 0x11));
+        final String hex = Script([data]).rawSerialize();
+        // 0x4c(OP_PUSHDATA1) + 0x64(length) + data...
+        expect(hex.startsWith('4c64'), true);
+      });
+
+      test('Uses OP_PUSHDATA2 for >=256 byte data', () {
+        final Uint8List data = Uint8List.fromList(List.filled(300, 0x22));
+        final String hex = Script([data]).rawSerialize();
+        // 0x4d(OP_PUSHDATA2) + 0x2c01(length=300 little-endian) + data...
+        expect(hex.startsWith('4d2c01'), true);
       });
     });
     group('serialize', () {

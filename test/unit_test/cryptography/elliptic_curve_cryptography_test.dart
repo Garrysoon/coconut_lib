@@ -1,3 +1,4 @@
+@Tags(['unit'])
 import 'dart:typed_data';
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
@@ -340,6 +341,23 @@ void main() {
         expect(result, equals(point));
       });
     });
+
+    group('assumeCompression / compressPoint', () {
+      test('assumeCompression infers compression from pubkey', () {
+        final compressed = Uint8List.fromList([0x02] + List.filled(32, 0x01));
+        final uncompressed =
+            Uint8List.fromList([0x04] + List.filled(64, 0x01));
+        expect(Ecc.assumeCompression(null, compressed), true);
+        expect(Ecc.assumeCompression(null, uncompressed), false);
+        expect(Ecc.assumeCompression(null, null), true);
+        expect(Ecc.assumeCompression(false, compressed), false);
+      });
+
+      test('compressPoint throws on unsupported pubkey length', () {
+        expect(() => Ecc.compressPoint(Uint8List(31)), throwsArgumentError);
+      });
+    });
+
     group('privateAdd', () {
       test('Valid private key and valid tweak', () {
         Uint8List privateKey = bigIntToUint8List(BigInt.from(5));
@@ -390,6 +408,20 @@ void main() {
         Uint8List? result = Ecc.privateAdd(privateKey, tweak);
         expect(result, isNotNull);
         expect(result!.length, equals(32));
+      });
+    });
+
+    group('privateNegate', () {
+      test('Valid private key returns valid negated key', () {
+        Uint8List privateKey = bigIntToUint8List(BigInt.from(7));
+        Uint8List? result = Ecc.privateNegate(privateKey);
+        expect(result, isNotNull);
+        expect(result!.length, 32);
+        expect(Ecc.isPrivate(result), true);
+      });
+
+      test('Invalid tweak (not order scalar) throws', () {
+        expect(() => Ecc.privateNegate(Uint8List(31)), throwsArgumentError);
       });
     });
     group('signEcdsa', () {
@@ -481,6 +513,31 @@ void main() {
             Codec.encodeHex(
                 Ecc.signSchnorr(hash, privateKey, auxRand: auxRand)),
             signature);
+      });
+
+      test('Invalid auxRand length throws', () {
+        Uint8List hash = Uint8List.fromList(List.filled(32, 1));
+        Uint8List privateKey = Codec.decodeHex(
+            'C90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B14E5C9');
+        expect(
+            () => Ecc.signSchnorr(hash, privateKey, auxRand: Uint8List(31)),
+            throwsArgumentError);
+      });
+
+      test('Throws when derived public key has odd y', () {
+        Uint8List hash = Uint8List.fromList(List.filled(32, 2));
+        Uint8List? oddPrivateKey;
+        for (int i = 1; i < 200; i++) {
+          final candidate = Uint8List(32)..[31] = i;
+          final pub = Ecc.pointFromScalar(candidate, false);
+          if (pub != null && pub.length == 65 && pub[64].isOdd) {
+            oddPrivateKey = candidate;
+            break;
+          }
+        }
+        expect(oddPrivateKey, isNotNull);
+        expect(() => Ecc.signSchnorr(hash, oddPrivateKey!),
+            throwsException);
       });
     });
 
@@ -870,6 +927,14 @@ void main() {
             Ecc.verifyMuSig2PartialSignature(
                 partialSignature, publicNonce, publicKey, sessionContext),
             isTrue);
+
+        // same check with x-only pubkey path (32-byte input normalization)
+        // x-only pubkey path should be accepted as input format (normalization path),
+        // though this particular vector is defined with compressed participant keys.
+        expect(
+            Ecc.verifyMuSig2PartialSignature(partialSignature, publicNonce,
+                publicKey.sublist(1), sessionContext),
+            isFalse);
       });
 
       test('Verify musig2 partial signature  (case 2)', () {
@@ -1033,6 +1098,48 @@ void main() {
             Ecc.getAggregatedSignatureForMuSig2(sessionContext, signatureList);
         expect(Codec.encodeHex(aggregatedSignature).toUpperCase(),
             '1069B67EC3D2F3C7C08291ACCB17A9C9B8F2819A52EB5DF8726E17E7D6B52E9F01800260A7E9DAC450F4BE522DE4CE12BA91AEAF2B4279219EF74BE1D286ADD9');
+      });
+
+      test('Get aggregated signature with taproot tweak enabled', () {
+        // Reuse existing vectors but enable applyTaprootTweak path.
+        final message = Codec.decodeHex(
+            '599c67ea410d005b9da90817cf03ed3b1c868e4da4edf00a5880b0082c237869');
+        final participantPublicKeys = [
+          Codec.decodeHex(
+              '03935f972da013f80ae011890fa89b67a27b7be6ccb24d3274d18b2d4067f261a9'),
+          Codec.decodeHex(
+              '02d2dc6f5df7c56acf38c7fa0ae7a759ae30e19b37359dfde015872324c7ef6e05')
+        ];
+        final aggregatedPublicKey =
+            aggregatePublicKey(participantPublicKeys, isXOnly: false);
+        final aggregatedPubNonce = Codec.decodeHex(
+            '0341432722c5cd0268d829c702cf0d1cbce57033eed201fd335191385227c3210c03d377f2d258b64aadc0e16f26462323d701d286046a2ea93365656afd9875982b');
+        final sessionContext = SessionContext(
+            participantPublicKeys, aggregatedPubNonce, aggregatedPublicKey, message,
+            applyTaprootTweak: true);
+
+        final secretNonce1 = Codec.decodeHex(
+            '803b1a9843bbb36cf28f81e49fde20031bcc6f41e1654758ea44501856dfa6b696b5084a3512dcd821059b3ef039431574d7662478ceb399c7098abc2ec6722603935f972da013f80ae011890fa89b67a27b7be6ccb24d3274d18b2d4067f261a9');
+        final privateKey1 = Codec.decodeHex(
+            '7fb9e0e687ada1eebf7ecfe2f21e73ebdb51a7d450948dfe8d76d7f2d1007671');
+        final secretNonce2 = Codec.decodeHex(
+            '41f401c558584f0412dae913bc61be593319e2d83381b8ab5312b92d7fc9b6198b4ad586d0c923a814cb6cca0657ac49de647a86c7bb7f2369760cd75b37e55002d2dc6f5df7c56acf38c7fa0ae7a759ae30e19b37359dfde015872324c7ef6e05');
+        final privateKey2 = Codec.decodeHex(
+            '3874d22de7a7290c49ce7f1dc17d1a8cd8918e1f799055139d57fc0988d04d10');
+
+        final sig1 = Signature(
+            Codec.encodeHex(Ecc.signSchnorrForMuSig2(
+                secretNonce1, privateKey1, sessionContext,
+                isFullSignature: false)),
+            Codec.encodeHex(participantPublicKeys[0]));
+        final sig2 = Signature(
+            Codec.encodeHex(Ecc.signSchnorrForMuSig2(
+                secretNonce2, privateKey2, sessionContext,
+                isFullSignature: false)),
+            Codec.encodeHex(participantPublicKeys[1]));
+
+        final agg = Ecc.getAggregatedSignatureForMuSig2(sessionContext, [sig1, sig2]);
+        expect(agg.length, 64);
       });
     });
   });

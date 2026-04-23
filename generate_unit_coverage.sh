@@ -3,6 +3,28 @@
 # 스크립트 실행 중 오류 발생 시 종료
 set -e
 
+# 실행 모드: unit | scenario | all
+# 기본값: all
+MODE="${1:-all}"
+case "$MODE" in
+  unit)
+    TEST_CMD="dart test -t unit --coverage=coverage"
+    MODE_LABEL="unit"
+    ;;
+  scenario)
+    TEST_CMD="dart test -t scenario --coverage=coverage"
+    MODE_LABEL="scenario"
+    ;;
+  all)
+    TEST_CMD="dart test --coverage=coverage"
+    MODE_LABEL="all"
+    ;;
+  *)
+    echo "Usage: $0 [unit|scenario|all]"
+    exit 1
+    ;;
+esac
+
 # 컬러 정의
 GREEN="\033[0;32m"
 YELLOW="\033[0;33m"
@@ -46,8 +68,8 @@ measure_step() {
 total_start_time=$(date +%s)
 
 # 1. 테스트 실행 및 커버리지 데이터 수집
-echo "${BLUE}Step 1/3: Running tests and collecting coverage data...${RESET}"
-measure_step "Step 1. Running tests" "dart test -t unit --coverage=coverage >/dev/null 2>&1"
+echo "${BLUE}Step 1/3: Running ${MODE_LABEL} tests and collecting coverage data...${RESET}"
+measure_step "Step 1. Running tests" "${TEST_CMD} >/dev/null 2>&1"
 
 # 2. 포맷팅 및 lcov 파일 생성
 echo "${BLUE}Step 2/3: Formatting coverage data into lcov format...${RESET}"

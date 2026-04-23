@@ -61,5 +61,24 @@ void main() {
         }
       });
     });
+
+    group('json', () {
+      test('toJson/fromJson roundtrip', () {
+        final seedlessKeyStores = vault.keyStoreList
+            .map((e) => KeyStore.fromExtendedPublicKey(
+                  e.extendedPublicKey.serialize(),
+                  e.masterFingerprint,
+                ))
+            .toList();
+        final seedlessVault = MultisignatureVault.fromKeyStoreList(
+            seedlessKeyStores, vault.requiredSignature,
+            addressType: vault.addressType);
+        final json = seedlessVault.toJson();
+        final restored = MultisignatureVault.fromJson(json);
+        expect(restored.requiredSignature, seedlessVault.requiredSignature);
+        expect(restored.addressType, seedlessVault.addressType);
+        expect(restored.keyStoreList.length, seedlessVault.keyStoreList.length);
+      });
+    });
   });
 }
