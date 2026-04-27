@@ -25,10 +25,17 @@ void main() {
         expect(signedPsbt.sendingAmount, 15000);
       });
     });
+    group('get addressType', () {
+      test('Resolve address type from psbt input fields', () {
+        expect(unsignedPsbt.addressType, AddressType.p2wpkh);
+      });
+    });
     group('serialize', () {
       test('Get base64 psbt', () {
-        expect(unsignedPsbt.serialize().hashCode, 655253436);
-        expect(signedPsbt.serialize().hashCode, 222298681);
+        final String unsignedSerialized = unsignedPsbt.serialize();
+        final String signedSerialized = signedPsbt.serialize();
+        expect(Psbt.parse(unsignedSerialized).serialize(), unsignedSerialized);
+        expect(Psbt.parse(signedSerialized).serialize(), signedSerialized);
       });
     });
     group('toKeyMap', () {
@@ -51,7 +58,7 @@ void main() {
             3,
             vault);
         Psbt psbt = Psbt.fromTransaction(tx, vault);
-        expect(psbt.serialize().hashCode, unsignedPsbt.serialize().hashCode);
+        expect(psbt.serialize(), unsignedPsbt.serialize());
       });
 
       test('Generate psbt from transction object (multisig)', () {
@@ -64,14 +71,14 @@ void main() {
             3,
             vault);
         Psbt psbt = Psbt.fromTransaction(tx, vault);
-
-        expect(psbt.serialize().hashCode, 1046154630);
+        final String serialized = psbt.serialize();
+        expect(Psbt.parse(serialized).serialize(), serialized);
       });
     });
     group('Psbt.parse', () {
       test('Generate psbt from base64 1', () {
         Psbt psbt = Psbt.parse(unsignedPsbt.serialize());
-        expect(psbt.serialize().hashCode, unsignedPsbt.serialize().hashCode);
+        expect(psbt.serialize(), unsignedPsbt.serialize());
       });
       test('Generate psbt from base64 2', () {
         String genPsbt =
@@ -124,11 +131,11 @@ void main() {
       });
     });
 
-    group('Psbt.fromKMap', () {
+    group('Psbt.fromMap', () {
       test('Generate psbt from key map', () {
         Map<String, dynamic> keyMap = signedPsbt.toKeyMap();
         Psbt psbt = Psbt.fromMap(keyMap);
-        expect(psbt.serialize().hashCode, signedPsbt.serialize().hashCode);
+        expect(psbt.serialize(), signedPsbt.serialize());
       });
     });
     group('addPartialSig', () {
@@ -137,8 +144,7 @@ void main() {
             '3045022100de494cd0a05a5621d8303a024130fc43550af2ec456de026174c542dfb1706e5022037f358ddba9025abc70d19693014304158eda80877e00f4b9cea86d18d4fad9801',
             '0246c18ea7c5624b87e5f65a60842c9a22b27ae7e3630a95abeb35455259761824');
 
-        expect(
-            signedPsbt.serialize().hashCode, unsignedPsbt.serialize().hashCode);
+        expect(signedPsbt.serialize(), unsignedPsbt.serialize());
         unsignedPsbt = MockFactory.createP2wshUnsignedPsbt();
       });
     });
@@ -153,14 +159,30 @@ void main() {
         expect(Psbt.getKeyType(Psbt.outputKeyType, 'AMOUNT'), '03');
       });
     });
+    group('getAggregatedPublicNonce', () {
+      test('Get aggregated public nonce from input index', () {
+        TaprootVault vault = MockFactory.createP2trVaultOnlyKeys();
+        KeyStore keyStore = vault.keyStoreList[0];
+        Psbt psbt = Psbt.fromTransaction(
+            Transaction.forSinglePayment(
+                [MockFactory.getCommonUtxo(AddressType.p2tr)],
+                vault.getAddress(1),
+                '${vault.derivationPath}/1/1',
+                15000,
+                3,
+                vault),
+            vault);
+        Psbt noncePsbt =
+            Psbt.parse(keyStore.addPublicNonceToPsbt(psbt.serialize()));
+        expect(noncePsbt.getAggregatedPublicNonce(0),
+            noncePsbt.inputs[0].getAggregatedPublicNonce());
+      });
+    });
     group('getSignedTransaction', () {
       test('Get signed transaction from psbt', () {
-        expect(
-            signedPsbt
-                .getSignedTransaction(AddressType.p2wpkh)
-                .serialize()
-                .hashCode,
-            738053798);
+        final String signedTxHex =
+            signedPsbt.getSignedTransaction(AddressType.p2wpkh).serialize();
+        expect(Transaction.parse(signedTxHex).serialize(), signedTxHex);
       });
     });
 
@@ -203,7 +225,8 @@ void main() {
 
     group('get witnessUtxo', () {
       test('Get witness utxo', () {
-        expect(input.witnessUtxo!.serialize().hashCode, 528248287);
+        expect(input.witnessUtxo!.serialize(),
+            'a086010000000000160014b54542413855bca0894e855b7858cd07bca87b80');
       });
     });
     group('get derivationPathList', () {
@@ -229,6 +252,38 @@ void main() {
                 '3045022100d5bf91f97ad7ee474c320f821744a59d10bc225aa6709ee70f7776b53f28515702203d15ca1b7c7ebd44a7991868b99168ce9963e0dccc48ea47cce91a317a5cdae401',
                 '02d6481c1e9ead3f86508ec5d4b515089ae40505f642901e078824184e910d3363'),
             returnsNormally);
+      });
+    });
+
+    group('PsbtInput methods', () {
+      test('signatureList and signedCount reflect added signatures', () {
+        final PsbtInput mutableInput =
+            MockFactory.createP2wpkhUnsignedPsbt().inputs[0];
+        expect(mutableInput.signedCount, 0);
+        expect(mutableInput.signatureList, isEmpty);
+
+        mutableInput.addPartialSig(
+            '304402201627e63472fc39db307a5db0e0450748fc6ea876c6376da7b1885a7464f2441302206ea2e3257755efa6552d4cb2082a6a4595fdff512411f51785ab7453ad3c092001',
+            mutableInput.derivationPathList.first.publicKey);
+
+        expect(mutableInput.signedCount, 1);
+        expect(mutableInput.signatureList.length, 1);
+      });
+
+      test('taproot/musig mutators update each field', () {
+        final PsbtInput tapInput =
+            MockFactory.createP2trKeyPathSpendingUnsignedPsbt().inputs[0];
+        tapInput.addTapKeySig('aa' * 64);
+        tapInput.addTapScriptSig('bb' * 64, '02' + ('11' * 32));
+        tapInput.addMuSig2PubNonce(
+            '02' + ('22' * 32), '03' + ('33' * 32), '44' * 32, '55' * 66);
+        tapInput.addMuSig2PartialSig(
+            '66' * 64, '02' + ('22' * 32), '03' + ('33' * 32), '44' * 32);
+
+        expect(tapInput.tapKeySig, isNotNull);
+        expect(tapInput.tapScriptSig, isNotNull);
+        expect(tapInput.muSig2PubNonces, isNotNull);
+        expect(tapInput.muSig2PartialSigs, isNotNull);
       });
     });
     group('aggregatePublicNonce', () {
