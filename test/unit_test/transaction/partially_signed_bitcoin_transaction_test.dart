@@ -219,7 +219,7 @@ void main() {
     });
     group('get totalSigner', () {
       test('Get number of total signer', () {
-        expect(multisigInput.totalSinger, 3);
+        expect(multisigInput.totalSigner, 3);
       });
     });
     group('addSignature', () {

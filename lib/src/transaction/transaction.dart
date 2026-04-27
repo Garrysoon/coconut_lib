@@ -339,6 +339,17 @@ class Transaction {
     }
   }
 
+  static Uint8List _parseLocktime(Uint8List txBytes, int offset) {
+    const locktimeLength = 4;
+    if (offset + locktimeLength > txBytes.length) {
+      throw Exception('Transaction : Invalid locktime length');
+    }
+    if (offset + locktimeLength != txBytes.length) {
+      throw Exception('Transaction : Unexpected trailing bytes after locktime');
+    }
+    return txBytes.sublist(offset, offset + locktimeLength);
+  }
+
   factory Transaction._parseSegwit(Uint8List txBytes) {
     int offset = 0;
     Uint8List version = txBytes.sublist(0, 4);
@@ -395,8 +406,7 @@ class Transaction {
         }
       }
     }
-    Uint8List locktime = txBytes.sublist(offset);
-    offset += 4;
+    Uint8List locktime = _parseLocktime(txBytes, offset);
     // return Transaction(version, inputs, outputs, locktime,
     //     testnet: testnet, segwit: true);
     // print('witness : ' + inputs[0].witness.toString());
@@ -434,7 +444,7 @@ class Transaction {
       int size = output.serialize().length ~/ 2;
       offset += size;
     }
-    Uint8List locktime = txBytes.sublist(offset);
+    Uint8List locktime = _parseLocktime(txBytes, offset);
     return Transaction(version, inputs, outputs, locktime, false);
   }
 
@@ -476,8 +486,7 @@ class Transaction {
     }
     bool isSegwit = false;
 
-    Uint8List locktime = txBytes.sublist(offset);
-    offset += 4;
+    Uint8List locktime = _parseLocktime(txBytes, offset);
 
     return Transaction(version, inputs, outputs, locktime, isSegwit);
   }

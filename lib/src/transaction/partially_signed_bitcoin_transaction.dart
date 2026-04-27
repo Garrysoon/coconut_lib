@@ -21,7 +21,13 @@ class Psbt {
   int get fee => () {
         int totalInput = 0;
         int totalOutput = 0;
+        if (inputs.isEmpty) {
+          throw Exception('Inputs are empty');
+        }
         for (int i = 0; i < inputs.length; i++) {
+          if (inputs[i].witnessUtxo == null) {
+            throw Exception('Witness UTXO is null');
+          }
           totalInput += inputs[i].witnessUtxo!.amount;
         }
         for (int i = 0; i < unsignedTransaction!.outputs.length; i++) {
@@ -42,6 +48,9 @@ class Psbt {
       }();
 
   AddressType? get addressType => () {
+        if (inputs.isEmpty) {
+          throw Exception('Inputs are empty');
+        }
         if (inputs[0].bip32Derivation != null) {
           if (inputs[0].witnessScript == null) {
             return AddressType.p2wpkh;
@@ -945,7 +954,7 @@ class Psbt {
     if (addressType == AddressType.p2wsh) {
       //p2wsh multisig
       for (int i = 0; i < inputs.length; i++) {
-        if (inputs[i].totalSinger < inputs[i].requiredSignature) {
+        if (inputs[i].totalSigner < inputs[i].requiredSignature) {
           throw Exception('Not enough signatures');
         }
         signedTransaction.inputs[i].setSignature(
@@ -1013,7 +1022,7 @@ class Psbt {
         } else if (inputs[i].tapScriptSig == null &&
             inputs[i].muSig2AggregatedPublicKey != null) {
           //MuSig2
-          if (inputs[i].totalSinger < inputs[i].requiredSignature) {
+          if (inputs[i].totalSigner < inputs[i].requiredSignature) {
             throw Exception('Not enough signatures');
           }
 
@@ -1175,7 +1184,7 @@ class PsbtInput {
     }
   }
 
-  int get totalSinger {
+  int get totalSigner {
     return derivationPathList.length;
   }
 

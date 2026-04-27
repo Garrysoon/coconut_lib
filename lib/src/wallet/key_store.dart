@@ -150,6 +150,9 @@ class KeyStore {
   ///Check if the PSBT can be signed from this vault.
   bool hasPublicKeyInPsbt(String psbt) {
     Psbt psbtObj = Psbt.parse(psbt);
+    if (psbtObj.inputs.isEmpty) {
+      throw Exception("PSBT has no inputs.");
+    }
 
     if (psbtObj.inputs[0].bip32Derivation != null) {
       for (int i = 0; i < psbtObj.unsignedTransaction!.inputs.length; i++) {
@@ -185,11 +188,9 @@ class KeyStore {
             publicKey = publicKey.substring(2);
           }
 
-          if (thisInput.derivationPathList[j].masterFingerprint ==
+          if (thisInput.tapBip32Derivation![j].masterFingerprint ==
               masterFingerprint) {
             if (publicKeyInPsbt == publicKey) {
-              return true;
-            } else if (publicKeyInPsbt == publicKey.substring(2)) {
               return true;
             }
           }
