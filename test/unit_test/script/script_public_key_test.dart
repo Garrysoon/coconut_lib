@@ -2,7 +2,7 @@
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
 
-main() {
+void main() {
   group('ScriptPublicKey', () {
     group('ScriptPublicKey.parse', () {
       test('Generate script public key from parse', () {
@@ -88,8 +88,8 @@ main() {
 
     group('type predicates', () {
       test('isP2wpkh / isP2tr / isP2wsh', () {
-        final ScriptPublicKey p2wpkh =
-            ScriptPublicKey.parse('160014cb325c29ac1d9f9c56ab77c7f659f6a304a7bd02');
+        final ScriptPublicKey p2wpkh = ScriptPublicKey.parse(
+            '160014cb325c29ac1d9f9c56ab77c7f659f6a304a7bd02');
         final ScriptPublicKey p2wsh = ScriptPublicKey.parse(
             '2200200d03b386199fc909ca35652f582a526c6b1c45a588d0843759915eb6a41528b7');
         final ScriptPublicKey p2tr = ScriptPublicKey.parse(

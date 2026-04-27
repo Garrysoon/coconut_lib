@@ -6,7 +6,7 @@ import 'package:test/test.dart';
 
 import '../../mock_factory.dart';
 
-main() {
+void main() {
   group('TransactionInput', () {
     group('get transactionHash', () {
       test('Get transaction hash', () {
@@ -110,7 +110,8 @@ main() {
         TransactionInput input = TransactionInput.forPayment(
             '44403a0a82763da2360b7ba4087609cb9a43549f2b3147d9bde3bd4a455060d0',
             0);
-        expect(() => input.setSignature(AddressType.p2pkh, []), throwsException);
+        expect(
+            () => input.setSignature(AddressType.p2pkh, []), throwsException);
       });
 
       test('throws when multiple signatures are used in singlesig', () {
@@ -170,14 +171,17 @@ main() {
         ];
         MultisignatureScript witnessScript =
             MultisignatureScript.forP2wsh(2, 3, publicKeys);
-        input.setSignature(AddressType.p2wsh, [
-          Signature(
-              '304402201627e63472fc39db307a5db0e0450748fc6ea876c6376da7b1885a7464f2441302206ea2e3257755efa6552d4cb2082a6a4595fdff512411f51785ab7453ad3c092001',
-              '028106e5b5449e0b78e7e06c6435f724b9797db0926ed3ba59b01d6e3dee8fd74b'),
-          Signature(
-              '304402201627e63472fc39db307a5db0e0450748fc6ea876c6376da7b1885a7464f2441302206ea2e3257755efa6552d4cb2082a6a4595fdff512411f51785ab7453ad3c092001',
-              '02869102bed3322707dfebeaf06f9e0f89b5d133e48ee481bcd624dfc1fa1b1880'),
-        ], witnessScript: witnessScript);
+        input.setSignature(
+            AddressType.p2wsh,
+            [
+              Signature(
+                  '304402201627e63472fc39db307a5db0e0450748fc6ea876c6376da7b1885a7464f2441302206ea2e3257755efa6552d4cb2082a6a4595fdff512411f51785ab7453ad3c092001',
+                  '028106e5b5449e0b78e7e06c6435f724b9797db0926ed3ba59b01d6e3dee8fd74b'),
+              Signature(
+                  '304402201627e63472fc39db307a5db0e0450748fc6ea876c6376da7b1885a7464f2441302206ea2e3257755efa6552d4cb2082a6a4595fdff512411f51785ab7453ad3c092001',
+                  '02869102bed3322707dfebeaf06f9e0f89b5d133e48ee481bcd624dfc1fa1b1880'),
+            ],
+            witnessScript: witnessScript);
         expect(input.scriptSig.serialize(), '00');
         expect(input.witnessList.first, '00');
         expect(input.witnessList.last, witnessScript.rawSerialize());
@@ -188,8 +192,8 @@ main() {
             'a770b9c757cd83461de06049e0898740dc112e32b7543b2f2d038d5ce0d201db',
             1);
         expect(
-            () => input.setSignature(
-                    AddressType.p2wsh, [Signature('aa', 'bb')]),
+            () =>
+                input.setSignature(AddressType.p2wsh, [Signature('aa', 'bb')]),
             throwsArgumentError);
       });
     });
@@ -207,7 +211,8 @@ main() {
         TransactionInput input = TransactionInput.forPayment(
             'a770b9c757cd83461de06049e0898740dc112e32b7543b2f2d038d5ce0d201db',
             1);
-        input.setTaprootScriptPathSpendingSignature('aa' * 64, '51', 'c0' + ('11' * 32));
+        input.setTaprootScriptPathSpendingSignature(
+            'aa' * 64, '51', 'c0' + ('11' * 32));
         expect(input.witnessList.length, 3);
       });
     });
@@ -216,22 +221,26 @@ main() {
       test('returns true on valid p2wpkh spend', () {
         final Psbt psbt = MockFactory.createP2wpkhSignedPsbt();
         final TransactionOutput utxo = psbt.inputs[0].witnessUtxo!;
-        final String sigHash = psbt.unsignedTransaction!
-            .getSigHash(0, utxo, AddressType.p2wpkh);
+        final String sigHash =
+            psbt.unsignedTransaction!.getSigHash(0, utxo, AddressType.p2wpkh);
         final Transaction signedTx =
             psbt.getSignedTransaction(AddressType.p2wpkh);
-        expect(signedTx.inputs[0].verifySpend(Codec.decodeHex(sigHash), utxo), true);
+        expect(signedTx.inputs[0].verifySpend(Codec.decodeHex(sigHash), utxo),
+            true);
       });
 
       test('returns true on valid p2wsh spend', () {
         final Psbt psbt = MockFactory.createP2wshSignedPsbt();
         final TransactionOutput utxo = psbt.inputs[0].witnessUtxo!;
-        final String witnessScript = psbt.inputs[0].witnessScript!.rawSerialize();
-        final String sigHash = psbt.unsignedTransaction!
-            .getSigHash(0, utxo, AddressType.p2wsh, witnessScript: witnessScript);
+        final String witnessScript =
+            psbt.inputs[0].witnessScript!.rawSerialize();
+        final String sigHash = psbt.unsignedTransaction!.getSigHash(
+            0, utxo, AddressType.p2wsh,
+            witnessScript: witnessScript);
         final Transaction signedTx =
             psbt.getSignedTransaction(AddressType.p2wsh);
-        expect(signedTx.inputs[0].verifySpend(Codec.decodeHex(sigHash), utxo), true);
+        expect(signedTx.inputs[0].verifySpend(Codec.decodeHex(sigHash), utxo),
+            true);
       });
 
       test('returns true on valid taproot key-path spend', () {
@@ -240,8 +249,10 @@ main() {
         final List<TransactionOutput> utxos = [utxo];
         final String sigHash =
             psbt.unsignedTransaction!.getTaprootSigHash(0, utxos);
-        final Transaction signedTx = psbt.getSignedTransaction(AddressType.p2tr);
-        expect(signedTx.inputs[0].verifySpend(Codec.decodeHex(sigHash), utxo), true);
+        final Transaction signedTx =
+            psbt.getSignedTransaction(AddressType.p2tr);
+        expect(signedTx.inputs[0].verifySpend(Codec.decodeHex(sigHash), utxo),
+            true);
       });
 
       test('returns false on p2wpkh pubkey-hash mismatch', () {
@@ -267,19 +278,20 @@ main() {
           '304402201627e63472fc39db307a5db0e0450748fc6ea876c6376da7b1885a7464f2441302206ea2e3257755efa6552d4cb2082a6a4595fdff512411f51785ab7453ad3c092001',
           '5221028106e5b5449e0b78e7e06c6435f724b9797db0926ed3ba59b01d6e3dee8fd74b2102869102bed3322707dfebeaf06f9e0f89b5d133e48ee481bcd624dfc1fa1b188052ae'
         ];
-        TransactionOutput utxo = TransactionOutput.parse(
-            'a086010000000000220020' +
-                ('00' * 32));
+        TransactionOutput utxo =
+            TransactionOutput.parse('a086010000000000220020' + ('00' * 32));
         expect(input.verifySpend(Uint8List(32), utxo), false);
       });
 
-      test('returns false on taproot script path with invalid control block size', () {
+      test(
+          'returns false on taproot script path with invalid control block size',
+          () {
         TransactionInput input = TransactionInput.forPayment(
             'a770b9c757cd83461de06049e0898740dc112e32b7543b2f2d038d5ce0d201db',
             1);
         input.witnessList = ['11' * 64, '51', 'c0']; // too short control block
-        TransactionOutput utxo = TransactionOutput.parse(
-            'a086010000000000225120' + ('11' * 32));
+        TransactionOutput utxo =
+            TransactionOutput.parse('a086010000000000225120' + ('11' * 32));
         expect(input.verifySpend(Uint8List(32), utxo), false);
       });
 

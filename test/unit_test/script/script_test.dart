@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:coconut_lib/coconut_lib.dart';
 import 'package:test/test.dart';
 
-main() {
+void main() {
   group('Script', () {
     group('get length', () {
       test('Get length of script', () {

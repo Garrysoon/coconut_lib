@@ -48,7 +48,7 @@ void main() {
     });
 
     group('Psbt.fromTransaction', () {
-      test('Generate psbt from transction object (siglesig)', () {
+      test('Generate psbt from transaction object (single sig)', () {
         SingleSignatureVault vault = MockFactory.createP2wpkhVault();
         Transaction tx = Transaction.forSinglePayment(
             MockFactory.createUtxoList(count: 1),
@@ -61,7 +61,7 @@ void main() {
         expect(psbt.serialize(), unsignedPsbt.serialize());
       });
 
-      test('Generate psbt from transction object (multisig)', () {
+      test('Generate psbt from transaction object (multisig)', () {
         MultisignatureVault vault = MockFactory.createP2wshVault();
         Transaction tx = Transaction.forSinglePayment(
             MockFactory.createUtxoList(count: 1),
@@ -366,7 +366,7 @@ void main() {
       });
     });
     group('get masterFingerprint', () {
-      test('Get master finger print of bip32 derivation path', () {
+      test('Get master fingerprint of bip32 derivation path', () {
         expect(parsedPsbtOutput.bip32Derivation!.masterFingerprint, "98C7D774");
       });
     });
