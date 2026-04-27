@@ -1,8 +1,25 @@
 part of '../../coconut_lib.dart';
 
 class NetworkType {
+  /// Mainnet
+  static NetworkType mainnet = NetworkType('mainnet', false);
+
+  /// Testnet
+  static NetworkType testnet = NetworkType('testnet', true);
+
+  /// Regtest
+  static NetworkType regtest = NetworkType('regtest', true);
+
+  static NetworkType _currentNetworkType = NetworkType.testnet;
+
   final String _name;
   final bool _isTestnet;
+
+  /// Get the current network
+  static NetworkType get currentNetworkType => _currentNetworkType;
+
+  /// Get all network values
+  static List<NetworkType> get values => [mainnet, testnet, regtest];
 
   /// Check if it is testnet
   bool get isTestnet => _isTestnet;
@@ -25,23 +42,6 @@ class NetworkType {
     }
     return false;
   }
-
-  /// Get the current network
-  static NetworkType get currentNetworkType => _currentNetworkType;
-
-  /// Mainnet
-  static NetworkType mainnet = NetworkType('mainnet', false);
-
-  /// Testnet
-  static NetworkType testnet = NetworkType('testnet', true);
-
-  /// Regtest
-  static NetworkType regtest = NetworkType('regtest', true);
-
-  /// Get all network values
-  static List<NetworkType> get values => [mainnet, testnet, regtest];
-
-  static NetworkType _currentNetworkType = NetworkType.testnet;
 
   /// Set network type
   static setNetworkType(NetworkType networkType) {

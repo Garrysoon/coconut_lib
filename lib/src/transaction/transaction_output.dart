@@ -19,11 +19,6 @@ class TransactionOutput {
   /// @nodoc
   TransactionOutput(this._amount, this._scriptPubKey, {this.derivationPath});
 
-  /// Get the Bitcoin amount of the output.
-  void setAmount(int amount) {
-    _amount = Converter.intToLittleEndianBytes(amount, 8);
-  }
-
   factory TransactionOutput.forPayment(int amount, String address,
       {String? derivationPath}) {
     Uint8List amountBytes = Converter.intToLittleEndianBytes(amount, 8);
@@ -77,6 +72,11 @@ class TransactionOutput {
         ScriptPublicKey.parse(Codec.encodeHex(script));
 
     return TransactionOutput(amount, scriptPubKey);
+  }
+
+  /// Get the Bitcoin amount of the output.
+  void setAmount(int amount) {
+    _amount = Converter.intToLittleEndianBytes(amount, 8);
   }
 
   /// Serialize the transaction output.

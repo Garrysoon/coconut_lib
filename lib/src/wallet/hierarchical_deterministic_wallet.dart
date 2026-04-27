@@ -22,6 +22,75 @@ class HDWallet {
   HDWallet(this._d, this._Q, this._chainCode);
 
   /// @nodoc
+  factory HDWallet.fromPublicKey(Uint8List publicKey, Uint8List chainCode) {
+    if (!Ecc.isPoint(publicKey)) {
+      throw ArgumentError("Point is not on the curve");
+    }
+    return HDWallet(null, publicKey, chainCode);
+  }
+
+  factory HDWallet.fromPublicKeyWithDerivationPath(
+      Uint8List publicKey, Uint8List chainCode, String derivationPath) {
+    if (!Ecc.isPoint(publicKey)) {
+      throw ArgumentError("Point is not on the curve");
+    }
+    HDWallet wallet = HDWallet(null, publicKey, chainCode);
+    wallet.depth = derivationPath.split("/").length - 1;
+    String lastIndexStr = derivationPath.split("/").last;
+    if (lastIndexStr.endsWith("'")) {
+      wallet._index =
+          int.parse(lastIndexStr.substring(0, lastIndexStr.length - 1)) +
+              hightstBit;
+    } else {
+      wallet._index = int.parse(lastIndexStr);
+    }
+
+    return wallet;
+  }
+
+  /// @nodoc
+  factory HDWallet.fromPrivateKey(Uint8List privateKey, Uint8List chainCode) {
+    if (privateKey.length != 32) {
+      throw Exception(
+          "Expected property privateKey of type Buffer(Length: 32)");
+    }
+    if (!Ecc.isPrivate(privateKey)) {
+      throw ArgumentError("Private key not in range [1, n]");
+    }
+    return HDWallet(privateKey, null, chainCode);
+  }
+
+  /// @nodoc
+  factory HDWallet.fromRootSeed(Uint8List seed) {
+    // Uint8List seedBytes = Uint8List.fromList(HEX.decode(seed));
+
+    if (seed.length < 16) {
+      throw Exception("Seed should be at least 128 bits");
+    }
+    if (seed.length > 64) {
+      throw Exception(" Seed should be at most 512 bits");
+    }
+    final I = Hash.hmacSha512(utf8.encode("Bitcoin seed"), seed);
+    final privateKey = I.sublist(0, 32);
+    final chainCode = I.sublist(32);
+    final publicKey = Ecc.pointFromScalar(privateKey, true)!;
+
+    return HDWallet(privateKey, publicKey, chainCode);
+  }
+
+  /// @nodoc
+  factory HDWallet.fromJson(String json) {
+    Map<String, dynamic> map = jsonDecode(json);
+    if (map.containsKey('privateKey')) {
+      return HDWallet(Codec.decodeHex(map['privateKey']),
+          Codec.decodeHex(map['publicKey']), Codec.decodeHex(map['chainCode']));
+    } else {
+      return HDWallet.fromPublicKey(
+          Codec.decodeHex(map['publicKey']), Codec.decodeHex(map['chainCode']));
+    }
+  }
+
+  /// @nodoc
   Uint8List get publicKey {
     _Q ??= Ecc.pointFromScalar(_d!, true)!;
     return _Q!;
@@ -301,63 +370,6 @@ class HDWallet {
   }
 
   /// @nodoc
-  factory HDWallet.fromPublicKey(Uint8List publicKey, Uint8List chainCode) {
-    if (!Ecc.isPoint(publicKey)) {
-      throw ArgumentError("Point is not on the curve");
-    }
-    return HDWallet(null, publicKey, chainCode);
-  }
-
-  factory HDWallet.fromPublicKeyWithDerivationPath(
-      Uint8List publicKey, Uint8List chainCode, String derivationPath) {
-    if (!Ecc.isPoint(publicKey)) {
-      throw ArgumentError("Point is not on the curve");
-    }
-    HDWallet wallet = HDWallet(null, publicKey, chainCode);
-    wallet.depth = derivationPath.split("/").length - 1;
-    String lastIndexStr = derivationPath.split("/").last;
-    if (lastIndexStr.endsWith("'")) {
-      wallet._index =
-          int.parse(lastIndexStr.substring(0, lastIndexStr.length - 1)) +
-              hightstBit;
-    } else {
-      wallet._index = int.parse(lastIndexStr);
-    }
-
-    return wallet;
-  }
-
-  /// @nodoc
-  factory HDWallet.fromPrivateKey(Uint8List privateKey, Uint8List chainCode) {
-    if (privateKey.length != 32) {
-      throw Exception(
-          "Expected property privateKey of type Buffer(Length: 32)");
-    }
-    if (!Ecc.isPrivate(privateKey)) {
-      throw ArgumentError("Private key not in range [1, n]");
-    }
-    return HDWallet(privateKey, null, chainCode);
-  }
-
-  /// @nodoc
-  factory HDWallet.fromRootSeed(Uint8List seed) {
-    // Uint8List seedBytes = Uint8List.fromList(HEX.decode(seed));
-
-    if (seed.length < 16) {
-      throw Exception("Seed should be at least 128 bits");
-    }
-    if (seed.length > 64) {
-      throw Exception(" Seed should be at most 512 bits");
-    }
-    final I = Hash.hmacSha512(utf8.encode("Bitcoin seed"), seed);
-    final privateKey = I.sublist(0, 32);
-    final chainCode = I.sublist(32);
-    final publicKey = Ecc.pointFromScalar(privateKey, true)!;
-
-    return HDWallet(privateKey, publicKey, chainCode);
-  }
-
-  /// @nodoc
   String toJson() {
     if (privateKey != null) {
       return jsonEncode({
@@ -370,18 +382,6 @@ class HDWallet {
         'publicKey': Codec.encodeHex(publicKey),
         'chainCode': Codec.encodeHex(chainCode),
       });
-    }
-  }
-
-  /// @nodoc
-  factory HDWallet.fromJson(String json) {
-    Map<String, dynamic> map = jsonDecode(json);
-    if (map.containsKey('privateKey')) {
-      return HDWallet(Codec.decodeHex(map['privateKey']),
-          Codec.decodeHex(map['publicKey']), Codec.decodeHex(map['chainCode']));
-    } else {
-      return HDWallet.fromPublicKey(
-          Codec.decodeHex(map['publicKey']), Codec.decodeHex(map['chainCode']));
     }
   }
 }

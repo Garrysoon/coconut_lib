@@ -55,6 +55,20 @@ class MultisignatureVault extends MultisignatureWalletBase {
         addressType: descriptor._addressType);
   }
 
+  /// Create a multisignature vault from a json string.
+  factory MultisignatureVault.fromJson(String jsonStr) {
+    Map<String, dynamic> json = jsonDecode(jsonStr);
+    List<KeyStore> keyStores = [];
+    for (var keyStoreJson in json['keyStores']) {
+      keyStores.add(KeyStore.fromJson(keyStoreJson));
+    }
+    return MultisignatureVault.fromKeyStoreList(
+        keyStores, json['requiredSignature'],
+        addressType:
+            AddressType.getAddressTypeFromName(json['addressTypeName']),
+        accountIndex: 0);
+  }
+
   void bindSeedToKeyStore(Seed seed, {int accountIndex = 0}) {
     KeyStore keyStoreFromSeed =
         KeyStore.fromSeed(seed, addressType, accountIndex: accountIndex);
@@ -75,19 +89,5 @@ class MultisignatureVault extends MultisignatureWalletBase {
       "addressTypeName": addressType.name,
       "derivationPath": derivationPath
     });
-  }
-
-  /// Create a multisignature vault from a json string.
-  factory MultisignatureVault.fromJson(String jsonStr) {
-    Map<String, dynamic> json = jsonDecode(jsonStr);
-    List<KeyStore> keyStores = [];
-    for (var keyStoreJson in json['keyStores']) {
-      keyStores.add(KeyStore.fromJson(keyStoreJson));
-    }
-    return MultisignatureVault.fromKeyStoreList(
-        keyStores, json['requiredSignature'],
-        addressType:
-            AddressType.getAddressTypeFromName(json['addressTypeName']),
-        accountIndex: 0);
   }
 }

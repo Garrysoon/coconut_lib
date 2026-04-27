@@ -43,14 +43,14 @@ class MultisignatureWallet extends MultisignatureWalletBase {
         addressType, descriptorObject.getDerivationPath(0), keyStores);
   }
 
-  /// Get Json string of the multisignature wallet.
-  String toJson() {
-    return jsonEncode({'descriptor': descriptor});
-  }
-
   /// Parse the multisignature wallet from json string.
   factory MultisignatureWallet.fromJson(String jsonStr) {
     Map<String, dynamic> json = jsonDecode(jsonStr);
     return MultisignatureWallet.fromDescriptor(json['descriptor']);
+  }
+
+  /// Get Json string of the multisignature wallet.
+  String toJson() {
+    return jsonEncode({'descriptor': descriptor});
   }
 }

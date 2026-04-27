@@ -3,6 +3,66 @@ part of '../../coconut_lib.dart';
 /// Represents a PSBT(BIP-0174).
 class Psbt {
   /// @nodoc
+  static Map<int, String> globalKeyType = {
+    0: 'UNSIGNED_TX',
+    1: 'XPUB',
+    2: 'TX_VERSION',
+    3: 'LOCKTIME',
+    4: 'TX_IN_COUNT',
+    5: 'TX_OUT_COUNT',
+    6: 'TX_MODIFIABLE',
+    251: 'VERSION',
+    252: 'PROPRIETARY'
+  };
+
+  /// @nodoc
+  static Map<int, String> inputKeyType = {
+    0: 'NON_WITNESS_UTXO',
+    1: 'WITNESS_UTXO',
+    2: 'PARTIAL_SIG',
+    3: 'SIGHASH_TYPE',
+    4: 'REDEEM_SCRIPT',
+    5: 'WITNESS_SCRIPT',
+    6: 'BIP32_DERIVATION',
+    7: 'FINAL_SCRIPTSIG',
+    8: 'FINAL_SCRIPTWITNESS',
+    9: 'POR_COMMITMENT',
+    10: 'RIPEMD160',
+    11: 'SHA256',
+    12: 'HASH160',
+    13: 'HASH256',
+    14: 'PREVIOUS_TXID',
+    15: 'OUTPUT_INDEX',
+    16: 'SEQUENCE',
+    17: 'REQUIRED_TIME_LOCKTIME',
+    18: 'REQUIRED_HEIGHT_LOCKTIME',
+    19: 'TAP_KEY_SIG',
+    20: 'TAP_SCRIPT_SIG',
+    21: 'TAP_LEAF_SCRIPT',
+    22: 'TAP_BIP32_DERIVATION',
+    23: 'TAP_INTERNAL_KEY',
+    24: 'TAP_MERKLE_ROOT',
+    26: 'MUSIG2_PARTICIPANT_PUBKEY',
+    27: 'MUSIG2_PUB_NONCE',
+    28: 'MUSIG2_PARTIAL_SIG',
+    252: 'PROPRIETARY'
+  };
+
+  /// @nodoc
+  static Map<int, String> outputKeyType = {
+    0: 'REDEEM_SCRIPT',
+    1: 'WITNESS_SCRIPT',
+    2: 'BIP32_DERIVATION',
+    3: 'AMOUNT',
+    4: 'SCRIPT',
+    5: 'TAP_INTERNAL_KEY',
+    6: 'TAP_TREE',
+    7: 'TAP_BIP32_DERIVATION',
+    8: 'MUSIG2_PARTICIPANT_PUBKEYS',
+    252: 'PROPRIETARY'
+  };
+
+  /// @nodoc
   Map<String, dynamic> psbtMap;
 
   /// Get transaction not signed yet.
@@ -832,66 +892,6 @@ class Psbt {
   }
 
   /// @nodoc
-  static Map<int, String> globalKeyType = {
-    0: 'UNSIGNED_TX',
-    1: 'XPUB',
-    2: 'TX_VERSION',
-    3: 'LOCKTIME',
-    4: 'TX_IN_COUNT',
-    5: 'TX_OUT_COUNT',
-    6: 'TX_MODIFIABLE',
-    251: 'VERSION',
-    252: 'PROPRIETARY'
-  };
-
-  /// @nodoc
-  static Map<int, String> inputKeyType = {
-    0: 'NON_WITNESS_UTXO',
-    1: 'WITNESS_UTXO',
-    2: 'PARTIAL_SIG',
-    3: 'SIGHASH_TYPE',
-    4: 'REDEEM_SCRIPT',
-    5: 'WITNESS_SCRIPT',
-    6: 'BIP32_DERIVATION',
-    7: 'FINAL_SCRIPTSIG',
-    8: 'FINAL_SCRIPTWITNESS',
-    9: 'POR_COMMITMENT',
-    10: 'RIPEMD160',
-    11: 'SHA256',
-    12: 'HASH160',
-    13: 'HASH256',
-    14: 'PREVIOUS_TXID',
-    15: 'OUTPUT_INDEX',
-    16: 'SEQUENCE',
-    17: 'REQUIRED_TIME_LOCKTIME',
-    18: 'REQUIRED_HEIGHT_LOCKTIME',
-    19: 'TAP_KEY_SIG',
-    20: 'TAP_SCRIPT_SIG',
-    21: 'TAP_LEAF_SCRIPT',
-    22: 'TAP_BIP32_DERIVATION',
-    23: 'TAP_INTERNAL_KEY',
-    24: 'TAP_MERKLE_ROOT',
-    26: 'MUSIG2_PARTICIPANT_PUBKEY',
-    27: 'MUSIG2_PUB_NONCE',
-    28: 'MUSIG2_PARTIAL_SIG',
-    252: 'PROPRIETARY'
-  };
-
-  /// @nodoc
-  static Map<int, String> outputKeyType = {
-    0: 'REDEEM_SCRIPT',
-    1: 'WITNESS_SCRIPT',
-    2: 'BIP32_DERIVATION',
-    3: 'AMOUNT',
-    4: 'SCRIPT',
-    5: 'TAP_INTERNAL_KEY',
-    6: 'TAP_TREE',
-    7: 'TAP_BIP32_DERIVATION',
-    8: 'MUSIG2_PARTICIPANT_PUBKEYS',
-    252: 'PROPRIETARY'
-  };
-
-  /// @nodoc
   static String getKeyType(Map<int, String> keyTypeMap, String typeName) {
     for (int key in keyTypeMap.keys) {
       if (keyTypeMap[key] == typeName) {
@@ -1123,11 +1123,6 @@ class PsbtInput {
   List<DerivationPath>? bip32Derivation; //0x03
   MultisignatureScript? witnessScript; //0x05
 
-  PsbtInput.forSegwit(this.witnessUtxo, this.bip32Derivation, this.partialSig,
-      {this.witnessScript, this.tapKeySig});
-
-  PsbtInput.forSignatureOnly(this.partialSig, {this.witnessScript});
-
   //Field for taproot
   String? internalKey; //0x17
   String? tapKeySig; //0x13(19)
@@ -1146,6 +1141,11 @@ class PsbtInput {
   List<String>? muSig2ParticipantPubkeys; // 0x1a
   Map<String, String>? muSig2PubNonces; // 0x1b
   List<Signature>? muSig2PartialSigs; // 0x1c
+
+  PsbtInput.forSegwit(this.witnessUtxo, this.bip32Derivation, this.partialSig,
+      {this.witnessScript, this.tapKeySig});
+
+  PsbtInput.forSignatureOnly(this.partialSig, {this.witnessScript});
 
   PsbtInput.forMuSig2(
       this.internalKey,
@@ -1282,10 +1282,13 @@ class PsbtInput {
 
 /// @nodoc
 class PsbtOutput {
-  MultisignatureScript? witnessScript; //0x01
   final DerivationPath? bip32Derivation; //0x02
   final int? outAmount; //0x03
   final ScriptPublicKey? outScript; //0x04
+  MultisignatureScript? witnessScript; //0x01
+
+  PsbtOutput(this.bip32Derivation, this.outAmount, this.outScript,
+      {this.witnessScript});
 
   String get outAddress => outScript!.getAddress();
 
@@ -1302,9 +1305,6 @@ class PsbtOutput {
       return false;
     }
   }
-
-  PsbtOutput(this.bip32Derivation, this.outAmount, this.outScript,
-      {this.witnessScript});
 }
 
 /// @nodoc

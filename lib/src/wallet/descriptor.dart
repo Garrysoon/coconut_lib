@@ -6,10 +6,7 @@ class Descriptor {
   List<String> _keyOriginExpressionList = [];
   List<String> _miniscriptList = [];
   late int _requiredSignatures;
-  int get totalSigner => _keyOriginExpressionList.length;
   AddressType _addressType;
-
-  get miniscriptList => _miniscriptList;
 
   /// @nodoc
   Descriptor(this._scriptType, this._keyOriginExpressionList, this._addressType,
@@ -32,6 +29,10 @@ class Descriptor {
 
   /// Script type of the descriptor.
   String get scriptType => _scriptType;
+
+  int get totalSigner => _keyOriginExpressionList.length;
+
+  get miniscriptList => _miniscriptList;
 
   /// Create a descriptor for a single signature.
   factory Descriptor.forSingleSignature(

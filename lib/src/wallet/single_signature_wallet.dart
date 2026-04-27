@@ -52,11 +52,6 @@ class SingleSignatureWallet extends SingleSignatureWalletBase {
         derivationPath, extendedPublicKeyObject);
   }
 
-  /// Get Json string of the single signature wallet.
-  String toJson() {
-    return jsonEncode({'descriptor': descriptor});
-  }
-
   /// Parse the single signature wallet from json string.
   factory SingleSignatureWallet.fromJson(String jsonStr) {
     Map<String, dynamic> json = jsonDecode(jsonStr);
@@ -124,5 +119,10 @@ class SingleSignatureWallet extends SingleSignatureWalletBase {
       }
     }
     throw Exception('Unsupported address type');
+  }
+
+  /// Get Json string of the single signature wallet.
+  String toJson() {
+    return jsonEncode({'descriptor': descriptor});
   }
 }

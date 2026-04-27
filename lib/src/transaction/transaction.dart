@@ -61,14 +61,6 @@ class Transaction {
     return total;
   }
 
-  int _getTotalSendingAmount() {
-    int total = 0;
-    for (var entry in _paymentMap.entries) {
-      total += entry.value;
-    }
-    return total;
-  }
-
   /// @nodoc
   Transaction(this._version, this._inputs, this._outputs, this._lockTime,
       this._isSegwit);
@@ -1237,6 +1229,14 @@ class Transaction {
         }
       }
     }
+  }
+
+  int _getTotalSendingAmount() {
+    int total = 0;
+    for (var entry in _paymentMap.entries) {
+      total += entry.value;
+    }
+    return total;
   }
 
   static int _getDustThreshold(AddressType addressType) {

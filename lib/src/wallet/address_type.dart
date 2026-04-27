@@ -2,58 +2,6 @@ part of '../../coconut_lib.dart';
 
 /// Represents an address type of Bitcoin.
 class AddressType {
-  /// The name of the address type. (legacy, segwit, nestedSegwit, p2sh, p2wsh)
-  final String name;
-
-  /// The purpose index of the address type. (BIP-0044)
-  final int purposeIndex;
-
-  /// The prefix of the address.
-  final String prefix;
-
-  /// The script type of the address. (P2PKH, P2WPKH, P2WPKH-in-P2SH, P2SH, P2WSH)
-  final String scriptType;
-
-  /// Check if the address type is segwit.
-  bool get isSegwit => scriptType.startsWith('w') || scriptType.contains('tr');
-
-  /// Check if the address type is for multisig.
-  bool get isMultisignature =>
-      name == 'p2sh' || name == 'p2wsh' || name == 'p2trScriptPathSpending';
-
-  /// Check if the address type is for single signature.
-  bool get isSingleSignature =>
-      name == 'p2pkh' || name == 'p2wpkh' || name == 'p2wpkhInP2sh';
-
-  // Check if the address type is for taproot.
-  bool get isTaproot => name.startsWith('p2tr');
-
-  /// @nodoc
-  final int versionForMainnet;
-
-  /// @nodoc
-  final int versionForTestnet;
-
-  /// Get the address from the public key. (not for multisig)
-  final String Function(String) getAddress;
-
-  /// Get the multisignature address from the public keys and required signatures. (for multisig)
-  final String Function(List<String>, int) getMultisignatureAddress;
-
-  /// Get the taproot address from the internal key and merkle root.
-  final String Function(String) getTaprootAddress;
-
-  AddressType._(
-      this.name,
-      this.purposeIndex,
-      this.prefix,
-      this.scriptType,
-      this.versionForMainnet,
-      this.versionForTestnet,
-      this.getAddress,
-      this.getMultisignatureAddress,
-      this.getTaprootAddress);
-
   /// Address type for P2PKH(Legacy) address.
   static AddressType p2pkh = AddressType._(
       'p2pkh',
@@ -121,6 +69,58 @@ class AddressType {
   /// List of all address types.
   static List<AddressType> get values =>
       [p2pkh, p2wpkh, p2wpkhInP2sh, p2sh, p2wsh, p2tr];
+
+  /// The name of the address type. (legacy, segwit, nestedSegwit, p2sh, p2wsh)
+  final String name;
+
+  /// The purpose index of the address type. (BIP-0044)
+  final int purposeIndex;
+
+  /// The prefix of the address.
+  final String prefix;
+
+  /// The script type of the address. (P2PKH, P2WPKH, P2WPKH-in-P2SH, P2SH, P2WSH)
+  final String scriptType;
+
+  /// Check if the address type is segwit.
+  bool get isSegwit => scriptType.startsWith('w') || scriptType.contains('tr');
+
+  /// Check if the address type is for multisig.
+  bool get isMultisignature =>
+      name == 'p2sh' || name == 'p2wsh' || name == 'p2trScriptPathSpending';
+
+  /// Check if the address type is for single signature.
+  bool get isSingleSignature =>
+      name == 'p2pkh' || name == 'p2wpkh' || name == 'p2wpkhInP2sh';
+
+  // Check if the address type is for taproot.
+  bool get isTaproot => name.startsWith('p2tr');
+
+  /// @nodoc
+  final int versionForMainnet;
+
+  /// @nodoc
+  final int versionForTestnet;
+
+  /// Get the address from the public key. (not for multisig)
+  final String Function(String) getAddress;
+
+  /// Get the multisignature address from the public keys and required signatures. (for multisig)
+  final String Function(List<String>, int) getMultisignatureAddress;
+
+  /// Get the taproot address from the internal key and merkle root.
+  final String Function(String) getTaprootAddress;
+
+  AddressType._(
+      this.name,
+      this.purposeIndex,
+      this.prefix,
+      this.scriptType,
+      this.versionForMainnet,
+      this.versionForTestnet,
+      this.getAddress,
+      this.getMultisignatureAddress,
+      this.getTaprootAddress);
 
   /// Get the address type from the script type.(P2PKH, P2WPKH, P2WSH-in-P2SH, P2SH, P2WSH)
   static AddressType getAddressTypeFromScriptType(String scriptType) {

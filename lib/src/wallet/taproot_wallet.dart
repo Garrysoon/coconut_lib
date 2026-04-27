@@ -92,17 +92,6 @@ class TaprootWallet extends TaprootWalletBase {
         derivationPath);
   }
 
-  /// Get Json string of the Taproot wallet.
-  String toJson() {
-    return jsonEncode({
-      "keyStores": keyStoreList.map((e) => e.toJson()).toList(),
-      "policies": policyList.map((e) => e.toJson()).toList(),
-      "addressTypeName": AddressType.p2tr.name,
-      "derivationPath": derivationPath,
-      "isVault": false,
-    });
-  }
-
   /// Create a Taproot wallet from a json string.
   factory TaprootWallet.fromJson(String jsonStr) {
     final Map<String, dynamic> json = jsonDecode(jsonStr);
@@ -124,5 +113,16 @@ class TaprootWallet extends TaprootWalletBase {
     }
 
     return TaprootWallet._(keyStores, policies, path);
+  }
+
+  /// Get Json string of the Taproot wallet.
+  String toJson() {
+    return jsonEncode({
+      "keyStores": keyStoreList.map((e) => e.toJson()).toList(),
+      "policies": policyList.map((e) => e.toJson()).toList(),
+      "addressTypeName": AddressType.p2tr.name,
+      "derivationPath": derivationPath,
+      "isVault": false,
+    });
   }
 }

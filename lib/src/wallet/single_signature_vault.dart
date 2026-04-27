@@ -69,6 +69,15 @@ class SingleSignatureVault extends SingleSignatureWalletBase {
     return SingleSignatureVault._(keyStore, addressType, derivationPath);
   }
 
+  /// Create a single signature vault from a json string.
+  factory SingleSignatureVault.fromJson(String json) {
+    Map<String, dynamic> map = jsonDecode(json);
+    return SingleSignatureVault._(
+        KeyStore.fromJson(map['keyStore']),
+        AddressType.getAddressTypeFromName(map['addressTypeName']),
+        map['derivationPath']);
+  }
+
   /// Display BSMS for multisig setup.
   String getSignerBsms(AddressType targetAddressType, String description) {
     if (keyStore.hasSeed == false) {
@@ -99,14 +108,5 @@ class SingleSignatureVault extends SingleSignatureWalletBase {
       "addressTypeName": addressType.name,
       "derivationPath": derivationPath
     });
-  }
-
-  /// Create a single signature vault from a json string.
-  factory SingleSignatureVault.fromJson(String json) {
-    Map<String, dynamic> map = jsonDecode(json);
-    return SingleSignatureVault._(
-        KeyStore.fromJson(map['keyStore']),
-        AddressType.getAddressTypeFromName(map['addressTypeName']),
-        map['derivationPath']);
   }
 }

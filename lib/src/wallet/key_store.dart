@@ -104,6 +104,17 @@ class KeyStore {
         bsms.signer!.masterFingerPrint, wallet, bsms.signer!.extendedPublicKey);
   }
 
+  ///@nodoc
+  factory KeyStore.fromJson(String json) {
+    Map<String, dynamic> map = jsonDecode(json);
+    String fingerprint = map['fingerprint'];
+    HDWallet hdWallet = HDWallet.fromJson(map['hdWallet']);
+    ExtendedPublicKey extendedPublicKey =
+        ExtendedPublicKey.parse(map['extendedPublicKey']);
+    Seed? seed = map['seed'] != null ? Seed.fromJson(map['seed']) : null;
+    return KeyStore(fingerprint, hdWallet, extendedPublicKey, seed);
+  }
+
   /// Get the private key of the key store using index.
   String getPrivateKey(int index,
       {bool isChange = false,
@@ -549,17 +560,6 @@ class KeyStore {
       'extendedPublicKey': _extendedPublicKey.serialize(),
       if (_seed != null) 'seed': _seed!.toJson()
     });
-  }
-
-  ///@nodoc
-  factory KeyStore.fromJson(String json) {
-    Map<String, dynamic> map = jsonDecode(json);
-    String fingerprint = map['fingerprint'];
-    HDWallet hdWallet = HDWallet.fromJson(map['hdWallet']);
-    ExtendedPublicKey extendedPublicKey =
-        ExtendedPublicKey.parse(map['extendedPublicKey']);
-    Seed? seed = map['seed'] != null ? Seed.fromJson(map['seed']) : null;
-    return KeyStore(fingerprint, hdWallet, extendedPublicKey, seed);
   }
 
   //wipe the seed
