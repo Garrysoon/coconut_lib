@@ -131,7 +131,7 @@ class TaprootVault extends TaprootWalletBase {
     return TaprootVault._(keyStores, policies, path);
   }
 
-  static TaprootVault fromHeritorDescriotor(String descriptor) {
+  static TaprootVault fromDescriotor(String descriptor) {
     Descriptor descriptorObject = Descriptor.parse(descriptor);
 
     if (descriptorObject.scriptType != 'tr') {
@@ -165,6 +165,18 @@ class TaprootVault extends TaprootWalletBase {
     }
 
     return TaprootVault._(keyStores, policies, derivationPath);
+  }
+
+  void bindSeedToKeyStore(Seed seed, {int accountIndex = 0}) {
+    KeyStore keyStoreFromSeed =
+        KeyStore.fromSeed(seed, addressType, accountIndex: accountIndex);
+
+    for (KeyStore keyStore in keyStoreList) {
+      if (keyStore.masterFingerprint == keyStoreFromSeed.masterFingerprint) {
+        keyStoreList[keyStoreList.indexOf(keyStore)] = keyStoreFromSeed;
+        return;
+      }
+    }
   }
 
   void bindSeedToBeneficiaryKeyStore(Seed seed, {int accountIndex = 0}) {

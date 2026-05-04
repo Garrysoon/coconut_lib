@@ -1071,6 +1071,57 @@ class Psbt {
     return signedTransaction;
   }
 
+  bool validateSignature(int inputIndex, String signature, String publicKey) {
+    String sigHash = _getSigHash(inputIndex);
+    late bool isValid;
+    if (addressType == null) {
+      throw Exception('Address type is not set');
+    }
+    if (!addressType!.isTaproot) {
+      // ECDSA
+      isValid = Ecc.verifyEcdsa(
+          Codec.decodeHex(sigHash),
+          Codec.decodeHex(publicKey),
+          Converter.derToRawSignature(Codec.decodeHex(signature)));
+    } else {
+      isValid = Ecc.verifySchnorr(
+          Codec.decodeHex(sigHash),
+          Codec.decodeHex(publicKey),
+          Converter.derToRawSignature(Codec.decodeHex(signature)));
+    }
+    return isValid;
+  }
+
+  String _getSigHash(int inputIndex) {
+    if (addressType == null) {
+      throw Exception('Address type is not set');
+    }
+
+    late String sigHash;
+    PsbtInput psbtInput = inputs[inputIndex];
+    if (!addressType!.isTaproot) {
+      // ECDSA
+      TransactionOutput utxo = psbtInput.witnessUtxo!;
+      if (addressType == AddressType.p2wsh) {
+        String? witnessScript = psbtInput.witnessScript!.rawSerialize();
+        sigHash = unsignedTransaction!.getSigHash(
+            inputIndex, utxo, addressType!,
+            witnessScript: witnessScript);
+      } else {
+        sigHash =
+            unsignedTransaction!.getSigHash(inputIndex, utxo, addressType!);
+      }
+    } else {
+      // Taproot
+      List<TransactionOutput> utxoList = [];
+      for (int j = 0; j < unsignedTransaction!.inputs.length; j++) {
+        utxoList.add(inputs[j].witnessUtxo!);
+      }
+      sigHash = unsignedTransaction!.getTaprootSigHash(inputIndex, utxoList);
+    }
+    return sigHash;
+  }
+
   bool isSigned(KeyStore keyStore, {isKeyPathSpending = false}) {
     for (PsbtInput input in inputs) {
       for (DerivationPath path in input.derivationPathList) {

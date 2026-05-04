@@ -347,7 +347,7 @@ void main() {
         TaprootVault childVault =
             MockFactory.createBeneficiaryVault(passphrase: 'C');
         TaprootVault beneficiaryVault =
-            TaprootVault.fromHeritorDescriotor(parentVault.descriptor);
+            TaprootVault.fromDescriotor(parentVault.descriptor);
         beneficiaryVault
             .bindSeedToBeneficiaryKeyStore(childVault.keyStoreList[0].seed);
         int addressIndex = 1;

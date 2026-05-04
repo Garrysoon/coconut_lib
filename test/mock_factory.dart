@@ -92,11 +92,11 @@ abstract class MockFactory {
                 'machine crack daughter fish credit glare raven fever tunnel delay fish record'),
             passphrase: utf8.encode('B')),
         AddressType.p2tr);
-    Policy policy1 = InheritancePolicy.fromDescriptor(
+    Policy policy1 = InheritancePolicy.fromDescriptorAndLocktime(
         createBeneficiaryVault(passphrase: 'A').descriptor, 1767225600);
-    Policy policy2 = InheritancePolicy.fromDescriptor(
+    Policy policy2 = InheritancePolicy.fromDescriptorAndLocktime(
         createBeneficiaryVault(passphrase: 'B').descriptor, 1767225600);
-    Policy policy3 = InheritancePolicy.fromDescriptor(
+    Policy policy3 = InheritancePolicy.fromDescriptorAndLocktime(
         createBeneficiaryVault(passphrase: 'C').descriptor, 1767225600);
     return TaprootVault.fromKeyStoreList(
         [keyStore1, keyStore2], [policy1, policy2, policy3]);

@@ -1063,9 +1063,11 @@ class Transaction {
 
   /// Estimate the fee of the transaction.
   int estimateFee(double feeRatePerByte, AddressType addressType,
-      {int? requiredSignature, int? totalSigner}) {
+      {int? requiredSignature, int? totalSigner, int? leafCount}) {
     double vByte = estimateVirtualByte(addressType,
-        requiredSignature: requiredSignature, totalSigner: totalSigner);
+        requiredSignature: requiredSignature,
+        totalSigner: totalSigner,
+        leafCount: leafCount);
     return (vByte * feeRatePerByte).ceil();
   }
 

@@ -17,8 +17,8 @@ void main() {
 
     group('fromDescriptor', () {
       test('creates policy for taproot-only beneficiary descriptor', () {
-        final InheritancePolicy p =
-            InheritancePolicy.fromDescriptor(beneficiaryVault.descriptor, 1234567890);
+        final InheritancePolicy p = InheritancePolicy.fromDescriptorAndLocktime(
+            beneficiaryVault.descriptor, 1234567890);
         expect(p.locktime, 1234567890);
         expect(p.beneficiaryKeyStore.masterFingerprint,
             beneficiaryVault.keyStoreList[0].masterFingerprint);
@@ -27,7 +27,8 @@ void main() {
       test('throws when descriptor is not taproot', () {
         final SingleSignatureVault p2wpkh = MockFactory.createP2wpkhVault();
         expect(
-            () => InheritancePolicy.fromDescriptor(p2wpkh.descriptor, 1),
+            () => InheritancePolicy.fromDescriptorAndLocktime(
+                p2wpkh.descriptor, 1),
             throwsException);
       });
 
@@ -35,8 +36,8 @@ void main() {
         final TaprootVault vaultWithScripts =
             MockFactory.createP2trVaultWithPolicies();
         expect(
-            () =>
-                InheritancePolicy.fromDescriptor(vaultWithScripts.descriptor, 1),
+            () => InheritancePolicy.fromDescriptorAndLocktime(
+                vaultWithScripts.descriptor, 1),
             throwsException);
       });
     });
@@ -44,7 +45,8 @@ void main() {
     group('fromMiniscript', () {
       test('roundtrips key origin expression', () {
         final InheritancePolicy original =
-            InheritancePolicy.fromDescriptor(beneficiaryVault.descriptor, 987654321);
+            InheritancePolicy.fromDescriptorAndLocktime(
+                beneficiaryVault.descriptor, 987654321);
         final Policy parsed =
             InheritancePolicy.fromMiniscript(original.toMiniscript());
         expect(parsed, isA<InheritancePolicy>());
@@ -54,11 +56,12 @@ void main() {
 
     group('toScript', () {
       test('encodes CLTV + DROP + x-only pubkey + CHECKSIG', () {
-        final InheritancePolicy p =
-            InheritancePolicy.fromDescriptor(beneficiaryVault.descriptor, 1000);
+        final InheritancePolicy p = InheritancePolicy.fromDescriptorAndLocktime(
+            beneficiaryVault.descriptor, 1000);
         final Script s = p.toScript(0);
         expect(s.commands.length, 5);
-        expect(s.commands[1], ScriptOperationCode.getHex('OP_CHECKLOCKTIMEVERIFY'));
+        expect(s.commands[1],
+            ScriptOperationCode.getHex('OP_CHECKLOCKTIMEVERIFY'));
         expect(s.commands[2], ScriptOperationCode.getHex('OP_DROP'));
         expect(s.commands[3], isA<Uint8List>());
         expect((s.commands[3] as Uint8List).length, 32);
@@ -69,7 +72,8 @@ void main() {
     group('toJson / fromJson', () {
       test('roundtrips beneficiary key store and locktime', () {
         final InheritancePolicy original =
-            InheritancePolicy.fromDescriptor(beneficiaryVault.descriptor, 555666777);
+            InheritancePolicy.fromDescriptorAndLocktime(
+                beneficiaryVault.descriptor, 555666777);
         final InheritancePolicy restored =
             InheritancePolicy.fromJson(original.toJson());
         expect(restored.locktime, original.locktime);

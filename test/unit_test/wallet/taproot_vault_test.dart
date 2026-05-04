@@ -17,8 +17,9 @@ void main() {
       expect(vault.getAddress(0).startsWith('bcrt1p'), true);
     });
 
-    test('toJson/fromJson roundtrip with policies (seedless via descriptor)', () {
-      final original = TaprootVault.fromHeritorDescriotor(
+    test('toJson/fromJson roundtrip with policies (seedless via descriptor)',
+        () {
+      final original = TaprootVault.fromDescriotor(
           MockFactory.createP2trVaultWithPolicies().descriptor);
       final restored = TaprootVault.fromJson(original.toJson());
       expect(restored.keyStoreList.length, original.keyStoreList.length);
@@ -34,7 +35,7 @@ void main() {
 
     test('fromHeritorDescriotor throws on non-taproot descriptor', () {
       final p2wpkh = MockFactory.createP2wpkhVault();
-      expect(() => TaprootVault.fromHeritorDescriotor(p2wpkh.descriptor),
+      expect(() => TaprootVault.fromDescriotor(p2wpkh.descriptor),
           throwsException);
     });
 
@@ -49,7 +50,8 @@ void main() {
     test('bindSeedToBeneficiaryKeyStore does not throw when no match', () {
       final vault = MockFactory.createP2trVaultWithPolicies();
       final otherSeed = MockFactory.getCommonSeed(passphrase: 'not-matching');
-      expect(() => vault.bindSeedToBeneficiaryKeyStore(otherSeed), returnsNormally);
+      expect(() => vault.bindSeedToBeneficiaryKeyStore(otherSeed),
+          returnsNormally);
     });
 
     test('getSpendablePolicy throws when no beneficiary seed exists', () {
@@ -59,7 +61,8 @@ void main() {
 
     test('addPublicNonce returns same psbt for single-key vault', () {
       final vault = MockFactory.createP2trKeyPathSpendingVault();
-      final psbt = MockFactory.createP2trKeyPathSpendingUnsignedPsbt().serialize();
+      final psbt =
+          MockFactory.createP2trKeyPathSpendingUnsignedPsbt().serialize();
       expect(vault.addPublicNonce(psbt), psbt);
     });
 
@@ -70,4 +73,3 @@ void main() {
     });
   });
 }
-

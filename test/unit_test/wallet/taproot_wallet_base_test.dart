@@ -106,7 +106,7 @@ void main() {
         TaprootVault childVault =
             MockFactory.createBeneficiaryVault(passphrase: 'C');
         TaprootVault beneficiaryVault =
-            TaprootVault.fromHeritorDescriotor(vault.descriptor);
+            TaprootVault.fromDescriotor(vault.descriptor);
         beneficiaryVault
             .bindSeedToBeneficiaryKeyStore(childVault.keyStoreList[0].seed);
         Utxo utxo = Utxo(
@@ -262,7 +262,7 @@ void main() {
         TaprootVault childVault =
             MockFactory.createBeneficiaryVault(passphrase: 'C');
         TaprootVault beneficiaryVault =
-            TaprootVault.fromHeritorDescriotor(vault.descriptor);
+            TaprootVault.fromDescriotor(vault.descriptor);
         beneficiaryVault
             .bindSeedToBeneficiaryKeyStore(childVault.keyStoreList[0].seed);
         Utxo utxo = Utxo(
@@ -302,7 +302,8 @@ void main() {
 
       test('hasPublicKeyInPsbt throws on address type mismatch', () {
         final p2wpkh = MockFactory.createP2wpkhUnsignedPsbt();
-        expect(() => vault.hasPublicKeyInPsbt(p2wpkh.serialize()), throwsException);
+        expect(() => vault.hasPublicKeyInPsbt(p2wpkh.serialize()),
+            throwsException);
       });
 
       test('getCoordinatorBsms returns non-empty coordinator payload', () {

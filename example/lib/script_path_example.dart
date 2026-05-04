@@ -9,8 +9,8 @@ void main() async {
   TaprootVault childVault =
       TaprootVault.fromKeyStoreList([KeyStore.random(AddressType.p2tr)], []);
   // 정책을 만듭니다. 상속자의 descriptor와 unix time을 입력합니다.
-  Policy policy =
-      InheritancePolicy.fromDescriptor(childVault.descriptor, 1767225600);
+  Policy policy = InheritancePolicy.fromDescriptorAndLocktime(
+      childVault.descriptor, 1767225600);
   // parent vault를 만듭니다. TaprootVault.fromKeyStoreList([여러개의 KeyStore를 넣으면 멀티시그가 지원됩니다.],[정책을 여러개 넣으면 다양한 정책이 지원됩니다.])
   TaprootVault parentVault = TaprootVault.fromKeyStoreList(
       [KeyStore.random(AddressType.p2tr), KeyStore.random(AddressType.p2tr)],
@@ -18,7 +18,7 @@ void main() async {
 
   // 상속자를 위한 vault를 받아옵니다. 새로운 vault 가 생성됩니다. 하지만 상속자의 seed는 연결되지 않습니다.
   TaprootVault beneficiaryVault =
-      TaprootVault.fromHeritorDescriotor(parentVault.descriptor);
+      TaprootVault.fromDescriotor(parentVault.descriptor);
   // 만든 상속 지갑에 상속자의 seed를 연결합니다.
   beneficiaryVault
       .bindSeedToBeneficiaryKeyStore(childVault.keyStoreList[0].seed);

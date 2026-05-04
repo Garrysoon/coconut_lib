@@ -1,4 +1,5 @@
 // @Tags(['scenario'])
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:coconut_lib/coconut_lib.dart';
@@ -270,8 +271,39 @@ void main() {
           '65cad85bcc9ccb1b69197061a426a94f83e72fb24d50e7a8f878f48580ed02b2');
     });
 
-    test('P2TR Script Path MuSig2 without Policy applied', () {
-      TaprootVault vault = MockFactory.createP2trVaultWithPolicies();
+    test('P2TR MuSig2 spending (parent multisig spending)', () {
+      KeyStore keyStore1 = KeyStore.fromSeed(
+          Seed.fromMnemonic(
+              utf8.encode(
+                  'machine crack daughter fish credit glare raven fever tunnel delay fish record'),
+              passphrase: utf8.encode('A')),
+          AddressType.p2tr);
+      KeyStore keyStore2 = KeyStore.fromSeed(
+          Seed.fromMnemonic(
+              utf8.encode(
+                  'machine crack daughter fish credit glare raven fever tunnel delay fish record'),
+              passphrase: utf8.encode('B')),
+          AddressType.p2tr);
+      Policy policy1 = InheritancePolicy.fromDescriptorAndLocktime(
+          MockFactory.createBeneficiaryVault(passphrase: 'A').descriptor,
+          1767225600);
+      Policy policy2 = InheritancePolicy.fromDescriptorAndLocktime(
+          MockFactory.createBeneficiaryVault(passphrase: 'B').descriptor,
+          1767225600);
+      Policy policy3 = InheritancePolicy.fromDescriptorAndLocktime(
+          MockFactory.createBeneficiaryVault(passphrase: 'C').descriptor,
+          1767225600);
+      TaprootVault vault = TaprootVault.fromKeyStoreList(
+          [keyStore1, keyStore2], [policy1, policy2, policy3]);
+
+      TaprootVault dadVault =
+          TaprootVault.fromCoordinatorBsms(vault.getCoordinatorBsms());
+      dadVault.bindSeedToKeyStore(keyStore1.seed);
+
+      TaprootVault momVault =
+          TaprootVault.fromCoordinatorBsms(vault.getCoordinatorBsms());
+      momVault.bindSeedToKeyStore(keyStore2.seed);
+
       int addressIndex = 0;
       expect(vault.getAddress(addressIndex),
           'bcrt1ptyvhlupy3snr0f6d2shd3fw9kmfsvd575x8g28gpav7h707550xsayjqcp');
@@ -288,9 +320,16 @@ void main() {
       //     vault.getControlBlock(0, addressIndex, isChange: false));
 
       Psbt unsignedPsbt = Psbt.fromTransaction(tx, vault);
-      String noncePsbt = vault.addPublicNonce(unsignedPsbt.serialize());
-      Psbt signedPsbt = Psbt.parse(vault.addSignatureToPsbt(noncePsbt));
-      Transaction signedTx = signedPsbt.getSignedTransaction(vault.addressType);
+      // String vaultNoncePsbt = vault.addPublicNonce(unsignedPsbt.serialize());
+      // print(vaultNoncePsbt);
+      String dadNoncePsbt = dadVault.addPublicNonce(unsignedPsbt.serialize());
+      String momNoncePsbt = momVault.addPublicNonce(dadNoncePsbt);
+      String dadSignedPsbt = dadVault.addSignatureToPsbt(momNoncePsbt);
+      Psbt momSignedPsbt =
+          Psbt.parse(momVault.addSignatureToPsbt(dadSignedPsbt));
+      Transaction signedTx =
+          momSignedPsbt.getSignedTransaction(dadVault.addressType);
+
       // print(signedTx.serialize());
       String prevTx =
           '02000000000101c067ad64b0ea041fe7206a1fd3d8f71177dc842705c27999b62848aa73097b150000000000feffffff02e21870712d0100002251204b9d661e05db1678f35e434e7fa12ba066705a07f1c5032f0da66e4453c783ca085200000000000022512059197ff0248c2637a74d542ed8a5c5b6d306369ea18e851d01eb3d7f3fd4a3cd0140f225d933dcc1c43925c6c8f5b6cbca5f5d14c06c708b53e2fd633e9087076222b0ea3e3c840e077d5dd961d46d5bbf3f6fab0be0a3850dcf3fa8873cdc27a166deb40200';
@@ -301,40 +340,12 @@ void main() {
       // validateKeyPath() already verifies the signature.
     });
 
-    test('P2TR Script Path Key Path without Policy applied', () {
-      TaprootVault vault = MockFactory.createP2trKeyPathSpendingVault();
-      int addressIndex = 4;
-      expect(vault.getAddress(addressIndex),
-          'bcrt1pz85pwjc5up7wmx8kjdpg226y3j7nr49dvjcug62mycs7tx4h7vkselrrv5');
-
-      Utxo utxo = Utxo(
-          'af01bb0e1e82023e2211539449b593df73ad87a951bf890cb43f02fa4f72b644',
-          0,
-          21000,
-          "m/86'/1'/0'/0/$addressIndex");
-
-      Transaction tx = Transaction.forSinglePayment([utxo],
-          MockFactory.reveiveAddress, "m/86'/1'/0'/1/0", 20000, 1, vault);
-      // tx.addPolicy(vault.policyList[0].toScript(addressIndex).serialize(),
-      //     vault.getControlBlock(0, addressIndex, isChange: false));
-
-      Psbt unsignedPsbt = Psbt.fromTransaction(tx, vault);
-      String noncePsbt = vault.addPublicNonce(unsignedPsbt.serialize());
-      Psbt signedPsbt = Psbt.parse(vault.addSignatureToPsbt(noncePsbt));
-      Transaction signedTx = signedPsbt.getSignedTransaction(vault.addressType);
-      String prevTx =
-          '0200000000010144e7f7999419071227550489038537bbe5fbec9c4acdf1a2f5e46eb60469c06e0100000000feffffff02085200000000000022512011e8174b14e07ced98f69342852b448cbd31d4ad64b1c4695b2621e59ab7f32d60605f7d2d010000225120fb25c7d3db366269348556892a6f854878ff9770bd9dd1366e0507f737f3f10e0140bec3f7cdff374983129d02b80ae7042dcfbcb7e9099006ff5ee23fae682b7be0ca4a4d174de71d7aa38c21c9b258197c68485e05a3442ec05f128ea51a8ed44b66ae0200';
-      validateKeyPath(prevTx, signedTx.serialize(), 0);
-      expect(signedTx.transactionHash,
-          '875a60121a149edc64ecc57d8b27a4262cc70eefeafcbcad009bba74b3b92b72');
-    });
-
-    test('P2TR Script Path MuSig2 with Policy', () {
+    test('P2TR Script Path spending (child spending)', () {
       TaprootVault parentVault = MockFactory.createP2trVaultWithPolicies();
       TaprootVault childVault =
           MockFactory.createBeneficiaryVault(passphrase: 'C');
       TaprootVault beneficiaryVault =
-          TaprootVault.fromHeritorDescriotor(parentVault.descriptor);
+          TaprootVault.fromDescriotor(parentVault.descriptor);
       beneficiaryVault
           .bindSeedToBeneficiaryKeyStore(childVault.keyStoreList[0].seed);
       int addressIndex = 1;

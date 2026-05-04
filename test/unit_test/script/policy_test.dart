@@ -32,8 +32,8 @@ void main() {
     setUp(() {
       NetworkType.setNetworkType(NetworkType.regtest);
       beneficiaryVault = MockFactory.createBeneficiaryVault(passphrase: 'A');
-      inheritancePolicy =
-          InheritancePolicy.fromDescriptor(beneficiaryVault.descriptor, 1798761600);
+      inheritancePolicy = InheritancePolicy.fromDescriptorAndLocktime(
+          beneficiaryVault.descriptor, 1798761600);
     });
 
     group('fromMiniscript', () {
@@ -88,13 +88,13 @@ void main() {
       test('matches Policy restored from miniscript', () {
         final Policy restored =
             Policy.fromMiniscript(inheritancePolicy.toMiniscript());
-        expect(restored.getTapleafHash(0),
-            inheritancePolicy.getTapleafHash(0));
+        expect(restored.getTapleafHash(0), inheritancePolicy.getTapleafHash(0));
       });
 
       test('uses CompactSize 0xfd when script len > 252', () {
         final Policy p = _FakePolicy(300);
-        final Uint8List scriptBytes = Uint8List.fromList(List.filled(300, 0x51));
+        final Uint8List scriptBytes =
+            Uint8List.fromList(List.filled(300, 0x51));
         final Uint8List expected = Hash.taggedHash(
             'TapLeaf',
             Uint8List.fromList([
@@ -109,7 +109,8 @@ void main() {
 
       test('uses CompactSize 0xfe when script len > 65535', () {
         final Policy p = _FakePolicy(70000);
-        final Uint8List scriptBytes = Uint8List.fromList(List.filled(70000, 0x51));
+        final Uint8List scriptBytes =
+            Uint8List.fromList(List.filled(70000, 0x51));
         final Uint8List expected = Hash.taggedHash(
             'TapLeaf',
             Uint8List.fromList([

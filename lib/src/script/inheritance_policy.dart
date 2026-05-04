@@ -6,7 +6,8 @@ class InheritancePolicy extends Policy {
 
   InheritancePolicy(this.beneficiaryKeyStore, this.locktime) : super();
 
-  factory InheritancePolicy.fromDescriptor(String descriptor, int locktime) {
+  factory InheritancePolicy.fromDescriptorAndLocktime(
+      String descriptor, int locktime) {
     Descriptor beneficiaryDescriptor = Descriptor.parse(descriptor);
     if (!beneficiaryDescriptor._addressType.isTaproot) {
       throw Exception('Only Taproot address type is supported.');
@@ -27,9 +28,8 @@ class InheritancePolicy extends Policy {
   @override
   Script toScript(int addressIndex, {bool isChange = false}) {
     List<dynamic> cmds = [];
-    Uint8List beneficiaryPublicKey =
-        beneficiaryKeyStore.getPublicKeyBytes(addressIndex,
-            isChange: isChange, isXOnly: true);
+    Uint8List beneficiaryPublicKey = beneficiaryKeyStore
+        .getPublicKeyBytes(addressIndex, isChange: isChange, isXOnly: true);
 
     Uint8List locktimeBytes = Converter.intToLittleEndianBytes(locktime, 4);
     cmds.add(locktimeBytes);
@@ -68,7 +68,8 @@ class InheritancePolicy extends Policy {
 
     final dynamic ks = map['beneficiaryKeyStore'];
     if (ks == null) {
-      throw Exception('Invalid InheritancePolicy json: missing beneficiaryKeyStore');
+      throw Exception(
+          'Invalid InheritancePolicy json: missing beneficiaryKeyStore');
     }
     final KeyStore beneficiaryKeyStore = KeyStore.fromJson(ks as String);
 
