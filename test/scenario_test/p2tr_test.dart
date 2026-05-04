@@ -293,8 +293,18 @@ void main() {
       Policy policy3 = InheritancePolicy.fromDescriptorAndLocktime(
           MockFactory.createBeneficiaryVault(passphrase: 'C').descriptor,
           1767225600);
-      TaprootVault vault = TaprootVault.fromKeyStoreList(
-          [keyStore1, keyStore2], [policy1, policy2, policy3]);
+      TaprootVault dadSingleVault =
+          TaprootVault.fromKeyStoreList([keyStore1], []);
+      TaprootVault momSingleVault =
+          TaprootVault.fromKeyStoreList([keyStore2], []);
+      TaprootVault vault = TaprootVault.fromKeyStoreList([
+        KeyStore.fromSignerBsms(dadSingleVault.getSignerBsms("dad")),
+        KeyStore.fromSignerBsms(momSingleVault.getSignerBsms("mom"))
+      ], [
+        policy1,
+        policy2,
+        policy3
+      ]);
 
       TaprootVault dadVault =
           TaprootVault.fromCoordinatorBsms(vault.getCoordinatorBsms());

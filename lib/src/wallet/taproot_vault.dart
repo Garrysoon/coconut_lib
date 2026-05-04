@@ -203,4 +203,23 @@ class TaprootVault extends TaprootWalletBase {
     }
     throw Exception('No spendable policy found.');
   }
+
+  /// Display BSMS for multisig setup.
+  String getSignerBsms(String description) {
+    if (keyStoreList[0].hasSeed == false) {
+      throw Exception('Use seed to create signer.');
+    }
+
+    KeyStore multisigKeyStore =
+        // ignore: unnecessary_non_null_assertion
+        KeyStore.fromSeed(keyStoreList[0].seed!, AddressType.p2tr);
+
+    Bsms bsms = Bsms.fromSigner(
+        multisigKeyStore.masterFingerprint,
+        (WalletUtility.getDerivationPath(AddressType.p2tr, 0))
+            .replaceAll("m/", ""),
+        multisigKeyStore.extendedPublicKey.serialize(),
+        description);
+    return bsms.serializeSigner();
+  }
 }
