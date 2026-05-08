@@ -351,17 +351,56 @@ void main() {
     });
 
     test('P2TR Script Path spending (child spending)', () {
-      TaprootVault parentVault = MockFactory.createP2trVaultWithPolicies();
-      TaprootVault childVault =
+      KeyStore keyStore1 = KeyStore.fromSeed(
+          Seed.fromMnemonic(
+              utf8.encode(
+                  'machine crack daughter fish credit glare raven fever tunnel delay fish record'),
+              passphrase: utf8.encode('A')),
+          AddressType.p2tr);
+      KeyStore keyStore2 = KeyStore.fromSeed(
+          Seed.fromMnemonic(
+              utf8.encode(
+                  'machine crack daughter fish credit glare raven fever tunnel delay fish record'),
+              passphrase: utf8.encode('B')),
+          AddressType.p2tr);
+      Policy policy1 = InheritancePolicy.fromDescriptorAndLocktime(
+          MockFactory.createBeneficiaryVault(passphrase: 'A').descriptor,
+          1767225600);
+      Policy policy2 = InheritancePolicy.fromDescriptorAndLocktime(
+          MockFactory.createBeneficiaryVault(passphrase: 'B').descriptor,
+          1767225600);
+      Policy policy3 = InheritancePolicy.fromDescriptorAndLocktime(
+          MockFactory.createBeneficiaryVault(passphrase: 'C').descriptor,
+          1767225600);
+      TaprootVault dadSingleVault =
+          TaprootVault.fromKeyStoreList([keyStore1], []);
+      TaprootVault momSingleVault =
+          TaprootVault.fromKeyStoreList([keyStore2], []);
+      TaprootVault childSingleVault =
           MockFactory.createBeneficiaryVault(passphrase: 'C');
-      TaprootVault beneficiaryVault =
-          TaprootVault.fromDescriotor(parentVault.descriptor);
-      beneficiaryVault
-          .bindSeedToBeneficiaryKeyStore(childVault.keyStoreList[0].seed);
+      TaprootVault vault = TaprootVault.fromKeyStoreList([
+        KeyStore.fromSignerBsms(dadSingleVault.getSignerBsms("dad")),
+        KeyStore.fromSignerBsms(momSingleVault.getSignerBsms("mom"))
+      ], [
+        policy1,
+        policy2,
+        policy3
+      ]);
+
+      TaprootVault dadVault =
+          TaprootVault.fromCoordinatorBsms(vault.getCoordinatorBsms());
+      dadVault.bindSeedToKeyStore(keyStore1.seed);
+
+      TaprootVault momVault =
+          TaprootVault.fromCoordinatorBsms(vault.getCoordinatorBsms());
+      momVault.bindSeedToKeyStore(keyStore2.seed);
+
+      TaprootVault childVault =
+          TaprootVault.fromCoordinatorBsms(vault.getCoordinatorBsms());
+      childVault
+          .bindSeedToBeneficiaryKeyStore(childSingleVault.keyStoreList[0].seed);
+
       int addressIndex = 1;
-      expect(parentVault.getAddress(addressIndex),
-          'bcrt1pnr5umaxnc5geggml09p4fv7k6nqxdc6w6exvmjxn3vpkq9rt6vfsfp4ulf');
-      // Create a coherent funding tx and spend its output via script path.
 
       Utxo utxo = Utxo(
           '4518033c0c22e2fafd5779d5f5c4e4df4849730581d5d93658de18444b1080d6',
@@ -369,20 +408,15 @@ void main() {
           21000,
           "m/86'/1'/0'/0/$addressIndex");
 
-      Transaction tx = Transaction.forSinglePayment(
-          [utxo],
-          MockFactory.reveiveAddress,
-          "m/86'/1'/0'/1/0",
-          20000,
-          1,
-          beneficiaryVault);
-      tx.setPolicy(beneficiaryVault.getSpendablePolicy());
+      Transaction tx = Transaction.forSinglePayment([utxo],
+          MockFactory.reveiveAddress, "m/86'/1'/0'/1/0", 20000, 1, childVault);
+      tx.setPolicy(childVault.getSpendablePolicy());
 
       // Build PSBT using the wallet that owns the UTXO (parentVault),
       // then sign via beneficiaryVault using script path.
-      Psbt unsignedPsbt = Psbt.fromTransaction(tx, beneficiaryVault);
-      Psbt signedPsbt = Psbt.parse(
-          beneficiaryVault.addSignatureToPsbt(unsignedPsbt.serialize()));
+      Psbt unsignedPsbt = Psbt.fromTransaction(tx, childVault);
+      Psbt signedPsbt =
+          Psbt.parse(childVault.addSignatureToPsbt(unsignedPsbt.serialize()));
       Transaction signedTx = signedPsbt.getSignedTransaction(AddressType.p2tr);
 
       final Transaction prevTx = Transaction.parse(
