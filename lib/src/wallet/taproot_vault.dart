@@ -48,8 +48,12 @@ class TaprootVault extends TaprootWalletBase {
           KeyStore(descriptor.getFingerprint(i), hdWallet, extendedPublicKey);
       keyStores.add(keyStore);
     }
+    List<Policy> policies = [];
+    for (String policy in descriptor.miniscriptList) {
+      policies.add(Policy.fromMiniscript(policy));
+    }
 
-    return TaprootVault.fromKeyStoreList(keyStores, []);
+    return TaprootVault.fromKeyStoreList(keyStores, policies);
   }
 
   /// Add public nonce to the PSBT.
