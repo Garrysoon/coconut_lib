@@ -106,7 +106,7 @@ void main() {
         TaprootVault childVault =
             MockFactory.createBeneficiaryVault(passphrase: 'C');
         TaprootVault beneficiaryVault =
-            TaprootVault.fromDescriotor(vault.descriptor);
+            TaprootVault.fromDescriptor(vault.descriptor);
         beneficiaryVault
             .bindSeedToBeneficiaryKeyStore(childVault.keyStoreList[0].seed);
         Utxo utxo = Utxo(
@@ -262,7 +262,7 @@ void main() {
         TaprootVault childVault =
             MockFactory.createBeneficiaryVault(passphrase: 'C');
         TaprootVault beneficiaryVault =
-            TaprootVault.fromDescriotor(vault.descriptor);
+            TaprootVault.fromDescriptor(vault.descriptor);
         beneficiaryVault
             .bindSeedToBeneficiaryKeyStore(childVault.keyStoreList[0].seed);
         Utxo utxo = Utxo(

@@ -19,7 +19,7 @@ void main() {
 
     test('toJson/fromJson roundtrip with policies (seedless via descriptor)',
         () {
-      final original = TaprootVault.fromDescriotor(
+      final original = TaprootVault.fromDescriptor(
           MockFactory.createP2trVaultWithPolicies().descriptor);
       final restored = TaprootVault.fromJson(original.toJson());
       expect(restored.keyStoreList.length, original.keyStoreList.length);
@@ -35,7 +35,7 @@ void main() {
 
     test('fromHeritorDescriotor throws on non-taproot descriptor', () {
       final p2wpkh = MockFactory.createP2wpkhVault();
-      expect(() => TaprootVault.fromDescriotor(p2wpkh.descriptor),
+      expect(() => TaprootVault.fromDescriptor(p2wpkh.descriptor),
           throwsException);
     });
 

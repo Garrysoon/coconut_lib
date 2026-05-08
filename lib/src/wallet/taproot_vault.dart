@@ -135,7 +135,7 @@ class TaprootVault extends TaprootWalletBase {
     return TaprootVault._(keyStores, policies, path);
   }
 
-  static TaprootVault fromDescriotor(String descriptor) {
+  static TaprootVault fromDescriptor(String descriptor) {
     Descriptor descriptorObject = Descriptor.parse(descriptor);
 
     if (descriptorObject.scriptType != 'tr') {

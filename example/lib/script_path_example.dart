@@ -18,7 +18,7 @@ void main() async {
 
   // 상속자를 위한 vault를 받아옵니다. 새로운 vault 가 생성됩니다. 하지만 상속자의 seed는 연결되지 않습니다.
   TaprootVault beneficiaryVault =
-      TaprootVault.fromDescriotor(parentVault.descriptor);
+      TaprootVault.fromDescriptor(parentVault.descriptor);
   // 만든 상속 지갑에 상속자의 seed를 연결합니다.
   beneficiaryVault
       .bindSeedToBeneficiaryKeyStore(childVault.keyStoreList[0].seed);
