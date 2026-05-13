@@ -363,8 +363,7 @@ void main() {
             KeyStore.fromSeed(MockFactory.getCommonSeed(), AddressType.p2wpkh);
         expect(mutable.hasSeed, true);
         mutable.wipeSeed();
-        expect(Codec.encodeHex(mutable.seed.mnemonic), '');
-        expect(Codec.encodeHex(mutable.seed.passphrase), '');
+        expect(mutable.hasSeed, false);
       });
     });
   });

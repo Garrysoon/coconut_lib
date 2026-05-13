@@ -114,5 +114,44 @@ void main() {
         expect(targetSeed.hashCode, 678682958);
       });
     });
+    group('Seed.wipe', () {
+      test('Clears mnemonic and default passphrase', () {
+        Seed targetSeed = Seed.fromMnemonic(utf8.encode(
+            'machine crack daughter fish credit glare raven fever tunnel delay fish record'));
+        expect(targetSeed.mnemonic.isNotEmpty, true);
+        expect(targetSeed.passphrase.isEmpty, true);
+
+        targetSeed.wipe();
+
+        expect(targetSeed.mnemonic, isEmpty);
+        expect(targetSeed.passphrase, isEmpty);
+      });
+
+      test('Clears mnemonic and non-empty passphrase', () {
+        Seed targetSeed = Seed.fromMnemonic(
+            utf8.encode(
+                'machine crack daughter fish credit glare raven fever tunnel delay fish record'),
+            passphrase: utf8.encode('secret-passphrase'));
+        expect(targetSeed.passphrase, utf8.encode('secret-passphrase'));
+
+        targetSeed.wipe();
+
+        expect(targetSeed.mnemonic, isEmpty);
+        expect(targetSeed.passphrase, isEmpty);
+      });
+
+      test('Second wipe keeps buffers empty', () {
+        Seed targetSeed = Seed.fromEntropy(
+            Codec.decodeHex('00000000000000000000000000000000'),
+            passphrase: utf8.encode('passphrase'));
+        expect(targetSeed.mnemonic.isNotEmpty, true);
+
+        targetSeed.wipe();
+        targetSeed.wipe();
+
+        expect(targetSeed.mnemonic, isEmpty);
+        expect(targetSeed.passphrase, isEmpty);
+      });
+    });
   });
 }

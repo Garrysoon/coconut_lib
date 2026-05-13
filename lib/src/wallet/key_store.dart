@@ -566,6 +566,7 @@ class KeyStore {
   void wipeSeed() {
     if (_seed != null) {
       _seed!.wipe();
+      _seed = null;
     }
   }
 
