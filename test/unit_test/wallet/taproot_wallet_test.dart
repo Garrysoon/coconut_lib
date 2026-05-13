@@ -10,47 +10,56 @@ void main() {
       NetworkType.setNetworkType(NetworkType.regtest);
     });
 
-    test('fromSeedList creates key stores and valid address', () {
-      final wallet = TaprootWallet.fromSeedList(
-          [MockFactory.getCommonSeed(passphrase: 'A')], []);
-      expect(wallet.keyStoreList.length, 1);
-      expect(wallet.getAddress(0).startsWith('bcrt1p'), true);
+    group('fromSeedList', () {
+      test('creates key stores and valid address', () {
+        final wallet = TaprootWallet.fromSeedList(
+            [MockFactory.getCommonSeed(passphrase: 'A')], []);
+        expect(wallet.keyStoreList.length, 1);
+        expect(wallet.getAddress(0).startsWith('bcrt1p'), true);
+      });
     });
 
-    test('fromDescriptor parses taproot descriptor with miniscripts', () {
-      final TaprootVault vault = MockFactory.createP2trVaultWithPolicies();
-      final TaprootWallet wallet = TaprootWallet.fromDescriptor(vault.descriptor);
-      expect(wallet.keyStoreList.length, vault.keyStoreList.length);
-      expect(wallet.policyList.length, greaterThan(0));
+    group('fromDescriptor', () {
+      test('parses taproot descriptor with miniscripts', () {
+        final TaprootVault vault = MockFactory.createP2trVaultWithPolicies();
+        final TaprootWallet wallet =
+            TaprootWallet.fromDescriptor(vault.descriptor);
+        expect(wallet.keyStoreList.length, vault.keyStoreList.length);
+        expect(wallet.policyList.length, greaterThan(0));
+      });
+
+      test('throws on non-taproot descriptor', () {
+        final p2wpkh = MockFactory.createP2wpkhVault();
+        expect(() => TaprootWallet.fromDescriptor(p2wpkh.descriptor),
+            throwsException);
+      });
     });
 
-    test('fromDescriptor throws on non-taproot descriptor', () {
-      final p2wpkh = MockFactory.createP2wpkhVault();
-      expect(() => TaprootWallet.fromDescriptor(p2wpkh.descriptor), throwsException);
+    group('fromKeyOriginExpression', () {
+      test('creates singlesig wallet', () {
+        final wallet = MockFactory.createP2trKeyPathSpendingVault();
+        final expr = wallet.getKeyOriginExpression().split(',').first;
+        final parsed = TaprootWallet.fromKeyOriginExpression(expr);
+        expect(parsed.keyStoreList.length, 1);
+        expect(parsed.policyList, isEmpty);
+      });
     });
 
-    test('fromKeyOriginExpression creates singlesig wallet', () {
-      final wallet = MockFactory.createP2trKeyPathSpendingVault();
-      final expr = wallet.getKeyOriginExpression().split(',').first;
-      final parsed = TaprootWallet.fromKeyOriginExpression(expr);
-      expect(parsed.keyStoreList.length, 1);
-      expect(parsed.policyList, isEmpty);
-    });
+    group('toJson / fromJson', () {
+      test('roundtrip with policies (seedless via descriptor)', () {
+        final TaprootWallet original = TaprootWallet.fromDescriptor(
+          MockFactory.createP2trVaultWithPolicies().descriptor,
+        );
+        final restored = TaprootWallet.fromJson(original.toJson());
+        expect(restored.keyStoreList.length, original.keyStoreList.length);
+        expect(restored.policyList.length, original.policyList.length);
+        expect(restored.derivationPath, original.derivationPath);
+      });
 
-    test('toJson/fromJson roundtrip with policies (seedless via descriptor)', () {
-      final TaprootWallet original = TaprootWallet.fromDescriptor(
-        MockFactory.createP2trVaultWithPolicies().descriptor,
-      );
-      final restored = TaprootWallet.fromJson(original.toJson());
-      expect(restored.keyStoreList.length, original.keyStoreList.length);
-      expect(restored.policyList.length, original.policyList.length);
-      expect(restored.derivationPath, original.derivationPath);
-    });
-
-    test('fromJson throws when json is vault payload', () {
-      final vault = MockFactory.createP2trVaultWithPolicies();
-      expect(() => TaprootWallet.fromJson(vault.toJson()), throwsException);
+      test('fromJson throws when json is vault payload', () {
+        final vault = MockFactory.createP2trVaultWithPolicies();
+        expect(() => TaprootWallet.fromJson(vault.toJson()), throwsException);
+      });
     });
   });
 }
-

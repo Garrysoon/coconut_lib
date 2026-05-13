@@ -316,10 +316,10 @@ void main() {
 
       int addressIndex = 0;
       expect(vault.getAddress(addressIndex),
-          'bcrt1ptyvhlupy3snr0f6d2shd3fw9kmfsvd575x8g28gpav7h707550xsayjqcp');
+          'bcrt1pcjtpvtuclk3kznj4kh6rpkucmceascus8ec85994z7c84m9cf96quyw3k2');
 
       Utxo utxo = Utxo(
-          '67991bbaf00a36e647593072409b2148f6fb622e6b2dff3112b4c1f9db92f756',
+          'ec2105d71092011aa43b06944f4110efe3c6c410f9d7192146fa6ca8b44ef606',
           1,
           21000,
           "m/86'/1'/0'/0/$addressIndex");
@@ -342,10 +342,10 @@ void main() {
 
       // print(signedTx.serialize());
       String prevTx =
-          '02000000000101c067ad64b0ea041fe7206a1fd3d8f71177dc842705c27999b62848aa73097b150000000000feffffff02e21870712d0100002251204b9d661e05db1678f35e434e7fa12ba066705a07f1c5032f0da66e4453c783ca085200000000000022512059197ff0248c2637a74d542ed8a5c5b6d306369ea18e851d01eb3d7f3fd4a3cd0140f225d933dcc1c43925c6c8f5b6cbca5f5d14c06c708b53e2fd633e9087076222b0ea3e3c840e077d5dd961d46d5bbf3f6fab0be0a3850dcf3fa8873cdc27a166deb40200';
+          '0200000000010199ca8573c490cd7f96a1337980d53010d87941c68702475ee75fc554b695d39c0000000000feffffff02cb409abe2c010000225120e09ed54683ef4647d4b2b6f68342d1948cf2fd82d9170bf681acdd1800089d2e0852000000000000225120c496162f98fda3614e55b5f430db98de33d863903e707a14b517b07aecb8497402473044022068fbd16c9c029a88498b6eef85d44c7bf39555735c28a9c768730f39bd6f631b022025f9da897051fb002e405e3a2b191fb1094105bf2b6ff3456e96f150f86902f80121037a8fb24f7f69f18f672d6e6932a62792e077515413471dcfe7daed790fe2929540e30200';
       validateKeyPath(prevTx, signedTx.serialize(), 0);
       expect(signedTx.transactionHash,
-          '04d553f9921e6294b3d4d922dbc94ef0bb79b68f41d539828a3e252d8129421c');
+          '7556b16c9d1496095c572c0586ea1fa6c74da3422098b9155ba6f49390a1365e');
       // txid is non-deterministic because BIP340 signing uses random auxRand by default.
       // validateKeyPath() already verifies the signature.
     });
@@ -402,8 +402,11 @@ void main() {
 
       int addressIndex = 1;
 
+      expect(vault.getAddress(addressIndex),
+          'bcrt1p0jtzj2ukjewq7x20kl8g6zq3aph5sq3v2lf6nnfzqu9n9ft4u8pqu7yysc');
+
       Utxo utxo = Utxo(
-          '4518033c0c22e2fafd5779d5f5c4e4df4849730581d5d93658de18444b1080d6',
+          '3a371051041b93e19c268a5080a2a98c01e4f281621d39791faeeff61e9208c0',
           1,
           21000,
           "m/86'/1'/0'/0/$addressIndex");
@@ -420,13 +423,13 @@ void main() {
       Transaction signedTx = signedPsbt.getSignedTransaction(AddressType.p2tr);
 
       final Transaction prevTx = Transaction.parse(
-          '0200000000010156f792dbf9c1b41231ff2d6b2e62fbf648219b4072305947e6360af0ba1b99670000000000feffffff023fc66f712d01000022512056ae59616077b76c9e4ccb33741c5d1f3bcb8cc36b4722fb6783757768395b1d085200000000000022512098e9cdf4d3c51194237f794354b3d6d4c066e34ed64ccdc8d38b0360146bd3130140b5ad849620e241c3375ce539361bb89decf4e2634a57128adefb69b7e746a0f70f1a2cd236f830ce2b36cf4ff11a78651635f476a9c27fe8c4e6a67d5cb94585dfb40200');
+          '0200000000010106f64eb4a86cfa462119d7f910c4c6e3ef10414f94063ba41a019210d70521ec0000000000feffffff0228ee99be2c010000225120300d88e065f749cd3fceb2b3e5398dca338811bfcff88fc4d018bbbfb7dc81d608520000000000002251207c96292b96965c0f194fb7ce8d0811e86f48022c57d3a9cd22070b32a575e1c20140ea4cd4b29b53d36b930a68225169cfa2f333d9d28d62feacd13c5ecf41cc92e8d44dd841a37ec64b42044fb4c5e16da8fa9dd97923293db55fd764517c2e3fa941e30200');
 
       expect(validateScriptPath(prevTx.serialize(), signedTx.serialize(), 0),
           isTrue);
       // print(signedTx.serialize());
       expect(signedTx.transactionHash,
-          'ba201d7a036de038bc4ad3c4f17912acb474d5480c75045d74142f574c4bb92c');
+          '94219b2fa3c476b28025f6d61b6f68738d348786739617e78b79ae823bf633b7');
       expect(signedTx.inputs[0].witnessList.length, 3);
       expect(
           signedTx.inputs[0].witnessList[0].length, 128); // 64-byte schnorr sig

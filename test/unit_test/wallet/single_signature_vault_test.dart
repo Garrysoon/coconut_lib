@@ -84,11 +84,13 @@ void main() {
             source.masterFingerprint,
           ),
         );
-        expect(() => seedless.getSignerBsms(AddressType.p2wsh, ''), throwsException);
+        expect(() => seedless.getSignerBsms(AddressType.p2wsh, ''),
+            throwsException);
       });
 
       test('throws when target address type is not multisig/p2tr', () {
-        expect(() => vault.getSignerBsms(AddressType.p2wpkh, ''), throwsException);
+        expect(
+            () => vault.getSignerBsms(AddressType.p2wpkh, ''), throwsException);
       });
     });
 

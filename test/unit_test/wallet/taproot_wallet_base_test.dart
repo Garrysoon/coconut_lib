@@ -62,13 +62,13 @@ void main() {
       test('returns a valid taproot address', () {
         NetworkType.setNetworkType(NetworkType.regtest);
         expect(vault.getAddress(0),
-            'bcrt1ptyvhlupy3snr0f6d2shd3fw9kmfsvd575x8g28gpav7h707550xsayjqcp');
+            'bcrt1pcjtpvtuclk3kznj4kh6rpkucmceascus8ec85994z7c84m9cf96quyw3k2');
       });
 
       test('supports change addresses (isChange=true)', () {
         NetworkType.setNetworkType(NetworkType.testnet);
         expect(vault.getAddress(0, isChange: true),
-            'tb1pw6t5h5p36tpx9nra4md37fcvnaste26m8d070w44k55cml75s46qy29nja');
+            'tb1pcvjfhkempg7u78d2e67j5ns8x406vh9j3weqxrretdy4gx300pgqdryp9g');
       });
     });
 
@@ -76,9 +76,14 @@ void main() {
       test('validates derivation path', () {
         NetworkType.setNetworkType(NetworkType.testnet);
         expect(vault.getAddressWithDerivationPath("m/86'/1'/0'/0/0"),
-            "tb1ptyvhlupy3snr0f6d2shd3fw9kmfsvd575x8g28gpav7h707550xssacxdm");
+            "tb1pcjtpvtuclk3kznj4kh6rpkucmceascus8ec85994z7c84m9cf96q3ayhrs");
         expect(vault.getAddressWithDerivationPath("m/86'/1'/0'/0/1"),
-            "tb1pnr5umaxnc5geggml09p4fv7k6nqxdc6w6exvmjxn3vpkq9rt6vfsycl62n");
+            "tb1p0jtzj2ukjewq7x20kl8g6zq3aph5sq3v2lf6nnfzqu9n9ft4u8pq38wz9z");
+      });
+
+      test('throws on mismatch path', () {
+        expect(() => vault.getAddressWithDerivationPath("m/84'/1'/0'/0/0"),
+            throwsException);
       });
     });
 
@@ -121,6 +126,76 @@ void main() {
         Psbt psbt = Psbt.fromTransaction(tx, beneficiaryVault);
         expect(beneficiaryVault.hasPublicKeyInPsbt(psbt.serialize()), true);
       });
+
+      test('throws on address type mismatch', () {
+        final p2wpkh = MockFactory.createP2wpkhUnsignedPsbt();
+        expect(() => vault.hasPublicKeyInPsbt(p2wpkh.serialize()),
+            throwsException);
+      });
+    });
+
+    group('addSignatureToPsbt', () {
+      test('adds signatures when seeds exist', () {
+        Utxo utxo = Utxo(
+            '4518033c0c22e2fafd5779d5f5c4e4df4849730581d5d93658de18444b1080d6',
+            1,
+            21000,
+            "m/86'/1'/0'/0/0");
+        Transaction tx = Transaction.forSinglePayment([utxo],
+            MockFactory.reveiveAddress, "m/86'/1'/0'/1/0", 20000, 1, vault);
+        Psbt psbt = Psbt.fromTransaction(tx, vault);
+        Psbt noncePsbt = Psbt.parse(vault.addPublicNonce(psbt.serialize()));
+        Psbt signedPsbt =
+            Psbt.parse(vault.addSignatureToPsbt(noncePsbt.serialize()));
+        Transaction signedTx =
+            signedPsbt.getSignedTransaction(vault.addressType);
+        expect(
+            signedTx.validateSchnorr(0, [
+              TransactionOutput.forPayment(utxo.amount, vault.getAddress(0))
+            ]),
+            true);
+      });
+      test('adds signatures for script path', () {
+        TaprootVault childVault =
+            MockFactory.createBeneficiaryVault(passphrase: 'C');
+        TaprootVault beneficiaryVault =
+            TaprootVault.fromDescriptor(vault.descriptor);
+        beneficiaryVault
+            .bindSeedToBeneficiaryKeyStore(childVault.keyStoreList[0].seed);
+        Utxo utxo = Utxo(
+            '4518033c0c22e2fafd5779d5f5c4e4df4849730581d5d93658de18444b1080d6',
+            1,
+            21000,
+            "m/86'/1'/0'/0/0");
+        Transaction tx = Transaction.forSinglePayment(
+            [utxo],
+            MockFactory.reveiveAddress,
+            "m/86'/1'/0'/1/0",
+            20000,
+            1,
+            beneficiaryVault);
+        tx.setPolicy(beneficiaryVault.getSpendablePolicy());
+        Psbt psbt = Psbt.fromTransaction(tx, beneficiaryVault);
+        Psbt noncePsbt =
+            Psbt.parse(beneficiaryVault.addPublicNonce(psbt.serialize()));
+        Psbt signedPsbt = Psbt.parse(
+            beneficiaryVault.addSignatureToPsbt(noncePsbt.serialize()));
+        Transaction signedTx =
+            signedPsbt.getSignedTransaction(beneficiaryVault.addressType);
+        expect(
+            signedTx.validateSpend([
+              TransactionOutput.forPayment(
+                  utxo.amount, beneficiaryVault.getAddress(0))
+            ]),
+            true);
+      });
+    });
+
+    group('getCoordinatorBsms', () {
+      test('returns non-empty coordinator payload', () {
+        final bsms = vault.getCoordinatorBsms();
+        expect(bsms.isNotEmpty, true);
+      });
     });
 
     group('getAggregatedPublicKey', () {
@@ -135,7 +210,7 @@ void main() {
     group('getMerkleRoot', () {
       test('returns 32-byte merkle root', () {
         expect(Codec.encodeHex(vault.getMerkleRoot(0)),
-            '3bd740b79eee8736133cf721d31471f121d4fc3020fba08c9d352566fb3152c4');
+            'c0c3a5701c72559e142572600c7ac00cacdaaeaf23c5c82cac38ebf99e23c8e8');
       });
     });
 
@@ -234,81 +309,6 @@ void main() {
         final int parityBitExpected = outputKey[0] == 0x03 ? 1 : 0;
         final int controlByteExpected = 0xc0 | parityBitExpected;
         expect(controlByte, controlByteExpected);
-      });
-    });
-
-    group('addSignatureToPsbt', () {
-      test('adds signatures when seeds exist', () {
-        Utxo utxo = Utxo(
-            '4518033c0c22e2fafd5779d5f5c4e4df4849730581d5d93658de18444b1080d6',
-            1,
-            21000,
-            "m/86'/1'/0'/0/0");
-        Transaction tx = Transaction.forSinglePayment([utxo],
-            MockFactory.reveiveAddress, "m/86'/1'/0'/1/0", 20000, 1, vault);
-        Psbt psbt = Psbt.fromTransaction(tx, vault);
-        Psbt noncePsbt = Psbt.parse(vault.addPublicNonce(psbt.serialize()));
-        Psbt signedPsbt =
-            Psbt.parse(vault.addSignatureToPsbt(noncePsbt.serialize()));
-        Transaction signedTx =
-            signedPsbt.getSignedTransaction(vault.addressType);
-        expect(
-            signedTx.validateSchnorr(0, [
-              TransactionOutput.forPayment(utxo.amount, vault.getAddress(0))
-            ]),
-            true);
-      });
-      test('adds signatures for script path', () {
-        TaprootVault childVault =
-            MockFactory.createBeneficiaryVault(passphrase: 'C');
-        TaprootVault beneficiaryVault =
-            TaprootVault.fromDescriptor(vault.descriptor);
-        beneficiaryVault
-            .bindSeedToBeneficiaryKeyStore(childVault.keyStoreList[0].seed);
-        Utxo utxo = Utxo(
-            '4518033c0c22e2fafd5779d5f5c4e4df4849730581d5d93658de18444b1080d6',
-            1,
-            21000,
-            "m/86'/1'/0'/0/0");
-        Transaction tx = Transaction.forSinglePayment(
-            [utxo],
-            MockFactory.reveiveAddress,
-            "m/86'/1'/0'/1/0",
-            20000,
-            1,
-            beneficiaryVault);
-        tx.setPolicy(beneficiaryVault.getSpendablePolicy());
-        Psbt psbt = Psbt.fromTransaction(tx, beneficiaryVault);
-        Psbt noncePsbt =
-            Psbt.parse(beneficiaryVault.addPublicNonce(psbt.serialize()));
-        Psbt signedPsbt = Psbt.parse(
-            beneficiaryVault.addSignatureToPsbt(noncePsbt.serialize()));
-        Transaction signedTx =
-            signedPsbt.getSignedTransaction(beneficiaryVault.addressType);
-        expect(
-            signedTx.validateSpend([
-              TransactionOutput.forPayment(
-                  utxo.amount, beneficiaryVault.getAddress(0))
-            ]),
-            true);
-      });
-    });
-
-    group('base guards and utilities', () {
-      test('getAddressWithDerivationPath throws on mismatch path', () {
-        expect(() => vault.getAddressWithDerivationPath("m/84'/1'/0'/0/0"),
-            throwsException);
-      });
-
-      test('hasPublicKeyInPsbt throws on address type mismatch', () {
-        final p2wpkh = MockFactory.createP2wpkhUnsignedPsbt();
-        expect(() => vault.hasPublicKeyInPsbt(p2wpkh.serialize()),
-            throwsException);
-      });
-
-      test('getCoordinatorBsms returns non-empty coordinator payload', () {
-        final bsms = vault.getCoordinatorBsms();
-        expect(bsms.isNotEmpty, true);
       });
     });
   });

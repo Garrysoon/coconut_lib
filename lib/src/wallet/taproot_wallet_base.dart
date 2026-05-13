@@ -48,6 +48,19 @@ abstract class TaprootWalletBase extends WalletBase {
       throw Exception('Invalid derivation path.');
     }
 
+    // Deterministic policy order: TapLeaf hash at receive index 0 (lexicographic).
+    // Tie-break with miniscript when hashes match.
+    if (_policyList.length > 1) {
+      _policyList.sort((a, b) {
+        final cmp = _lexicographicCompare(
+          a.getTapleafHash(0, isChange: false),
+          b.getTapleafHash(0, isChange: false),
+        );
+        if (cmp != 0) return cmp;
+        return a.toMiniscript().compareTo(b.toMiniscript());
+      });
+    }
+
     _descriptor = Descriptor.forTaproot(_addressType, _keyStoreList,
         _policyList, _derivationPath.replaceAll("m/", ""));
   }

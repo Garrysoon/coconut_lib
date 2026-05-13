@@ -352,7 +352,7 @@ void main() {
             .bindSeedToBeneficiaryKeyStore(childVault.keyStoreList[0].seed);
         int addressIndex = 1;
         expect(parentVault.getAddress(addressIndex),
-            'bcrt1pnr5umaxnc5geggml09p4fv7k6nqxdc6w6exvmjxn3vpkq9rt6vfsfp4ulf');
+            'bcrt1p0jtzj2ukjewq7x20kl8g6zq3aph5sq3v2lf6nnfzqu9n9ft4u8pqu7yysc');
         // Create a coherent funding tx and spend its output via script path.
 
         Utxo utxo = Utxo(

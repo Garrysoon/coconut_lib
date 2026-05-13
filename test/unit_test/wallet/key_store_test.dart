@@ -17,7 +17,7 @@ void main() {
           "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"));
       keyStore = KeyStore.fromSeed(seed, AddressType.p2wpkh);
     });
-    group('KeyStore.fromSeed', () {
+    group('fromSeed', () {
       test('Generate key store from seed', () {
         expect(keyStore, isA<KeyStore>());
         expect(keyStore.seed, seed);
@@ -36,7 +36,7 @@ void main() {
             'vpub5ZKwzd8dsRkgfWuhHHxC1gv8KqJSGks821gx5sKBVAHco8TccsdMh6X4jiWjeTGW4SpkK77dP3HPEpZjgxzpGGq1G53NU7ftHhRfbijqxvf');
       });
     });
-    group('KeyStore.fromMnemonic', () {
+    group('fromMnemonic', () {
       test('Generate key store with mnemonic', () {
         KeyStore keyStore = KeyStore.fromMnemonic(
             utf8.encode(
@@ -47,13 +47,13 @@ void main() {
             'vpub5Y6cjg78GGuNLsaPhmYsiw4gYX3HoQiRBiSwDaBXKUafCt9bNwWQiitDk5VZ5BVxYnQdwoTyXSs2JHRPAgjAvtbBrf8ZhDYe2jWAqvZVnsc');
       });
     });
-    group('KeyStore.random', () {
+    group('random', () {
       test('Generate random key store', () {
         KeyStore keyStore = KeyStore.random(AddressType.p2wpkh);
         expect(keyStore, isA<KeyStore>());
       });
     });
-    group('KeyStore.fromEntropy', () {
+    group('fromEntropy', () {
       test('Generate key store from entropy', () {
         NetworkType.setNetworkType(NetworkType.mainnet);
         KeyStore keyStore = KeyStore.fromEntropy(
@@ -64,7 +64,7 @@ void main() {
             'zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXNfE3EfH1r1ADqtfSdVCToUG868RvUUkgDKf31mGDtKsAYz2oz2AGutZYs');
       });
     });
-    group('KeyStore.fromExtendedPublicKey', () {
+    group('fromExtendedPublicKey', () {
       test('Generate key store from extended public key', () {
         NetworkType.setNetworkType(NetworkType.regtest);
         String exPub =
@@ -73,7 +73,7 @@ void main() {
         expect(keyStore.extendedPublicKey.serialize(), exPub);
       });
     });
-    group('KeyStore.fromSignerBsms', () {
+    group('fromSignerBsms', () {
       test('Generate key store from signer', () {
         String bsms =
             '''BSMS 1.0\n00\n[98C7D774/48'/1'/0'/2']Vpub5n3ihNrEwZjBFZ32N6STEsMaUPAJ42pjoVMgbZUAuPbuubQR5eDXUyB8nw6ASMmzpM4PjyVsx6BHGhZwufeyVzCHxwLcXW5RoQ5feCiE6Qm\nmy wallet''';
@@ -332,7 +332,7 @@ void main() {
         expect(keyStore == vault.keyStore, false);
       });
     });
-    group('get hashCode', () {
+    group('hashCode', () {
       test('Equal object has same hashCode', () {
         final KeyStore a = KeyStore.fromExtendedPublicKey(
             keyStore.extendedPublicKey.serialize(), keyStore.masterFingerprint);

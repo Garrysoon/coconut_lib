@@ -268,7 +268,7 @@ void main() {
       });
     });
 
-    group('HDWallet.fromPublicKey', () {
+    group('fromPublicKey', () {
       test('Generate HDWallet from public key', () {
         Uint8List publicKey = Codec.decodeHex(
             '03f8f8a1412b9e56dd9576f49ae0a6499757ea592bd491f910c8f519ef0ea7cf3c');
@@ -280,7 +280,7 @@ void main() {
             'a56d9844');
       });
     });
-    group('HDWallet.fromPublicKeyWithDerivationPath', () {
+    group('fromPublicKeyWithDerivationPath', () {
       test('Generate HDWallet from public key with derivation path', () {
         String publicKey =
             '021A3BF5FBF737D0F36993FD46DC4913093BEB532D654FE0DFD98BD27585DC9F29';
@@ -296,7 +296,7 @@ void main() {
         expect(wallet2.index, 2147483650);
       });
     });
-    group('HDWallet.fromPrivateKey', () {
+    group('fromPrivateKey', () {
       test('Generate HDwallet from private key', () {
         Uint8List privateKey = Codec.decodeHex(
             '6a8c473974ffabbf2bac36adadd328baabf8b6d7a269b69bb808d80d64f17f41');
@@ -321,7 +321,7 @@ void main() {
             throwsException);
       });
     });
-    group('HDWallet.fromRootSeed', () {
+    group('fromRootSeed', () {
       test('Generate HDwallet from root seed', () {
         String rootSeed =
             'ae6a87214c18fb91824b34b4e027f46d51061fdece2b3042ca51bf9b80f5d075fddb304fd9857ff1e147f9d0147bdc3116572657d9e2232540e6fc962a11a254';
@@ -358,7 +358,7 @@ void main() {
         expect(hdWallet.neutered().publicKey, target.publicKey);
       });
     });
-    group('HDWallet.fromJson', () {
+    group('fromJson', () {
       test('Generate HDwallet with private key from json', () {
         String json =
             '''{"privateKey":"6a8c473974ffabbf2bac36adadd328baabf8b6d7a269b69bb808d80d64f17f41","publicKey":"03f8f8a1412b9e56dd9576f49ae0a6499757ea592bd491f910c8f519ef0ea7cf3c","chainCode":"4cfac59caf9be1428410291697177b2efc8373a29f7ad4a34694163686a4d20b"}''';

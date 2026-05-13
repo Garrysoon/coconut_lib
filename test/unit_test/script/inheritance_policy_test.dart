@@ -15,7 +15,7 @@ void main() {
       beneficiaryVault = MockFactory.createBeneficiaryVault(passphrase: 'B');
     });
 
-    group('fromDescriptor', () {
+    group('fromDescriptorAndLocktime', () {
       test('creates policy for taproot-only beneficiary descriptor', () {
         final InheritancePolicy p = InheritancePolicy.fromDescriptorAndLocktime(
             beneficiaryVault.descriptor, 1234567890);

@@ -8,7 +8,7 @@ import '../../mock_factory.dart';
 
 void main() {
   group('ExtendedPublicKey', () {
-    group('ExtendedPublicKey.fromHdWallet', () {
+    group('fromHdWallet', () {
       test('Generate ExtendedPublicKey', () {
         SingleSignatureVault vault = MockFactory.createP2wpkhVault();
         HDWallet hdWallet = vault.keyStore.hdWallet;
@@ -21,7 +21,7 @@ void main() {
             vault.keyStore.extendedPublicKey.serialize());
       });
     });
-    group('ExtendedPublicKey.fromPublicKey', () {
+    group('fromPublicKey', () {
       test('Generate ExtendedPublicKey from public key', () {
         String publicKey =
             '021A3BF5FBF737D0F36993FD46DC4913093BEB532D654FE0DFD98BD27585DC9F29';
@@ -41,7 +41,7 @@ void main() {
             'Zpub74Jru6aftwwHxCUCWEvP6DgrfFsdA4U6ZRtQ5i8qJpMcC39yZGv3egBhQfV3MS9pZtH5z8iV5qWkJsK6ESs6mSzt4qvGhzJxPeeVS2e1zUG');
       });
     });
-    group('ExtendedPublicKey.parse', () {
+    group('parse', () {
       test('Parse extended public key', () {
         NetworkType.setNetworkType(NetworkType.mainnet);
         String exPubText =
@@ -74,7 +74,7 @@ void main() {
       });
     });
 
-    group('get hashCode', () {
+    group('hashCode', () {
       test('Get hash code', () {
         NetworkType.setNetworkType(NetworkType.regtest);
         SingleSignatureVault vault = MockFactory.createP2wpkhVault();

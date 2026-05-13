@@ -66,9 +66,9 @@ void main() {
 
       test('throws when psbt address type mismatches', () {
         Psbt psbt = MockFactory.createP2wshUnsignedPsbt();
-        expect(() => vault.addSignatureToPsbt(psbt.serialize()), throwsException);
+        expect(
+            () => vault.addSignatureToPsbt(psbt.serialize()), throwsException);
       });
-
     });
 
     group('constructor guards via SingleSignatureVault.fromJson', () {
