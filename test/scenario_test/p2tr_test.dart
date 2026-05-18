@@ -330,6 +330,7 @@ void main() {
       //     vault.getControlBlock(0, addressIndex, isChange: false));
 
       Psbt unsignedPsbt = Psbt.fromTransaction(tx, vault);
+      // print(unsignedPsbt.serialize());
       // String vaultNoncePsbt = vault.addPublicNonce(unsignedPsbt.serialize());
       // print(vaultNoncePsbt);
       String dadNoncePsbt = dadVault.addPublicNonce(unsignedPsbt.serialize());
@@ -418,6 +419,37 @@ void main() {
       // Build PSBT using the wallet that owns the UTXO (parentVault),
       // then sign via beneficiaryVault using script path.
       Psbt unsignedPsbt = Psbt.fromTransaction(tx, childVault);
+      print(unsignedPsbt.serialize());
+      expect(unsignedPsbt.isForVault(childVault), true);
+      // finding signable vault from psbt
+      for (KeyStore keyStore in vault.keyStoreList) {
+        print("KeyStore ${keyStore.masterFingerprint}");
+        if (!keyStore.hasPublicKeyInPsbt(unsignedPsbt.serialize())) {
+          throw Exception(
+              'KeyStore ${keyStore.masterFingerprint} can not sign to the PSBT');
+        }
+      }
+      for (Policy policy in vault.policyList) {
+        if (policy is InheritancePolicy) {
+          if (!policy.beneficiaryKeyStore
+              .hasPublicKeyInPsbt(unsignedPsbt.serialize())) {
+            throw Exception(
+                'Policy ${policy.beneficiaryKeyStore.masterFingerprint} can not sign to the PSBT');
+          }
+        }
+      }
+      print(unsignedPsbt.serialize());
+      for (PsbtInput input in unsignedPsbt.inputs) {
+        if (input.tapLeafScript != null) {
+          print("Script path spending");
+        } else {
+          print("Key path spending");
+        }
+      }
+
+      // print(unsignedPsbt.inputs[0].bip32Derivation?.first.publicKey);
+
+      // print(unsignedPsbt.serialize());
       Psbt signedPsbt =
           Psbt.parse(childVault.addSignatureToPsbt(unsignedPsbt.serialize()));
       Transaction signedTx = signedPsbt.getSignedTransaction(AddressType.p2tr);

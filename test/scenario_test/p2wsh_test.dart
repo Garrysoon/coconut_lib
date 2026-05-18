@@ -43,6 +43,10 @@ void main() {
 
     Psbt unsignedTx = MockFactory.createP2wshUnsignedPsbt();
 
+    expect(unsignedTx.isForVault(multiSigVault1), true);
+    expect(unsignedTx.isForVault(multiSigVault2), true);
+    expect(unsignedTx.isForVault(MockFactory.createP2wshVault()), false);
+
     expect(unsignedTx.addressType, AddressType.p2wsh);
 
     String signed1PsbtText =

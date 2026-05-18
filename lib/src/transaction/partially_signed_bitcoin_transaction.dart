@@ -69,6 +69,9 @@ class Psbt {
   Transaction? unsignedTransaction;
 
   /// @nodoc
+  List<DerivationPath> globalExtendedPublicKeyList = [];
+
+  /// @nodoc
   List<PsbtInput> inputs = [];
 
   /// @nodoc
@@ -124,6 +127,50 @@ class Psbt {
         }
       }();
 
+  bool isForVault(WalletBase wallet) {
+    if (wallet is SingleSignatureVault) {
+      KeyStore keyStore = wallet.keyStore;
+      if (keyStore.extendedPublicKey.serializeForPsbt(toXpub: true) !=
+          globalExtendedPublicKeyList.first.publicKey) {
+        return false;
+      }
+      if (globalExtendedPublicKeyList.first.masterFingerprint !=
+          keyStore.masterFingerprint) {
+        return false;
+      }
+      if (globalExtendedPublicKeyList.first.path != wallet.derivationPath) {
+        return false;
+      }
+      return true;
+    } else if (wallet is MultisignatureVault) {
+      for (DerivationPath derivationPath in globalExtendedPublicKeyList) {
+        if (wallet.keyStoreList.any((keyStore) =>
+            keyStore.extendedPublicKey.serializeForPsbt(toXpub: true) ==
+            derivationPath.publicKey)) {
+          return true;
+        }
+      }
+      return false;
+    } else if (wallet is TaprootVault) {
+      List<KeyStore> keyStoreList = wallet.keyStoreList;
+      for (Policy policy in wallet.policyList) {
+        if (policy is InheritancePolicy) {
+          keyStoreList.add(policy.beneficiaryKeyStore);
+        }
+      }
+      for (KeyStore keyStore in keyStoreList) {
+        if (globalExtendedPublicKeyList.any((derivationPath) =>
+            derivationPath.publicKey ==
+            keyStore.extendedPublicKey.serializeForPsbt(toXpub: true))) {
+          return true;
+        }
+      }
+      return false;
+    } else {
+      return false;
+    }
+  }
+
   /// @nodoc
   Psbt(this.psbtMap) {
     unsignedTransaction =
@@ -137,6 +184,8 @@ class Psbt {
         String derivationPath = _parseDerivationPath(
             Codec.decodeHex(psbtMap["global"][key].substring(8)));
         extendedPublicKeyList
+            .add(DerivationPath(publicKey, masterFingerprint, derivationPath));
+        globalExtendedPublicKeyList
             .add(DerivationPath(publicKey, masterFingerprint, derivationPath));
       }
     });
@@ -519,6 +568,15 @@ class Psbt {
         String value =
             "${keyStore.masterFingerprint}${Codec.encodeHex(_serializeDerivationPath(wallet.derivationPath))}";
         globalData[key] = value;
+      }
+      for (Policy policy in taprootWallet.policyList) {
+        if (policy is InheritancePolicy) {
+          String key =
+              "${getKeyType(globalKeyType, 'XPUB')}${policy.beneficiaryKeyStore.extendedPublicKey.serializeForPsbt(toXpub: true)}";
+          String value =
+              "${policy.beneficiaryKeyStore.masterFingerprint}${Codec.encodeHex(_serializeDerivationPath(wallet.derivationPath))}";
+          globalData[key] = value;
+        }
       }
     }
 
