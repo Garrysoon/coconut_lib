@@ -30,6 +30,87 @@ void main() {
         expect(unsignedPsbt.addressType, AddressType.p2wpkh);
       });
     });
+
+    group('isForVault', () {
+      test('Check if psbt is for single signature vault', () {
+        SingleSignatureVault vault = MockFactory.createP2wpkhVault();
+        expect(unsignedPsbt.isForVault(vault), true);
+        expect(
+            unsignedPsbt
+                .isForVault(MockFactory.createP2wpkhVault(passphrase: 'Z')),
+            false);
+      });
+      test('Check if psbt is for multisignature vault', () {
+        MultisignatureVault vault = MockFactory.createP2wshVault();
+        expect(MockFactory.createP2wshUnsignedPsbt().isForVault(vault), true);
+        final vault1 = MockFactory.createP2wpkhVault(passphrase: 'A');
+        final vault2 = MockFactory.createP2wpkhVault(passphrase: 'B');
+        final vault3 = MockFactory.createP2wpkhVault(passphrase: 'C');
+
+        KeyStore keyStore1 =
+            KeyStore.fromSeed(vault1.keyStore.seed, AddressType.p2wsh);
+        KeyStore keyStore2 =
+            KeyStore.fromSeed(vault2.keyStore.seed, AddressType.p2wsh);
+        KeyStore keyStore3 =
+            KeyStore.fromSeed(vault3.keyStore.seed, AddressType.p2wsh);
+
+        MultisignatureVault targetVault1 = MultisignatureVault.fromKeyStoreList(
+            [keyStore1, keyStore2, keyStore3], 3);
+        MultisignatureVault targetVault2 =
+            MultisignatureVault.fromKeyStoreList([keyStore1, keyStore2], 2);
+
+        expect(MockFactory.createP2wshUnsignedPsbt().isForVault(targetVault1),
+            false);
+        expect(MockFactory.createP2wshUnsignedPsbt().isForVault(targetVault2),
+            false);
+      });
+      test('Check if psbt is for taproot vault', () {
+        KeyStore keyStore1 = KeyStore.fromSeed(
+            Seed.fromMnemonic(
+                utf8.encode(
+                    'machine crack daughter fish credit glare raven fever tunnel delay fish record'),
+                passphrase: utf8.encode('A')),
+            AddressType.p2tr);
+        KeyStore keyStore2 = KeyStore.fromSeed(
+            Seed.fromMnemonic(
+                utf8.encode(
+                    'machine crack daughter fish credit glare raven fever tunnel delay fish record'),
+                passphrase: utf8.encode('B')),
+            AddressType.p2tr);
+        TaprootVault childSingleVault =
+            MockFactory.createBeneficiaryVault(passphrase: 'C');
+        Policy policy1 = InheritancePolicy.fromDescriptorAndLocktime(
+            childSingleVault.descriptor, 1767225600);
+        Policy policy2 = InheritancePolicy.fromDescriptorAndLocktime(
+            MockFactory.createBeneficiaryVault(passphrase: 'P2').descriptor,
+            1767225600);
+        Policy policy3 = InheritancePolicy.fromDescriptorAndLocktime(
+            MockFactory.createBeneficiaryVault(passphrase: 'P3').descriptor,
+            1767225600);
+        TaprootVault vault = TaprootVault.fromKeyStoreList(
+            [keyStore1, keyStore2], [policy1, policy2, policy3]);
+        int addressIndex = 1;
+        Utxo utxo = Utxo(
+            '3a371051041b93e19c268a5080a2a98c01e4f281621d39791faeeff61e9208c0',
+            1,
+            21000,
+            "m/86'/1'/0'/0/$addressIndex");
+
+        Transaction tx = Transaction.forSinglePayment([utxo],
+            MockFactory.reveiveAddress, "m/86'/1'/0'/1/0", 20000, 1, vault);
+        TaprootVault childVault =
+            TaprootVault.fromCoordinatorBsms(vault.getCoordinatorBsms());
+        childVault.bindSeedToBeneficiaryKeyStore(
+            childSingleVault.keyStoreList[0].seed);
+        tx.setPolicy(childVault.getSpendablePolicy());
+        Psbt unsignedPsbt = Psbt.fromTransaction(tx, vault);
+        expect(unsignedPsbt.isForVault(vault), true);
+        expect(unsignedPsbt.isForVault(childVault), true);
+        TaprootVault targetVault = TaprootVault.fromKeyStoreList(
+            [keyStore1, keyStore2], [policy1, policy2]);
+        expect(unsignedPsbt.isForVault(targetVault), false);
+      });
+    });
     group('serialize', () {
       test('Get base64 psbt', () {
         final String unsignedSerialized = unsignedPsbt.serialize();

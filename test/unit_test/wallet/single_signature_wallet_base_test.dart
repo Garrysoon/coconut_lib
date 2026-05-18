@@ -61,7 +61,7 @@ void main() {
       test('Sign to psbt', () {
         Psbt psbt = MockFactory.createP2wpkhUnsignedPsbt();
         String signedPsbt = vault.addSignatureToPsbt(psbt.serialize());
-        expect(signedPsbt.hashCode, 222298681);
+        expect(signedPsbt.hashCode, 695547130);
       });
 
       test('throws when psbt address type mismatches', () {

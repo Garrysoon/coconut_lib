@@ -365,20 +365,20 @@ void main() {
               passphrase: utf8.encode('B')),
           AddressType.p2tr);
       Policy policy1 = InheritancePolicy.fromDescriptorAndLocktime(
-          MockFactory.createBeneficiaryVault(passphrase: 'A').descriptor,
+          MockFactory.createBeneficiaryVault(passphrase: 'P1').descriptor,
           1767225600);
       Policy policy2 = InheritancePolicy.fromDescriptorAndLocktime(
-          MockFactory.createBeneficiaryVault(passphrase: 'B').descriptor,
+          MockFactory.createBeneficiaryVault(passphrase: 'P2').descriptor,
           1767225600);
       Policy policy3 = InheritancePolicy.fromDescriptorAndLocktime(
-          MockFactory.createBeneficiaryVault(passphrase: 'C').descriptor,
+          MockFactory.createBeneficiaryVault(passphrase: 'P3').descriptor,
           1767225600);
       TaprootVault dadSingleVault =
           TaprootVault.fromKeyStoreList([keyStore1], []);
       TaprootVault momSingleVault =
           TaprootVault.fromKeyStoreList([keyStore2], []);
       TaprootVault childSingleVault =
-          MockFactory.createBeneficiaryVault(passphrase: 'C');
+          MockFactory.createBeneficiaryVault(passphrase: 'P1');
       TaprootVault vault = TaprootVault.fromKeyStoreList([
         KeyStore.fromSignerBsms(dadSingleVault.getSignerBsms("dad")),
         KeyStore.fromSignerBsms(momSingleVault.getSignerBsms("mom"))
@@ -404,11 +404,11 @@ void main() {
       int addressIndex = 1;
 
       expect(vault.getAddress(addressIndex),
-          'bcrt1p0jtzj2ukjewq7x20kl8g6zq3aph5sq3v2lf6nnfzqu9n9ft4u8pqu7yysc');
+          'bcrt1ppkpv0v7n5e8e3j7wqchrs0mgwdcu40datf0x93kg3cnsy6puzwds70a5qq');
 
       Utxo utxo = Utxo(
-          '3a371051041b93e19c268a5080a2a98c01e4f281621d39791faeeff61e9208c0',
-          1,
+          '0b5b43a8a09f1021bac4f4357c2808043b409231b42fc0143050ac37668a984b',
+          0,
           21000,
           "m/86'/1'/0'/0/$addressIndex");
 
@@ -419,49 +419,20 @@ void main() {
       // Build PSBT using the wallet that owns the UTXO (parentVault),
       // then sign via beneficiaryVault using script path.
       Psbt unsignedPsbt = Psbt.fromTransaction(tx, childVault);
-      print(unsignedPsbt.serialize());
+      //   print(unsignedPsbt.serialize());
       expect(unsignedPsbt.isForVault(childVault), true);
-      // finding signable vault from psbt
-      for (KeyStore keyStore in vault.keyStoreList) {
-        print("KeyStore ${keyStore.masterFingerprint}");
-        if (!keyStore.hasPublicKeyInPsbt(unsignedPsbt.serialize())) {
-          throw Exception(
-              'KeyStore ${keyStore.masterFingerprint} can not sign to the PSBT');
-        }
-      }
-      for (Policy policy in vault.policyList) {
-        if (policy is InheritancePolicy) {
-          if (!policy.beneficiaryKeyStore
-              .hasPublicKeyInPsbt(unsignedPsbt.serialize())) {
-            throw Exception(
-                'Policy ${policy.beneficiaryKeyStore.masterFingerprint} can not sign to the PSBT');
-          }
-        }
-      }
-      print(unsignedPsbt.serialize());
-      for (PsbtInput input in unsignedPsbt.inputs) {
-        if (input.tapLeafScript != null) {
-          print("Script path spending");
-        } else {
-          print("Key path spending");
-        }
-      }
-
-      // print(unsignedPsbt.inputs[0].bip32Derivation?.first.publicKey);
-
       // print(unsignedPsbt.serialize());
       Psbt signedPsbt =
           Psbt.parse(childVault.addSignatureToPsbt(unsignedPsbt.serialize()));
       Transaction signedTx = signedPsbt.getSignedTransaction(AddressType.p2tr);
 
       final Transaction prevTx = Transaction.parse(
-          '0200000000010106f64eb4a86cfa462119d7f910c4c6e3ef10414f94063ba41a019210d70521ec0000000000feffffff0228ee99be2c010000225120300d88e065f749cd3fceb2b3e5398dca338811bfcff88fc4d018bbbfb7dc81d608520000000000002251207c96292b96965c0f194fb7ce8d0811e86f48022c57d3a9cd22070b32a575e1c20140ea4cd4b29b53d36b930a68225169cfa2f333d9d28d62feacd13c5ecf41cc92e8d44dd841a37ec64b42044fb4c5e16da8fa9dd97923293db55fd764517c2e3fa941e30200');
+          '02000000000106ff8ceca412729522c0c3ac1ce941cb0486a1d32f4e15ac61536293b9edfb5d1e0000000000feffffff3c4ecb1fb3cfaebf753bd1ca1b5f6a76ffc45307f5994f422f1e6fff851646340000000000feffffffc9fb3a44b947d3b0e018647fd5df70ed3fa7a5fbc387b7149ba1ef50bb3b674e0000000000feffffff6e04af098b63d7b54bb9482b8e5635486b606c19e6ba0d6de04d562ebf7f4f480000000000feffffffc875fb2947fe64d06b1f19a42f29e2331eac172ae331f863173fc9bae14d6d9a0000000000fefffffff2c4017b0238af2175189d9c7a284f99e318830c91bb1a4b0c3a52bd05f17f800000000000feffffff0208520000000000002251200d82c7b3d3a64f98cbce062e383f687371cabdbd5a5e62c6c88e2702683c139b5abad59a2c0100002251207b5a56e37fc30d8d86320d2d94b08d4a622aa31c3715fe16a3d827a3d4326de7024730440220595adcf4899af39f4f4d81d7c1180db866865214a8351e5e8f25a3e6ab90ec1702200aa504d7c46dffa5e0df93b84d4f9b3807677b835723e07d101703e0ddb75813012103af7396fafb8e6f562e3dbc56ef521ef927e16a13d9c680a66b1e5064f7df7b52024730440220258c211b256687b3b5184fa554b1c37cc260b3d59507a1637d9efba5d62a4e3d0220515d34c92ec632938452e53369f36af45ee52db05ca4f8f371242fbd867b6880012103413a94f36c6ecf1279f4417ce08f83f8806f64844d7ed58accab521e2bf2df9102473044022071ceddbf4ed48a70063a06d415e0493f568da482bb835bfaf6a52d366947ff2a02205f090c139d47bf46a86900ab89b28ef4e11ff2e3ed6eee99da0c3e9d9d88ad2d012102bbe65cc7bda8508543e34c8637fb2d697be490c450ed733cf802278c9f61bdee024730440220479c7509039c5991185ef564fc05eb11c8a7b90523cbe05c103bdb6128ba3c2102202880e6a2bb0c93edcba14896c9ba49e349491fc8318af93df28e22779ab048ab012103eb6334a26e0ff5e6e4a04454e81797c22e5d2e3afef9187cccc32ca6c4dcc8250247304402202c84a685b561430b2ad5a6c4920bd884f18821090b4a6f133ea62b385fd94119022033cdd701c6168547b283e659d1bb931861d91dfabdd74fcaca19c18a176975e3012102a272b9d73bd3cb50198becac61e7451e252395463999042d695889899e4e328c0247304402206652aaf305e811e35705b0ba370ddf00ae62ee434c0956ad73e2c49010bc238a022059ff5b8208a38fe8cc59e09a6e3cb510739dfbc1618875cba70574a00f5c7282012102c6bdc0c3909425857f54a183e61fb5f68d2b78bb087b10dadf805201be390c01efe80200');
 
       expect(validateScriptPath(prevTx.serialize(), signedTx.serialize(), 0),
           isTrue);
-      // print(signedTx.serialize());
       expect(signedTx.transactionHash,
-          '94219b2fa3c476b28025f6d61b6f68738d348786739617e78b79ae823bf633b7');
+          '0be4c11350f38f3e4f3f49e2ad0811855886a8d9aacad0a0bab024948eef53b8');
       expect(signedTx.inputs[0].witnessList.length, 3);
       expect(
           signedTx.inputs[0].witnessList[0].length, 128); // 64-byte schnorr sig

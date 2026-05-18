@@ -80,6 +80,12 @@ class Psbt {
   /// @nodoc
   List<DerivationPath> extendedPublicKeyList = [];
 
+  /// @nodoc
+  bool isFromCoconut = false;
+
+  /// @nodoc
+  String? identifier;
+
   /// Get the fee of the transaction.
   int get fee => () {
         int totalInput = 0;
@@ -141,31 +147,60 @@ class Psbt {
       if (globalExtendedPublicKeyList.first.path != wallet.derivationPath) {
         return false;
       }
+      if (isFromCoconut == true &&
+          (identifier != Codec.encodeHex(Hash.sha256(wallet.descriptor)))) {
+        return false;
+      }
       return true;
     } else if (wallet is MultisignatureVault) {
-      for (DerivationPath derivationPath in globalExtendedPublicKeyList) {
-        if (wallet.keyStoreList.any((keyStore) =>
-            keyStore.extendedPublicKey.serializeForPsbt(toXpub: true) ==
-            derivationPath.publicKey)) {
-          return true;
-        }
+      if (wallet.keyStoreList.length != globalExtendedPublicKeyList.length) {
+        return false;
       }
-      return false;
+      List<String> pubInVaultList = [];
+      for (KeyStore keyStore in wallet.keyStoreList) {
+        pubInVaultList
+            .add(keyStore.extendedPublicKey.serializeForPsbt(toXpub: true));
+      }
+      List<String> pubInPsbtList = [];
+      for (DerivationPath derivationPath in globalExtendedPublicKeyList) {
+        pubInPsbtList.add(derivationPath.publicKey);
+      }
+      pubInPsbtList.sort();
+      pubInVaultList.sort();
+      if (pubInVaultList.join('') != pubInPsbtList.join('')) {
+        print('pubInVaultList: $pubInVaultList');
+        print('pubInPsbtList: $pubInPsbtList');
+        return false;
+      }
+      if (wallet.requiredSignature !=
+          inputs[0].witnessScript!.getRequiredSignature()) {
+        return false;
+      }
+      if (isFromCoconut == true &&
+          (identifier != Codec.encodeHex(Hash.sha256(wallet.descriptor)))) {
+        return false;
+      }
+      return true;
     } else if (wallet is TaprootVault) {
-      List<KeyStore> keyStoreList = wallet.keyStoreList;
+      List<String> pubInVaultList = [];
+      for (KeyStore keyStore in wallet.keyStoreList) {
+        pubInVaultList
+            .add(keyStore.extendedPublicKey.serializeForPsbt(toXpub: true));
+      }
       for (Policy policy in wallet.policyList) {
         if (policy is InheritancePolicy) {
-          keyStoreList.add(policy.beneficiaryKeyStore);
+          pubInVaultList.add(policy.beneficiaryKeyStore.extendedPublicKey
+              .serializeForPsbt(toXpub: true));
         }
       }
-      for (KeyStore keyStore in keyStoreList) {
-        if (globalExtendedPublicKeyList.any((derivationPath) =>
-            derivationPath.publicKey ==
-            keyStore.extendedPublicKey.serializeForPsbt(toXpub: true))) {
-          return true;
-        }
+      if (pubInVaultList.length != globalExtendedPublicKeyList.length) {
+        return false;
       }
-      return false;
+      if (isFromCoconut == true &&
+          (identifier != Codec.encodeHex(Hash.sha256(wallet.descriptor)))) {
+        return false;
+      }
+      return true;
     } else {
       return false;
     }
@@ -187,6 +222,10 @@ class Psbt {
             .add(DerivationPath(publicKey, masterFingerprint, derivationPath));
         globalExtendedPublicKeyList
             .add(DerivationPath(publicKey, masterFingerprint, derivationPath));
+      }
+      if (key.startsWith('fc07636f636f6e757401')) {
+        isFromCoconut = true;
+        identifier = psbtMap["global"][key];
       }
     });
 
@@ -539,6 +578,8 @@ class Psbt {
 
     //Global
     Map<String, dynamic> globalData = {};
+    globalData["fc07636f636f6e757401"] =
+        Codec.encodeHex(Hash.sha256(wallet.descriptor));
     String txKey = getKeyType(globalKeyType, 'UNSIGNED_TX');
     globalData[txKey] = tx._serializeLegacy(); //old serialze format BIP0174
 

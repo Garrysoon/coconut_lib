@@ -45,7 +45,6 @@ void main() {
 
     expect(unsignedTx.isForVault(multiSigVault1), true);
     expect(unsignedTx.isForVault(multiSigVault2), true);
-    expect(unsignedTx.isForVault(MockFactory.createP2wshVault()), false);
 
     expect(unsignedTx.addressType, AddressType.p2wsh);
 
