@@ -1101,7 +1101,7 @@ class Transaction {
 
     if (changeOutput == null) {
       changeOutput = TransactionOutput.forPayment(0, changeAddress,
-          derivationPath: changeAddressDerivationPath);
+          derivationPath: changeAddressDerivationPath, isChangeOutput: true);
       outputs.add(changeOutput);
     }
 
@@ -1148,7 +1148,7 @@ class Transaction {
 
     TransactionOutput changeOutput = TransactionOutput.forPayment(
         0, changeAddress,
-        derivationPath: changeAddressDerivationPath);
+        derivationPath: changeAddressDerivationPath, isChangeOutput: true);
     for (TransactionOutput output in outputs) {
       if (output.scriptPubKey.getAddress() == changeAddress) {
         changeOutput = output;
@@ -1196,7 +1196,7 @@ class Transaction {
           wallet.getAddressWithDerivationPath(changeAddressDerivationPath!);
       TransactionOutput changeOutput = TransactionOutput.forPayment(
           0, changeAddress,
-          derivationPath: changeAddressDerivationPath);
+          derivationPath: changeAddressDerivationPath, isChangeOutput: true);
 
       for (TransactionOutput output in outputs) {
         if (output.scriptPubKey.getAddress() == changeAddress) {
