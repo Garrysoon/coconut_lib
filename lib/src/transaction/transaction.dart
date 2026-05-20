@@ -107,7 +107,7 @@ class Transaction {
     }
     TransactionOutput changeOutput = TransactionOutput.forPayment(
         0, changeAddress,
-        derivationPath: changeAddressDerivationPath);
+        isChangeOutput: true, derivationPath: changeAddressDerivationPath);
     outputs.add(changeOutput);
 
     Transaction tx = Transaction.withInputsAndOutputs(

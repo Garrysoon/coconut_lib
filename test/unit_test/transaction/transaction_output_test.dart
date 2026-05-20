@@ -40,10 +40,9 @@ void main() {
         TransactionOutput output =
             TransactionOutput.forPayment(amount, address);
         expect(output.isChangeOutput, false);
-        output.derivationPath = "m/84'/1'/0'/1/0";
+        output =
+            TransactionOutput.forPayment(amount, address, isChangeOutput: true);
         expect(output.isChangeOutput, true);
-        output.derivationPath = "m/84'/1'/0'/0/0";
-        expect(output.isChangeOutput, false);
       });
     });
     group('setAmount', () {
