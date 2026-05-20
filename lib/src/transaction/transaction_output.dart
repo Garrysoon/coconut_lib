@@ -16,6 +16,14 @@ class TransactionOutput {
   /// The length of the transaction output.
   int get length => _amount.length + _scriptPubKey.length;
 
+  ///
+  bool get isChangeOutput {
+    if (derivationPath == null) {
+      return false;
+    }
+    return WalletUtility.isChangeFromDerivationPath(derivationPath!);
+  }
+
   /// @nodoc
   TransactionOutput(this._amount, this._scriptPubKey, {this.derivationPath});
 

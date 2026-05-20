@@ -33,6 +33,19 @@ void main() {
         expect(output.length, 31);
       });
     });
+    group('isChangeOutput', () {
+      test('Check if the output is a change output', () {
+        String address = 'bc1qkfr6qzkvrnpvpd97p57r3krxl8qg6fz24nzjsa';
+        int amount = 1000;
+        TransactionOutput output =
+            TransactionOutput.forPayment(amount, address);
+        expect(output.isChangeOutput, false);
+        output.derivationPath = "m/84'/1'/0'/1/0";
+        expect(output.isChangeOutput, true);
+        output.derivationPath = "m/84'/1'/0'/0/0";
+        expect(output.isChangeOutput, false);
+      });
+    });
     group('setAmount', () {
       test('Set amount of transaction output', () {
         String address = 'bc1qkfr6qzkvrnpvpd97p57r3krxl8qg6fz24nzjsa';
