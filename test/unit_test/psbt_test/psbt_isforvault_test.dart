@@ -12,6 +12,71 @@ void main() {
       NetworkType.setNetworkType(NetworkType.regtest);
     });
 
+    test('matches only the single signature vault that owns the key', () {
+      final SingleSignatureVault vaultA = MockFactory.createP2wpkhVault();
+      final SingleSignatureVault vaultB =
+          MockFactory.createP2wpkhVault(passphrase: 'vaultB');
+
+      final Transaction txForA = Transaction.forSinglePayment(
+          MockFactory.createUtxoList(count: 1),
+          vaultA.getAddress(1),
+          '${vaultA.derivationPath}/1/1',
+          15000,
+          3,
+          vaultA);
+      final Psbt psbtForVaultA = Psbt.fromTransaction(txForA, vaultA);
+
+      expect(psbtForVaultA.isForVault(vaultA), isTrue);
+      expect(psbtForVaultA.isForVault(vaultB), isFalse);
+    });
+
+    test('distinguishes multisig vaults with same keys but different required signers', () {
+      final SingleSignatureVault signerA =
+          MockFactory.createP2wpkhVault(passphrase: 'A');
+      final SingleSignatureVault signerB =
+          MockFactory.createP2wpkhVault(passphrase: 'B');
+      final SingleSignatureVault signerC =
+          MockFactory.createP2wpkhVault(passphrase: 'C');
+
+      final KeyStore keyStoreA =
+          KeyStore.fromSeed(signerA.keyStore.seed, AddressType.p2wsh);
+      final KeyStore keyStoreB =
+          KeyStore.fromSeed(signerB.keyStore.seed, AddressType.p2wsh);
+      final KeyStore keyStoreC =
+          KeyStore.fromSeed(signerC.keyStore.seed, AddressType.p2wsh);
+      final List<KeyStore> keyStores = [keyStoreA, keyStoreB, keyStoreC];
+
+      final MultisignatureVault vault2Of3 =
+          MultisignatureVault.fromKeyStoreList(keyStores, 2);
+      final MultisignatureVault vault3Of3 =
+          MultisignatureVault.fromKeyStoreList(keyStores, 3);
+
+      final Transaction txFor2Of3 = Transaction.forSinglePayment(
+          MockFactory.createUtxoList(
+              count: 1, derivationPath: "${vault2Of3.derivationPath}/0/0"),
+          vault2Of3.getAddress(1),
+          '${vault2Of3.derivationPath}/1/1',
+          15000,
+          3,
+          vault2Of3);
+      final Psbt psbtFor2Of3 = Psbt.fromTransaction(txFor2Of3, vault2Of3);
+
+      final Transaction txFor3Of3 = Transaction.forSinglePayment(
+          MockFactory.createUtxoList(
+              count: 1, derivationPath: "${vault3Of3.derivationPath}/0/0"),
+          vault3Of3.getAddress(1),
+          '${vault3Of3.derivationPath}/1/1',
+          15000,
+          3,
+          vault3Of3);
+      final Psbt psbtFor3Of3 = Psbt.fromTransaction(txFor3Of3, vault3Of3);
+
+      expect(psbtFor2Of3.isForVault(vault2Of3), isTrue);
+      expect(psbtFor2Of3.isForVault(vault3Of3), isFalse);
+      expect(psbtFor3Of3.isForVault(vault2Of3), isFalse);
+      expect(psbtFor3Of3.isForVault(vault3Of3), isTrue);
+    });
+
     test('matches only the exact taproot vault parent and child key set', () {
       final KeyStore parentA1 = KeyStore.fromSeed(
           Seed.fromMnemonic(
