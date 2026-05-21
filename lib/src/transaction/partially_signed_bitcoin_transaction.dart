@@ -417,7 +417,7 @@ class Psbt {
         }
         inputs.add(input);
       } else {
-        inputs.add(PsbtInput.forSignatureOnly(partialSigList,
+        inputs.add(PsbtInput.forSignatureOnly(witnessUtxo, partialSigList,
             witnessScript: witnessScript));
       }
     }
@@ -1295,7 +1295,8 @@ class PsbtInput {
   PsbtInput.forSegwit(this.witnessUtxo, this.bip32Derivation, this.partialSig,
       {this.witnessScript, this.tapKeySig});
 
-  PsbtInput.forSignatureOnly(this.partialSig, {this.witnessScript});
+  PsbtInput.forSignatureOnly(this.witnessUtxo, this.partialSig,
+      {this.witnessScript});
 
   PsbtInput.forMuSig2(
       this.internalKey,
