@@ -237,6 +237,122 @@ void main() {
       expect(signedTx.transactionHash, '65cad85bcc9ccb1b69197061a426a94f83e72fb24d50e7a8f878f48580ed02b2');
     });
 
+    test('P2TR key-path wallet with one key signs transaction', () {
+      TaprootVault vault = MockFactory.createP2trKeyPathSpendingVault();
+      int addressIndex = 0;
+
+      expect(vault.keyStoreList.length, 1);
+
+      Transaction prevTx = Transaction.withInputsAndOutputs(
+        [
+          TransactionInput.forPayment(
+            '0000000000000000000000000000000000000000000000000000000000000000',
+            0,
+          )
+        ],
+        [TransactionOutput.forPayment(21000, vault.getAddress(addressIndex))],
+        AddressType.p2tr,
+      );
+      Utxo utxo =
+          Utxo(prevTx.transactionHash, 0, 21000, "m/86'/1'/0'/0/$addressIndex");
+
+      Transaction tx =
+          Transaction.forSinglePayment([utxo], MockFactory.reveiveAddress, "m/86'/1'/0'/1/0", 20000, 1, vault);
+      Psbt unsignedPsbt = Psbt.fromTransaction(tx, vault);
+
+      expect(unsignedPsbt.isForVault(vault), isTrue);
+      expect(unsignedPsbt.addressType, AddressType.p2tr);
+
+      Psbt signedPsbt = Psbt.parse(vault.addSignatureToPsbt(unsignedPsbt.serialize()));
+      Transaction signedTx = signedPsbt.getSignedTransaction(vault.addressType);
+
+      expect(validateKeyPath(prevTx.serialize(), signedTx.serialize(), 0), isTrue);
+      expect(signedTx.inputs[0].witnessList.length, 1);
+      expect(signedTx.inputs[0].witnessList[0].length, 128);
+    });
+
+    test('P2TR inheritance child cannot sign key-path transaction without policy', () {
+      KeyStore parentKeyStore = KeyStore.fromSeed(
+          Seed.fromMnemonic(
+              utf8.encode('machine crack daughter fish credit glare raven fever tunnel delay fish record'),
+              passphrase: utf8.encode('parent')),
+          AddressType.p2tr);
+      TaprootVault childSingleVault = MockFactory.createBeneficiaryVault(passphrase: 'child');
+      Policy inheritancePolicy =
+          InheritancePolicy.fromDescriptorAndLocktime(childSingleVault.descriptor, 1767225600);
+
+      TaprootVault parentSingleVault = TaprootVault.fromKeyStoreList([parentKeyStore], []);
+      TaprootVault vault = TaprootVault.fromKeyStoreList(
+          [KeyStore.fromSignerBsms(parentSingleVault.getSignerBsms('parent'))], [inheritancePolicy]);
+      TaprootVault childVault = TaprootVault.fromCoordinatorBsms(vault.getCoordinatorBsms());
+      childVault.bindSeedToBeneficiaryKeyStore(childSingleVault.keyStoreList[0].seed);
+
+      int addressIndex = 0;
+      Transaction prevTx = Transaction.withInputsAndOutputs(
+        [
+          TransactionInput.forPayment(
+            '0000000000000000000000000000000000000000000000000000000000000000',
+            0,
+          )
+        ],
+        [TransactionOutput.forPayment(21000, vault.getAddress(addressIndex))],
+        AddressType.p2tr,
+      );
+      Utxo utxo =
+          Utxo(prevTx.transactionHash, 0, 21000, "m/86'/1'/0'/0/$addressIndex");
+      Transaction tx =
+          Transaction.forSinglePayment([utxo], MockFactory.reveiveAddress, "m/86'/1'/0'/1/0", 20000, 1, childVault);
+
+      Psbt unsignedPsbt = Psbt.fromTransaction(tx, childVault);
+
+      expect(unsignedPsbt.inputs[0].tapLeafScript, isNull);
+      expect(() => childVault.addSignatureToPsbt(unsignedPsbt.serialize()), throwsException);
+    });
+
+    test('P2TR inheritance parent cannot sign script-path transaction after setPolicy', () {
+      KeyStore parentKeyStore = KeyStore.fromSeed(
+          Seed.fromMnemonic(
+              utf8.encode('machine crack daughter fish credit glare raven fever tunnel delay fish record'),
+              passphrase: utf8.encode('parent')),
+          AddressType.p2tr);
+      TaprootVault childSingleVault = MockFactory.createBeneficiaryVault(passphrase: 'child');
+      Policy inheritancePolicy =
+          InheritancePolicy.fromDescriptorAndLocktime(childSingleVault.descriptor, 1767225600);
+
+      TaprootVault parentSingleVault = TaprootVault.fromKeyStoreList([parentKeyStore], []);
+      TaprootVault vault = TaprootVault.fromKeyStoreList(
+          [KeyStore.fromSignerBsms(parentSingleVault.getSignerBsms('parent'))], [inheritancePolicy]);
+      TaprootVault parentVault = TaprootVault.fromCoordinatorBsms(vault.getCoordinatorBsms());
+      parentVault.bindSeedToKeyStore(parentKeyStore.seed);
+
+      TaprootVault childVault = TaprootVault.fromCoordinatorBsms(vault.getCoordinatorBsms());
+      childVault.bindSeedToBeneficiaryKeyStore(childSingleVault.keyStoreList[0].seed);
+      TaprootWallet wallet = TaprootWallet.fromDescriptor(vault.descriptor);
+      final walletPolicy = wallet.policyList[0];
+
+      int addressIndex = 0;
+      Transaction prevTx = Transaction.withInputsAndOutputs(
+        [
+          TransactionInput.forPayment(
+            '0000000000000000000000000000000000000000000000000000000000000000',
+            0,
+          )
+        ],
+        [TransactionOutput.forPayment(21000, vault.getAddress(addressIndex))],
+        AddressType.p2tr,
+      );
+      Utxo utxo =
+          Utxo(prevTx.transactionHash, 0, 21000, "m/86'/1'/0'/0/$addressIndex");
+      Transaction tx =
+          Transaction.forSinglePayment([utxo], MockFactory.reveiveAddress, "m/86'/1'/0'/1/0", 20000, 1, childVault);
+      tx.setPolicy(walletPolicy);
+
+      Psbt unsignedPsbt = Psbt.fromTransaction(tx, childVault);
+
+      expect(unsignedPsbt.inputs[0].tapLeafScript, isNotNull);
+      expect(() => parentVault.addSignatureToPsbt(unsignedPsbt.serialize()), throwsException);
+    });
+
     test('P2TR MuSig2 spending (parent multisig spending)', () {
       KeyStore keyStore1 = KeyStore.fromSeed(
           Seed.fromMnemonic(
@@ -288,9 +404,11 @@ void main() {
       print(vaultNoncePsbt);
       String dadNoncePsbt = dadVault.addPublicNonce(unsignedPsbt.serialize());
       String momNoncePsbt = momVault.addPublicNonce(dadNoncePsbt);
-      String dadSignedPsbt = dadVault.addSignatureToPsbt(momNoncePsbt);
-      Psbt momSignedPsbt = Psbt.parse(momVault.addSignatureToPsbt(dadSignedPsbt));
-      Transaction signedTx = momSignedPsbt.getSignedTransaction(dadVault.addressType);
+      String momSignedPsbt = momVault.addSignatureToPsbt(momNoncePsbt);
+      String dadSignedPsbt = dadVault.addSignatureToPsbt(momSignedPsbt);
+      Psbt signedPsbt = Psbt.parse(dadSignedPsbt);
+      //Psbt momSignedPsbt = Psbt.parse(momVault.addSignatureToPsbt(dadSignedPsbt));
+      Transaction signedTx = signedPsbt.getSignedTransaction(dadVault.addressType);
 
       // print(signedTx.serialize());
       String prevTx =
@@ -348,12 +466,21 @@ void main() {
 
       Transaction tx =
           Transaction.forSinglePayment([utxo], MockFactory.reveiveAddress, "m/86'/1'/0'/1/0", 20000, 1, childVault);
-      tx.setPolicy(childVault.getSpendablePolicy());
+
+      TaprootWallet wallet = TaprootWallet.fromDescriptor(vault.descriptor);
+      
+      final noPolicyPsbt = Psbt.fromTransaction(tx, childVault);
+      expect(noPolicyPsbt.inputs.any((input) => input.tapLeafScript != null), isFalse);
+
+      final walletPolicy = wallet.policyList[1];
+      
+      tx.setPolicy(walletPolicy);
 
       // Build PSBT using the wallet that owns the UTXO (parentVault),
       // then sign via beneficiaryVault using script path.
       Psbt unsignedPsbt = Psbt.fromTransaction(tx, childVault);
       //   print(unsignedPsbt.serialize());
+      expect(unsignedPsbt.inputs.any((input) => input.tapLeafScript != null), isTrue);
 
       SingleSignatureVault singleSignatureVault = SingleSignatureVault.fromSeed(Seed.fromMnemonic(
           utf8.encode('machine crack daughter fish credit glare raven fever tunnel delay fish record'),
