@@ -197,7 +197,11 @@ abstract class WalletUtility {
 
   static double estimateVirtualByte(
       AddressType addressType, int numberOfInputs, int numberOfOutputs,
-      {int? requiredSignature, int? totalSigner}) {
+      {int? requiredSignature,
+      int? totalSigner,
+      bool isScriptPath = false,
+      int? leafCount,
+      int? tapScriptSize}) {
     final int baseByte = 12;
     final int inputSize = 41;
     final int outputSize = 34;
@@ -232,12 +236,62 @@ abstract class WalletUtility {
         witnessSize += scriptSize;
         witnessSize += totalSigner + 1; //script size
       }
+    } else if (addressType == AddressType.p2tr) {
+      nonWitnessSize += numberOfInputs * inputSize;
+      nonWitnessSize += numberOfOutputs * outputSize;
+
+      if (!isScriptPath) {
+        // Key path spending: 코사이너 키를 몇 개 모았든 MuSig으로 집계되어
+        // 최종 서명은 1개뿐이므로 키 개수는 witness 크기에 영향을 주지 않는다.
+        witnessSize = numberOfInputs * (signatureSize + 1); // +1: 스택 항목 수
+      } else {
+        // Script path spending
+        if (leafCount == null || tapScriptSize == null) {
+          throw ArgumentError(
+              'leafCount and tapScriptSize are required for taproot script path');
+        }
+        final int sigCount = requiredSignature ?? 1; // leaf가 요구하는 서명 수
+
+        final int merklePathLen = _estimateTaprootMerklePath(leafCount);
+        final int controlBlockSize = 33 + 32 * merklePathLen;
+
+        final int tapScriptElementSize =
+            Codec.encodeVariableInteger(tapScriptSize).length + tapScriptSize;
+        final int controlBlockElementSize =
+            Codec.encodeVariableInteger(controlBlockSize).length +
+                controlBlockSize;
+
+        witnessSize = 0;
+        for (int i = 0; i < numberOfInputs; i++) {
+          witnessSize += 1; // 스택 항목 수
+          witnessSize += sigCount * signatureSize; // 서명들 (각 65)
+          witnessSize += tapScriptElementSize; // tapscript
+          witnessSize += controlBlockElementSize; // control block
+        }
+      }
     } else {
       throw Exception('Unsupported address type');
     }
 
     double vByte = ((nonWitnessSize * 4) + witnessSize) / 4;
     return vByte;
+  }
+
+  /// taproot script path의 control block 크기 계산을 위해 spend되는 leaf의
+  /// merkle path 깊이를 추정한다.
+  ///
+  /// 이 라이브러리의 taptree 구성은 한 레벨의 노드 수가 홀수일 때 마지막 노드를
+  /// 해싱 없이 다음 레벨로 승격시키므로, leaf의 merkle path 길이는 어느 leaf를
+  /// spend하는지에 따라 달라진다. 수수료 추정에서는 "마지막 leaf"를 가정한다.
+  static int _estimateTaprootMerklePath(int leafCount) {
+    if (leafCount <= 1) return 0;
+    int pathLen = 0;
+    int levelSize = leafCount;
+    while (levelSize > 1) {
+      if (levelSize.isEven) pathLen += 1;
+      levelSize = (levelSize + 1) ~/ 2; // ceil(n/2)
+    }
+    return pathLen;
   }
 
   bool compareUint8List(Uint8List list1, Uint8List list2) {
