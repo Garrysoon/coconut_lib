@@ -201,10 +201,11 @@ abstract class WalletUtility {
       int? totalSigner,
       bool isScriptPath = false,
       int? leafCount,
-      int? tapScriptSize}) {
+      int? tapScriptSize,
+      int? totalOutputBytes}) {
     final int baseByte = 12;
     final int inputSize = 41;
-    final int outputSize = 34;
+    final int outputNonWitnessBytes = totalOutputBytes ?? numberOfOutputs * 34;
     int signatureSize = 73;
     int pubKeySize = 34;
 
@@ -216,7 +217,7 @@ abstract class WalletUtility {
     }
     if (addressType == AddressType.p2wpkh) {
       nonWitnessSize += numberOfInputs * inputSize;
-      nonWitnessSize += numberOfOutputs * outputSize;
+      nonWitnessSize += outputNonWitnessBytes;
       witnessSize = numberOfInputs * (signatureSize + pubKeySize + 1);
     } else if (addressType == AddressType.p2wsh) {
       if (requiredSignature == null || totalSigner == null) {
@@ -224,7 +225,7 @@ abstract class WalletUtility {
             'requiredSignature and totalSignature is required for p2wsh');
       }
       nonWitnessSize += numberOfInputs * inputSize;
-      nonWitnessSize += numberOfOutputs * outputSize;
+      nonWitnessSize += outputNonWitnessBytes;
 
       // 각 입력당 witness 크기 계산
       for (int i = 0; i < numberOfInputs; i++) {
@@ -238,7 +239,7 @@ abstract class WalletUtility {
       }
     } else if (addressType == AddressType.p2tr) {
       nonWitnessSize += numberOfInputs * inputSize;
-      nonWitnessSize += numberOfOutputs * outputSize;
+      nonWitnessSize += outputNonWitnessBytes;
 
       if (!isScriptPath) {
         // Key path spending: 코사이너 키를 몇 개 모았든 MuSig으로 집계되어
