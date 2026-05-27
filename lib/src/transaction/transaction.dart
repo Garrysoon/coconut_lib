@@ -84,7 +84,8 @@ class Transaction {
       double feeRate,
       WalletBase wallet,
       {int version = 2,
-      int lockTime = 0}) {
+      int lockTime = 0,
+      Policy? policy}) {
     int totalInputAmount = 0;
     List<TransactionInput> inputs = [];
     List<TransactionOutput> outputs = [];
@@ -113,20 +114,13 @@ class Transaction {
     Transaction tx = Transaction.withInputsAndOutputs(
         inputs, outputs, wallet.addressType,
         version: version, lockTime: lockTime);
+    if (policy != null) {
+      tx.setPolicy(policy);
+    }
 
     // print("Input : ${tx.inputs.length}, Output : ${tx.outputs.length}");
 
-    double vByte = 0.0;
-    //todo: add taproot virtual byte calculation
-    if (!wallet.addressType.isMultisignature) {
-      vByte = tx.estimateVirtualByte(wallet.addressType);
-    } else {
-      MultisignatureWalletBase multisignatureWallet =
-          wallet as MultisignatureWalletBase;
-      vByte = tx.estimateVirtualByte(wallet.addressType,
-          requiredSignature: multisignatureWallet.requiredSignature,
-          totalSigner: multisignatureWallet.totalSigner);
-    }
+    double vByte = _estimateVirtualByteForWallet(tx, wallet);
 
     int fee = (vByte * feeRate).ceil();
 
@@ -157,17 +151,18 @@ class Transaction {
       double feeRate,
       WalletBase wallet,
       {int version = 2,
-      int lockTime = 0}) {
+      int lockTime = 0,
+      Policy? policy}) {
     Transaction transaction = Transaction.forBatchPayment(utxoList,
         {receiveAddress: amount}, changeAddressDerivationPath, feeRate, wallet,
-        version: version, lockTime: lockTime);
+        version: version, lockTime: lockTime, policy: policy);
     return transaction;
   }
 
   /// Create a transaction for sending all Bitcoin in the wallet.
   factory Transaction.forSweep(
       List<Utxo> utxoList, String address, double feeRate, WalletBase wallet,
-      {int version = 2, int lockTime = 0}) {
+      {int version = 2, int lockTime = 0, Policy? policy}) {
     List<TransactionInput> inputs = [];
     List<TransactionOutput> outputs = [];
     int inputAmount = 0;
@@ -193,21 +188,15 @@ class Transaction {
     Transaction transaction = Transaction.withInputsAndOutputs(
         inputs, outputs, wallet.addressType,
         version: version, lockTime: lockTime);
+    if (policy != null) {
+      transaction.setPolicy(policy);
+    }
 
     transaction._paymentMap = {
       sendingOutput.getAddress(): sendingOutput.amount
     };
 
-    double vByte = 0.0;
-    if (!wallet.addressType.isMultisignature) {
-      vByte = transaction.estimateVirtualByte(wallet.addressType);
-    } else {
-      MultisignatureWalletBase multisignatureWallet =
-          wallet as MultisignatureWalletBase;
-      vByte = transaction.estimateVirtualByte(wallet.addressType,
-          requiredSignature: multisignatureWallet.requiredSignature,
-          totalSigner: multisignatureWallet.totalSigner);
-    }
+    double vByte = _estimateVirtualByteForWallet(transaction, wallet);
 
     int fee = (vByte * feeRate).ceil();
 
@@ -232,7 +221,8 @@ class Transaction {
       double feeRate,
       WalletBase wallet,
       {int version = 2,
-      int lockTime = 0}) {
+      int lockTime = 0,
+      Policy? policy}) {
     int totalInputAmount = 0;
     List<TransactionInput> inputs = [];
     List<TransactionOutput> outputs = [];
@@ -257,19 +247,13 @@ class Transaction {
     Transaction tx = Transaction.withInputsAndOutputs(
         inputs, outputs, wallet.addressType,
         version: version, lockTime: lockTime);
+    if (policy != null) {
+      tx.setPolicy(policy);
+    }
 
     // print("Input : ${tx.inputs.length}, Output : ${tx.outputs.length}");
 
-    double vByte = 0.0;
-    if (!wallet.addressType.isMultisignature) {
-      vByte = tx.estimateVirtualByte(wallet.addressType);
-    } else {
-      MultisignatureWalletBase multisignatureWallet =
-          wallet as MultisignatureWalletBase;
-      vByte = tx.estimateVirtualByte(wallet.addressType,
-          requiredSignature: multisignatureWallet.requiredSignature,
-          totalSigner: multisignatureWallet.totalSigner);
-    }
+    double vByte = _estimateVirtualByteForWallet(tx, wallet);
 
     int fee = (vByte * feeRate).ceil();
 
@@ -288,6 +272,39 @@ class Transaction {
     tx._paymentMap = paymentMap;
     tx._utxoList = utxoList;
     return tx;
+  }
+
+  static double _estimateVirtualByteForWallet(Transaction tx, WalletBase wallet,
+      {int? requiredSignature, int? totalSigner}) {
+    if (wallet.addressType == AddressType.p2tr) {
+      final Policy? spendablePolicy = tx._appliedPolicy;
+      if (spendablePolicy != null) {
+        if (wallet is! TaprootWalletBase) {
+          throw ArgumentError('Taproot policy requires TaprootWalletBase');
+        }
+        return tx.estimateVirtualByte(wallet.addressType,
+            leafCount: wallet.policyList.length);
+      }
+      return tx.estimateVirtualByte(wallet.addressType);
+    }
+
+    if (wallet.addressType.isSingleSignature) {
+      return tx.estimateVirtualByte(wallet.addressType);
+    }
+
+    if (wallet is! MultisignatureWalletBase &&
+        (requiredSignature == null || totalSigner == null)) {
+      throw ArgumentError(
+          'requiredSignature and totalSigner are required for multisig');
+    }
+
+    final int required = wallet is MultisignatureWalletBase
+        ? wallet.requiredSignature
+        : requiredSignature!;
+    final int total =
+        wallet is MultisignatureWalletBase ? wallet.totalSigner : totalSigner!;
+    return tx.estimateVirtualByte(wallet.addressType,
+        requiredSignature: required, totalSigner: total);
   }
 
   /// Parse the transaction.
@@ -1105,8 +1122,10 @@ class Transaction {
       outputs.add(changeOutput);
     }
 
-    int fee = estimateFee(feeRate, wallet.addressType,
-        requiredSignature: requiredSignature, totalSigner: totalSigner);
+    int fee = (_estimateVirtualByteForWallet(this, wallet,
+                requiredSignature: requiredSignature, totalSigner: totalSigner) *
+            feeRate)
+        .ceil();
     int changeAmount = totalInputAmount - _getTotalSendingAmount() - fee;
     if (changeAmount < 0) {
       outputs.remove(changeOutput);
@@ -1164,8 +1183,10 @@ class Transaction {
       }
     }
     _utxoList.remove(utxoToRemove);
-    int fee = estimateFee(feeRate, wallet.addressType,
-        requiredSignature: requiredSignature, totalSigner: totalSigner);
+    int fee = (_estimateVirtualByteForWallet(this, wallet,
+                requiredSignature: requiredSignature, totalSigner: totalSigner) *
+            feeRate)
+        .ceil();
     int changeAmount = totalInputAmount - _getTotalSendingAmount() - fee;
     if (changeAmount < 0) {
       outputs.remove(changeOutput);
@@ -1180,8 +1201,10 @@ class Transaction {
 
   void updateFeeRate(double feeRate, WalletBase wallet,
       {int? requiredSignature, int? totalSigner}) {
-    int fee = estimateFee(feeRate, wallet.addressType,
-        requiredSignature: requiredSignature, totalSigner: totalSigner);
+    int fee = (_estimateVirtualByteForWallet(this, wallet,
+                requiredSignature: requiredSignature, totalSigner: totalSigner) *
+            feeRate)
+        .ceil();
 
     if (outputs.length == 1) {
       if (outputs[0].amount <= fee) {

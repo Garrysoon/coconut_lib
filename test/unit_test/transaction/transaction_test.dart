@@ -374,6 +374,36 @@ void main() {
                 leafCount: parentVault.policyList.length),
             169.25);
       });
+
+      test('Create p2tr script path transaction with policy fee', () {
+        TaprootVault parentVault = MockFactory.createP2trVaultWithPolicies();
+        TaprootVault childVault =
+            MockFactory.createBeneficiaryVault(passphrase: 'C');
+        TaprootVault beneficiaryVault =
+            TaprootVault.fromDescriptor(parentVault.descriptor);
+        beneficiaryVault
+            .bindSeedToBeneficiaryKeyStore(childVault.keyStoreList[0].seed);
+
+        Utxo utxo = Utxo(
+            '4518033c0c22e2fafd5779d5f5c4e4df4849730581d5d93658de18444b1080d6',
+            1,
+            21000,
+            "m/86'/1'/0'/0/1");
+
+        Transaction tx = Transaction.forSinglePayment(
+            [utxo],
+            MockFactory.reveiveAddress,
+            "m/86'/1'/0'/1/0",
+            20000,
+            1,
+            beneficiaryVault,
+            policy: beneficiaryVault.getSpendablePolicy());
+        expect(
+            tx.estimateVirtualByte(AddressType.p2tr,
+                leafCount: parentVault.policyList.length),
+            169.25);
+        expect(tx.outputs[1].amount, 830);
+      });
     });
     group('estimateFee', () {
       test('Get estimated fee', () {
