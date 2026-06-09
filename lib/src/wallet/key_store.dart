@@ -309,11 +309,6 @@ class KeyStore {
             j++) {
           utxoList.add(psbtObject.inputs[j].witnessUtxo!);
         }
-        // Keep sighash computation consistent with getSignedTransaction(),
-        // which reparses the unsigned transaction before validating.
-        final Transaction unsignedTx = Transaction.parseUnsignedTransaction(
-            psbtObject.unsignedTransaction!.serialize());
-        sigHash = unsignedTx.getTaprootSigHash(inputIndex, utxoList);
         sigHash = psbtObject.unsignedTransaction!
             .getTaprootSigHash(inputIndex, utxoList);
       }
