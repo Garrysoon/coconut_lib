@@ -382,10 +382,18 @@ class KeyStore {
       }
       //Key path spending
       else if (psbtInput.tapLeafScript == null && sessionContext == null) {
+        final Uint8List? merkleRoot = (psbtInput.tapMerkleRoot != null &&
+                psbtInput.tapMerkleRoot!.isNotEmpty)
+            ? Codec.decodeHex(psbtInput.tapMerkleRoot!)
+            : null;
         publicKey = getPublicKey(accountIndex,
-            isChange: isChange, applyTweak: true, isXOnly: false);
+            isChange: isChange,
+            applyTweak: true,
+            isXOnly: false,
+            merkleRoot: merkleRoot);
         signature = Codec.encodeHex(
-            hdWallet.signSchnorr(Codec.decodeHex(sigHash), true));
+            hdWallet.signSchnorr(Codec.decodeHex(sigHash), true,
+                merkleRoot: merkleRoot));
       } else if (psbtInput.tapLeafScript == null && sessionContext != null) {
         //MuSig2
         publicKey =
