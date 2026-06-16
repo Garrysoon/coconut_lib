@@ -57,7 +57,7 @@ class TaprootVault extends TaprootWalletBase {
   }
 
   /// Add public nonce to the PSBT.
-  String addPublicNonce(String psbt) {
+  String addPublicNonce(String psbt, {String extraInput = ''}) {
     if (addressType != AddressType.p2tr) {
       throw Exception("Only p2tr needs public nonce.");
     }
@@ -93,7 +93,8 @@ class TaprootVault extends TaprootWalletBase {
               derivationPath.masterFingerprint == keyStore.masterFingerprint) {
             keyStore.hasPublicKeyInPsbt(psbt);
             keyStore.addPublicNonceToPsbtInput(
-                psbtInput, derivationPath.path, sigHash);
+                psbtInput, derivationPath.path, sigHash,
+                extraInput: extraInput);
           }
         }
       }

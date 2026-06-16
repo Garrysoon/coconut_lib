@@ -248,7 +248,8 @@ class KeyStore {
   }
 
   void addPublicNonceToPsbtInput(
-      PsbtInput psbtInput, String derivationPath, String sigHash) {
+      PsbtInput psbtInput, String derivationPath, String sigHash,
+      {String extraInput = ''}) {
     if (!hasSeed) {
       throw Exception('This vault does not have seed');
     }
@@ -259,7 +260,8 @@ class KeyStore {
     String publicKey =
         getPublicKey(accountIndex, isChange: isChange, isXOnly: false);
     String publicNonce = getPublicNonce(
-        sigHash, psbtInput.muSig2AggregatedPublicKey!, accountIndex, isChange);
+        sigHash, psbtInput.muSig2AggregatedPublicKey!, accountIndex, isChange,
+        extraInput: Codec.decodeHex(extraInput));
     psbtInput.addMuSig2PubNonce(
         publicKey, psbtInput.muSig2AggregatedPublicKey!, sigHash, publicNonce);
   }
