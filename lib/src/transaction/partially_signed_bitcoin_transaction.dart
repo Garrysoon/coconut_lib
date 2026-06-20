@@ -1046,12 +1046,8 @@ class Psbt {
     Transaction signedTransaction =
         Transaction.parseUnsignedTransaction(unsignedTransaction!.serialize());
     signedTransaction._isSegwit = addressType.isSegwit;
-    List<TransactionOutput> utxoList = [];
-    for (int i = 0; i < inputs.length; i++) {
-      utxoList.add(inputs[i].witnessUtxo!);
-    }
+    //p2wsh multisig
     if (addressType == AddressType.p2wsh) {
-      //p2wsh multisig
       for (int i = 0; i < inputs.length; i++) {
         if (inputs[i].totalSigner < inputs[i].requiredSignature) {
           throw Exception('Not enough signatures');
@@ -1071,8 +1067,8 @@ class Psbt {
           throw Exception('Invalid Signatures');
         }
       }
-    } else if (addressType == AddressType.p2wpkh) {
       //p2wpkh single signature
+    } else if (addressType == AddressType.p2wpkh) {
       for (int i = 0; i < inputs.length; i++) {
         if (inputs[i].partialSig == null) {
           throw Exception('Not enough signatures');
@@ -1091,6 +1087,10 @@ class Psbt {
         }
       }
     } else if (addressType == AddressType.p2tr) {
+      List<TransactionOutput> utxoList = [];
+      for (int i = 0; i < inputs.length; i++) {
+        utxoList.add(inputs[i].witnessUtxo!);
+      }
       for (int i = 0; i < inputs.length; i++) {
         if (inputs[i].tapScriptSig != null) {
           //Script path spending
@@ -1160,11 +1160,11 @@ class Psbt {
           }
         }
       }
+      if (!signedTransaction.validateSpend(utxoList)) {
+        throw Exception('Invalid Transaction');
+      }
     } else {
       throw Exception('Unsupported Address Type');
-    }
-    if (!signedTransaction.validateSpend(utxoList)) {
-      throw Exception('Invalid Transaction');
     }
     //Validate signedTransaction
     return signedTransaction;
