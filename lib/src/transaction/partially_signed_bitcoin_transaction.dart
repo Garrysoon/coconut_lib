@@ -1101,22 +1101,14 @@ class Psbt {
               inputs[i].controlBlock!);
         } else if (inputs[i].tapScriptSig == null &&
             inputs[i].muSig2AggregatedPublicKey == null) {
-          //Key path spending
-          for (int i = 0; i < inputs.length; i++) {
-            if (inputs[i].tapKeySig != null) {
-              signedTransaction.inputs[i]
-                  .setTaprootKeyPathSpendingSignature(inputs[i].tapKeySig!);
-
-              if (utxoList.isEmpty) {
-                continue;
-              }
-
-              if (signedTransaction.validateSchnorr(i, utxoList)) {
-                continue;
-              } else {
-                throw Exception('Invalid Signatures');
-              }
-            }
+          // key path spending
+          signedTransaction.inputs[i].setTaprootKeyPathSpendingSignature(
+              inputs[i].tapKeySig!);
+          
+          if (signedTransaction.validateSchnorr(i, utxoList)) {
+            continue;
+          } else {
+            throw Exception('Invalid Signatures');
           }
         } else if (inputs[i].tapScriptSig == null &&
             inputs[i].muSig2AggregatedPublicKey != null) {

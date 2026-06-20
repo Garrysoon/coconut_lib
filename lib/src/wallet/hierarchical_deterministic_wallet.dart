@@ -234,8 +234,8 @@ class HDWallet {
   }
 
   Uint8List signSchnorr(Uint8List message, bool applyTweak,
-      {Uint8List? auxRand}) {
-    Uint8List secretKey = getPrivateKey(applyTweak, true);
+      {Uint8List? auxRand, Uint8List? merkleRoot}) {
+    Uint8List secretKey = getPrivateKey(applyTweak, true, merkleRoot: merkleRoot);
     return Ecc.signSchnorr(message, secretKey, auxRand: auxRand);
   }
 

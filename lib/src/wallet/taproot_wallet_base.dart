@@ -201,11 +201,11 @@ abstract class TaprootWalletBase extends WalletBase {
       for (int j = 0; j < psbtObject.unsignedTransaction!.inputs.length; j++) {
         utxoList.add(psbtObject.inputs[j].witnessUtxo!);
       }
+
       // Default (key-path) taproot sighash; may be overridden for tapscript spends.
       String sigHash = psbtObject.unsignedTransaction!
           .getTaprootSigHash(inputIndex, utxoList);
       List<DerivationPath>? derivationPathList = psbtInput.tapBip32Derivation;
-
       //Script path spending
       if (psbtInput.tapLeafScript != null) {
         final Uint8List raw =

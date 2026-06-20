@@ -316,6 +316,86 @@ void main() {
         expect(keyStore.toString(), contains('extendedPublicKey'));
       });
     });
+    group('nonce nondeterminism test', () {
+      test('getSecretNonce should return different values for same inputs (BIP-0327 security requirement)', () {
+        Uint8List secretKey = Codec.decodeHex(
+            '53758e643751e3c23fd15b1c08a80179c8a6a78fed51c6e5961e2ea9d381925a');
+        Uint8List publicKey = Codec.decodeHex(
+            "0231cd531693ac6f845e040afbad01fc13816869436d5bbaa0367abc3809b8848f");
+        Uint8List aggPubkey = Codec.decodeHex(
+            "5c6bc6c83ac710fa23c806e3744d90cbd54899f38cfdb2f6310e9d664f79b5b9");
+        Uint8List message = Codec.decodeHex(
+            "90e6bcf20fccc52e974ecd7e9fa2b7e7af5832d9b8285078095b8b5dfb8d045c");
+        Uint8List extraInput = Codec.decodeHex("");
+
+        Uint8List rand = Hash.sha160fromByte(
+            Uint8List.fromList([...secretKey, ...aggPubkey, ...message]));
+
+        Uint8List nonce1 = KeyStore.calculateSecretNonce(
+            rand, secretKey, publicKey, aggPubkey, message, extraInput,
+            isDeterministic: false);
+
+        rand = Hash.sha160fromByte(
+            Uint8List.fromList([...secretKey, ...aggPubkey, ...message]));
+
+        Uint8List nonce2 = KeyStore.calculateSecretNonce(
+            rand, secretKey, publicKey, aggPubkey, message, extraInput,
+            isDeterministic: false);
+
+        // BIP-0327: Nonce MUST be unique for each signing session
+        // This test EXPECTS different nonces but will FAIL with current deterministic implementation
+        expect(Codec.encodeHex(nonce1), isNot(equals(Codec.encodeHex(nonce2))),
+            reason: 'MuSig2 nonce should be nondeterministic to prevent key extraction attacks');
+      });
+
+      test('getPublicNonce should return different values for same inputs across different KeyStore instances', () {
+        String sigHash =
+            "90e6bcf20fccc52e974ecd7e9fa2b7e7af5832d9b8285078095b8b5dfb8d045c";
+        String aggPubKey =
+            "5c6bc6c83ac710fa23c806e3744d90cbd54899f38cfdb2f6310e9d664f79b5b9";
+        int accountIndex = 0;
+        bool isChange = false;
+
+        KeyStore keyStore1 = KeyStore.fromSeed(seed, AddressType.p2tr);
+        KeyStore keyStore2 = KeyStore.fromSeed(seed, AddressType.p2tr);
+
+        String nonce1 = keyStore1.getPublicNonce(
+            sigHash, aggPubKey, accountIndex, isChange);
+        String nonce2 = keyStore2.getPublicNonce(
+            sigHash, aggPubKey, accountIndex, isChange);
+
+        // BIP-0327: Each signing session must use unique nonce
+        // This test EXPECTS different nonces but will FAIL with current deterministic implementation
+        expect(nonce1, isNot(equals(nonce2)),
+            reason: 'Different KeyStore instances should generate different nonces for security');
+      });
+
+      test('multiple calls should return different nonces (replay attack protection)', () {
+        String sigHash =
+            "90e6bcf20fccc52e974ecd7e9fa2b7e7af5832d9b8285078095b8b5dfb8d045c";
+        String aggPubKey =
+            "5c6bc6c83ac710fa23c806e3744d90cbd54899f38cfdb2f6310e9d664f79b5b9";
+        int accountIndex = 0;
+        bool isChange = false;
+
+        KeyStore keyStore = KeyStore.fromSeed(seed, AddressType.p2tr);
+
+        String nonce1 = keyStore.getPublicNonce(
+            sigHash, aggPubKey, accountIndex, isChange);
+        String nonce2 = keyStore.getPublicNonce(
+            sigHash, aggPubKey, accountIndex, isChange);
+        String nonce3 = keyStore.getPublicNonce(
+            sigHash, aggPubKey, accountIndex, isChange);
+
+        // BIP-0327: Nonce reuse leads to private key extraction
+        // This test EXPECTS different nonces but will FAIL with current deterministic implementation
+        expect(nonce1, isNot(equals(nonce2)),
+            reason: 'Repeated getPublicNonce calls should generate different nonces');
+        expect(nonce2, isNot(equals(nonce3)),
+            reason: 'Repeated getPublicNonce calls should generate different nonces');
+      });
+    });
+
     group('operator ==', () {
       test('Check equal', () {
         SingleSignatureVault vault = MockFactory.createP2wpkhVault();

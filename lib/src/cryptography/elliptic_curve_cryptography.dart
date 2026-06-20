@@ -358,7 +358,6 @@ class Ecc {
     }
 
     Uint8List R_prime_x = getEncoded(R_prime, false).sublist(1, 33);
-
     return R_prime_x.toString() == R_x.toString();
   }
 
