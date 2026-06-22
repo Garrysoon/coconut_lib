@@ -238,6 +238,7 @@ class Psbt {
 
       List<DerivationPath> inputDerivationPathList = [];
       List<Signature> partialSigList = [];
+      List<String> finalScriptWitness = [];
       MultisignatureScript? witnessScript;
 
       // for every taproot
@@ -282,6 +283,11 @@ class Psbt {
           String size =
               Codec.encodeHex(Codec.encodeVariableInteger(script.length ~/ 2));
           witnessScript = MultisignatureScript.parse(size + script);
+        }
+        // 08 : FINAL_SCRIPTWITNESS
+        if (key.startsWith('08')) {
+          finalScriptWitness
+              .addAll(_parseScriptWitness(psbtMap["inputs"][i][key]));
         }
         // 19 : TAP_KEY_SIG
         if (key.startsWith('13')) {
@@ -381,20 +387,21 @@ class Psbt {
       });
 
       // Set psbt input
+      PsbtInput input;
       if (inputDerivationPathList.isNotEmpty) {
-        inputs.add(PsbtInput.forSegwit(
+        input = PsbtInput.forSegwit(
             witnessUtxo, inputDerivationPathList, partialSigList,
-            witnessScript: witnessScript));
+            witnessScript: witnessScript);
       } else if (tapBip32Derivation.isNotEmpty &&
           muSig2AggregatedPublicKey == null &&
           tapLeafScript == null) {
-        inputs.add(PsbtInput.forKeyPathSpending(internalKey, witnessUtxo,
+        input = PsbtInput.forKeyPathSpending(internalKey, witnessUtxo,
             tapBip32Derivation, taprootKeyPathSpendingSignature,
-            tapMerkleRoot: tapMerkleRoot));
+            tapMerkleRoot: tapMerkleRoot);
       } else if (tapBip32Derivation.isNotEmpty &&
           muSig2AggregatedPublicKey != null &&
           tapLeafScript == null) {
-        inputs.add(PsbtInput.forMuSig2(
+        input = PsbtInput.forMuSig2(
             internalKey,
             witnessUtxo,
             tapBip32Derivation,
@@ -402,9 +409,9 @@ class Psbt {
             muSig2participantPubKeyList,
             muSig2PubNonces,
             muSig2PartialSigs,
-            tapMerkleRoot));
+            tapMerkleRoot);
       } else if (tapBip32Derivation.isNotEmpty && tapLeafScript != null) {
-        final input = PsbtInput.forScriptPathSpending(
+        input = PsbtInput.forScriptPathSpending(
             internalKey,
             witnessUtxo,
             tapBip32Derivation,
@@ -415,11 +422,14 @@ class Psbt {
         if (tapScriptSigList.isNotEmpty) {
           input.tapScriptSig = tapScriptSigList;
         }
-        inputs.add(input);
       } else {
-        inputs.add(PsbtInput.forSignatureOnly(witnessUtxo, partialSigList,
-            witnessScript: witnessScript));
+        input = PsbtInput.forSignatureOnly(witnessUtxo, partialSigList,
+            witnessScript: witnessScript);
       }
+      if (finalScriptWitness.isNotEmpty) {
+        input.finalScriptWitness = finalScriptWitness;
+      }
+      inputs.add(input);
     }
 
     for (int i = 0; i < psbtMap["outputs"].length; i++) {
@@ -990,6 +1000,27 @@ class Psbt {
     return 1;
   }
 
+  static List<String> _parseScriptWitness(String witnessHex) {
+    Uint8List witnessBytes = Codec.decodeHex(witnessHex);
+    int offset = 0;
+    int numItems = Codec.decodeVariableInteger(witnessBytes, offset);
+    offset += _getOffset(witnessBytes[offset]);
+
+    List<String> witnessList = [];
+    for (int j = 0; j < numItems; j++) {
+      int itemLen = Codec.decodeVariableInteger(witnessBytes, offset);
+      offset += _getOffset(witnessBytes[offset]);
+      if (itemLen == 0) {
+        witnessList.add('00');
+      } else {
+        witnessList.add(
+            Codec.encodeHex(witnessBytes.sublist(offset, offset + itemLen)));
+        offset += itemLen;
+      }
+    }
+    return witnessList;
+  }
+
   /// @nodoc
   static String getKeyType(Map<int, String> keyTypeMap, String typeName) {
     for (int key in keyTypeMap.keys) {
@@ -1070,20 +1101,32 @@ class Psbt {
       //p2wpkh single signature
     } else if (addressType == AddressType.p2wpkh) {
       for (int i = 0; i < inputs.length; i++) {
-        if (inputs[i].partialSig == null) {
-          throw Exception('Not enough signatures');
-        }
-        signedTransaction.inputs[i]
-            .setSignature(addressType, inputs[i].partialSig!);
-
-        if (inputs[i].witnessUtxo == null) {
-          continue;
-        }
-
-        if (signedTransaction.validateEcdsa(i, inputs[i].witnessUtxo!)) {
-          continue;
+        // ignore: prefer_is_empty
+        if (inputs[i].partialSig != null && inputs[i].partialSig?.length != 0) {
+          signedTransaction.inputs[i]
+              .setSignature(addressType, inputs[i].partialSig!);
+          if (inputs[i].witnessUtxo == null) {
+            continue;
+          }
+          if (signedTransaction.validateEcdsa(i, inputs[i].witnessUtxo!)) {
+            continue;
+          } else {
+            throw Exception('Invalid Signatures');
+          }
+        } else if (inputs[i].finalScriptWitness != null &&
+            inputs[i].finalScriptWitness!.isNotEmpty) {
+          signedTransaction.inputs[i].witnessList =
+              List<String>.from(inputs[i].finalScriptWitness!);
+          if (inputs[i].witnessUtxo == null) {
+            continue;
+          }
+          if (signedTransaction.validateEcdsa(i, inputs[i].witnessUtxo!)) {
+            continue;
+          } else {
+            throw Exception('Invalid Signatures');
+          }
         } else {
-          throw Exception('Invalid Signatures');
+          throw Exception('Not enough signatures');
         }
       }
     } else if (addressType == AddressType.p2tr) {
@@ -1102,9 +1145,8 @@ class Psbt {
         } else if (inputs[i].tapScriptSig == null &&
             inputs[i].muSig2AggregatedPublicKey == null) {
           // key path spending
-          signedTransaction.inputs[i].setTaprootKeyPathSpendingSignature(
-              inputs[i].tapKeySig!);
-          
+          signedTransaction.inputs[i]
+              .setTaprootKeyPathSpendingSignature(inputs[i].tapKeySig!);
           if (signedTransaction.validateSchnorr(i, utxoList)) {
             continue;
           } else {
@@ -1264,6 +1306,7 @@ class PsbtInput {
   List<Signature>? partialSig; //0x02
   List<DerivationPath>? bip32Derivation; //0x03
   MultisignatureScript? witnessScript; //0x05
+  List<String>? finalScriptWitness; //0x08
 
   //Field for taproot
   String? internalKey; //0x17
