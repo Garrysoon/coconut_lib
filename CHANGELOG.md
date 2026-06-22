@@ -1,3 +1,6 @@
+## 1.1.0
+- Support P2TR and taproot policy
+
 ## 1.0.4
 - Support HWW for multisig signing
 
